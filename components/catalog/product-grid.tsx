@@ -1,16 +1,24 @@
 import { getProducts } from "@/actions/products";
-import { ShoppingBag, Calendar, MessageCircle } from "lucide-react";
-import Image from "next/image"; // Opcional: Si usas el componente nativo de Next.js
+import { Calendar } from "lucide-react"; // Usamos Calendar para servicios
 
-export async function ProductGrid() {
-    // TypeScript ahora YA SABE que 'products' es una lista de productos
-    // gracias al cambio que hicimos en el archivo anterior.
-    const products = await getProducts();
+interface ProductGridProps {
+    query?: string; // 👈 Aceptamos el texto de búsqueda
+    category?: string; // 👈 Aceptamos la categoría
+}
 
+export async function ProductGrid({ query, category }: ProductGridProps) {
+    // Pasamos el query y la categoría al servidor para filtrar la base de datos
+    const products = await getProducts(query, category);
+
+    // Estado Vacío: Si no hay productos (o la búsqueda no trajo nada)
     if (products.length === 0) {
         return (
-            <div className="text-center py-20">
-                <p className="text-gray-500 text-lg">No hay productos disponibles por el momento.</p>
+            <div className="text-center py-20 bg-white rounded-lg border border-dashed border-gray-200">
+                <p className="text-gray-500 text-lg">
+                    {query
+                        ? `No encontramos productos para "${query}"`
+                        : "No hay productos disponibles por el momento."}
+                </p>
             </div>
         );
     }
@@ -18,7 +26,7 @@ export async function ProductGrid() {
     return (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
             {products.map((product) => {
-                // Lógica de Negocio Visual
+                // --- Lógica de Negocio Visual ---
                 const isOutOfStock = product.stock === 0;
                 const isLowStock = product.stock > 0 && product.stock < 5;
                 const isService = product.category === 'SERVICE';
@@ -26,10 +34,9 @@ export async function ProductGrid() {
                 return (
                     <div key={product.id} className="group relative flex flex-col gap-3">
 
-                        {/* 1. Imagen y Etiquetas */}
+                        {/* 1. Imagen y Badges */}
                         <div className="relative aspect-square w-full overflow-hidden rounded-lg bg-gray-100">
                             {product.imageUrl ? (
-                                // Usamos <img> normal para evitar configuraciones extra de Next.js por ahora
                                 <img
                                     src={product.imageUrl}
                                     alt={product.name}
@@ -48,7 +55,7 @@ export async function ProductGrid() {
                                         Servicio
                                     </span>
                                 )}
-                                {/* Etiqueta de Nuevo (Opcional) */}
+                                {/* Etiqueta de Nuevo (Opcional, lógica simple si no es servicio ni agotado) */}
                                 {!isService && !isOutOfStock && (
                                     <span className="bg-white/90 text-black text-[10px] px-2 py-1 font-bold uppercase tracking-wide rounded shadow-sm">
                                         Nuevo
@@ -96,7 +103,10 @@ export async function ProductGrid() {
                             </button>
                         ) : (
                             <button className="w-full flex items-center justify-center gap-2 rounded-md bg-green-600 hover:bg-green-700 transition-all duration-200 px-4 py-3 text-sm font-medium text-white shadow-md hover:shadow-lg active:scale-[0.98]">
+                                {/* Icono Dinámico: Calendario para servicios, WhatsApp para productos */}
                                 {isService ? <Calendar size={18} /> : <WhatsAppIcon />}
+
+                                {/* Texto Dinámico */}
                                 {isService ? 'Agendar Cita' : 'Pedir por WhatsApp'}
                             </button>
                         )}
@@ -105,19 +115,20 @@ export async function ProductGrid() {
             })}
         </div>
     );
+}
 
-    function WhatsAppIcon() {
-        return (
-            <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="18"
-                height="18"
-                viewBox="0 0 24 24"
-                fill="currentColor" // Esto hace que tome el color blanco del texto
-                className="inline-block"
-            >
-                <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.305-5.235c0-5.438 4.411-9.856 9.854-9.856 2.632 0 5.108 1.026 6.969 2.888 1.861 1.862 2.888 4.337 2.888 6.968 0 5.443-4.415 9.865-9.855 9.865" />
-            </svg>
-        )
-    }
+// --- Componente Auxiliar: Icono de WhatsApp ---
+function WhatsAppIcon() {
+    return (
+        <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="currentColor"
+            className="inline-block"
+        >
+            <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.305-5.235c0-5.438 4.411-9.856 9.854-9.856 2.632 0 5.108 1.026 6.969 2.888 1.861 1.862 2.888 4.337 2.888 6.968 0 5.443-4.415 9.865-9.855 9.865" />
+        </svg>
+    )
 }
