@@ -1,13 +1,15 @@
-// prisma/schema.prisma
+// 1. Configuración del Cliente (¡Esto faltaba!)
 generator client {
   provider = "prisma-client-js"
 }
 
+// 2. Configuración de la Base de Datos (¡Esto también faltaba!)
 datasource db {
   provider = "sqlite"
   url      = "file:./dev.db"
 }
 
+// 3. Tu Modelo de Datos
 model Product {
   id          String   @id @default(cuid())
   name        String
@@ -18,4 +20,7 @@ model Product {
   category    String   @default("READY_MADE")
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+
+  // Tu campo SKU listo
+  sku         String   @unique @default(cuid())
 }

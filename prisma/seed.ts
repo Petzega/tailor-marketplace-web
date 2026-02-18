@@ -4,7 +4,10 @@ const prisma = new PrismaClient()
 async function main() {
     await prisma.product.deleteMany()
 
-    // 1. Producto Normal (Vestido)
+    // Usamos la fecha de hoy simulada para el ejemplo
+    const todayPrefix = '20260218';
+
+    // 1. Producto Normal
     await prisma.product.create({
         data: {
             name: 'Vestido de Lino Verano',
@@ -12,11 +15,12 @@ async function main() {
             price: 180.00,
             stock: 50,
             category: 'READY_MADE',
-            imageUrl: 'https://images.unsplash.com/photo-1595777457583-95e059d581b8?w=500' // URL Nueva
+            sku: `${todayPrefix}001`, // 👈 20260218001
+            imageUrl: 'https://images.unsplash.com/photo-1595777457583-95e059d581b8?w=500'
         },
     })
 
-    // 2. Producto "Low Stock" (Camisa)
+    // 2. Producto "Low Stock"
     await prisma.product.create({
         data: {
             name: 'Camisa Oxford Clásica',
@@ -24,11 +28,12 @@ async function main() {
             price: 120.00,
             stock: 2,
             category: 'READY_MADE',
+            sku: `${todayPrefix}002`, // 👈 20260218002
             imageUrl: 'https://images.unsplash.com/photo-1596755094514-f87e34085b2c?w=500'
         },
     })
 
-    // 3. Producto Agotado (Bufanda)
+    // 3. Producto Agotado
     await prisma.product.create({
         data: {
             name: 'Bufanda de Seda',
@@ -36,11 +41,12 @@ async function main() {
             price: 85.00,
             stock: 0,
             category: 'READY_MADE',
-            imageUrl: 'https://images.unsplash.com/photo-1481325545291-94394fe1cf95?w=500' // URL Nueva (se verá gris)
+            sku: `${todayPrefix}003`, // 👈 20260218003
+            imageUrl: 'https://images.unsplash.com/photo-1481325545291-94394fe1cf95?w=500'
         },
     })
 
-    // 4. Servicio (Basta de Jeans) - AQUÍ ESTABA EL ERROR
+    // 4. Servicio
     await prisma.product.create({
         data: {
             name: 'Basta de Jeans Original',
@@ -48,11 +54,12 @@ async function main() {
             price: 20.00,
             stock: 999,
             category: 'SERVICE',
-            imageUrl: 'https://images.unsplash.com/photo-1541099649105-f69ad21f3246?w=500' // URL de Jeans real
+            sku: `${todayPrefix}004`, // 👈 20260218004
+            imageUrl: 'https://images.unsplash.com/photo-1541099649105-f69ad21f3246?w=500'
         },
     })
 
-    console.log('✅ Datos corregidos sembrados')
+    console.log('✅ Datos sembrados con SKUs numéricos')
 }
 
 main()

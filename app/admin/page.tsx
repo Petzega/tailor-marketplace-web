@@ -1,9 +1,8 @@
 import Link from "next/link";
 import { getProducts } from "@/actions/products";
-import { Plus, Search, Filter, Download, AlertCircle, Package as PackageIcon, DollarSign, MoreVertical } from "lucide-react";
-import { ProductSheet } from "@/components/admin/product-sheet"; // 👈 IMPORTANTE
+import { Plus, Search, Filter, Download, MoreHorizontal, ArrowUpDown } from "lucide-react";
+import { ProductSheet } from "@/components/admin/product-sheet";
 
-// Definimos los tipos para los searchParams
 interface AdminPageProps {
     searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }
@@ -11,87 +10,211 @@ interface AdminPageProps {
 export default async function AdminPage({ searchParams }: AdminPageProps) {
     const products = await getProducts();
 
-    // 1. Resolvemos la promesa de searchParams (Next.js 15+)
     const params = await searchParams;
-    // 2. Verificamos si debemos mostrar el slide-over
     const showNewProductForm = params?.new === 'true';
 
-    // Cálculos rápidos
+    // Cálculos rápidos para las tarjetas superiores
     const totalValue = products.reduce((acc, p) => acc + (p.price * p.stock), 0);
-    const lowStockCount = products.filter(p => p.stock < 5 && p.category !== 'SERVICE').length;
+    const lowStockCount = products.filter(p => p.stock < 5 && p.stock > 0 && p.category !== 'SERVICE').length;
 
     return (
-        <div className="p-8 relative"> {/* relative para contexto */}
+        <div className="p-8 relative min-h-screen bg-gray-50">
 
-            {/* 👇 AQUÍ ESTÁ LA MAGIA: Si el estado es true, mostramos el SlideOver */}
+            {/* Slide-over del formulario */}
             {showNewProductForm && <ProductSheet />}
 
-            {/* --- EL RESTO DE TU PÁGINA SIGUE IGUAL --- */}
+            <div className="max-w-7xl mx-auto space-y-8">
 
-            {/* 1. Encabezado Superior */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
-                <div>
-                    <h1 className="text-2xl font-bold text-gray-900">Inventory Management</h1>
-                    <p className="text-gray-500 text-sm mt-1">Track stock levels, manage products, and update pricing.</p>
-                </div>
-                <div className="flex gap-3">
-                    <button className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 text-sm font-medium transition-colors">
-                        <Download size={18} />
-                        Export
-                    </button>
-
-                    {/* 👇 CAMBIO IMPORTANTE: El botón ahora solo agrega ?new=true a la URL */}
-                    <Link
-                        href="/admin?new=true"
-                        className="flex items-center gap-2 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 text-sm font-medium shadow-sm transition-colors"
-                    >
-                        <Plus size={18} />
-                        Add New Product
-                    </Link>
-                </div>
-            </div>
-
-            {/* ... [MANTÉN AQUÍ TODO EL CÓDIGO DE TUS CARDS DE ESTADÍSTICAS Y LA TABLA QUE YA TIENES] ... */}
-            {/* ... Solo copia y pega lo que tenías antes debajo del botón "Add New Product" ... */}
-
-            {/* Para ahorrar espacio en este mensaje, asumo que mantienes el código de Cards y Tabla aquí */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                {/* ... Tus Cards ... */}
-                {/* (Si necesitas que repita todo el código de la tabla dímelo, pero es el mismo de antes) */}
-                <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm flex items-start justify-between">
+                {/* 1. Encabezado y Botones */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <div>
-                        <p className="text-sm font-medium text-gray-500">Total Products</p>
-                        <h3 className="text-3xl font-bold text-gray-900 mt-2">{products.length}</h3>
+                        <h1 className="text-2xl font-bold text-gray-900">Inventory Management</h1>
+                        <p className="text-gray-500 text-sm mt-1">Track stock levels, manage products, and update pricing.</p>
                     </div>
-                    <div className="p-3 bg-blue-50 text-blue-600 rounded-lg"><PackageIcon size={24} /></div>
+                    <div className="flex gap-3">
+                        <button className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 text-sm font-medium transition-colors shadow-sm">
+                            <Download size={16} />
+                            Export
+                        </button>
+                        <Link
+                            href="/admin?new=true"
+                            className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm font-medium shadow-sm transition-all active:scale-95"
+                        >
+                            <Plus size={16} />
+                            Add Product
+                        </Link>
+                    </div>
                 </div>
-                {/* ... etc ... */}
-            </div>
 
-            {/* Tabla */}
-            <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-                {/* ... Tu código de tabla ... */}
-                <table className="w-full text-left border-collapse">
-                    {/* ... headers ... */}
-                    <thead className="bg-gray-50 border-b border-gray-100 text-xs uppercase tracking-wider text-gray-500 font-semibold">
-                    <tr>
-                        <th className="px-6 py-4">Product</th>
-                        <th className="px-6 py-4">Price</th>
-                        <th className="px-6 py-4">Stock</th>
-                    </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-100 bg-white">
-                    {products.map((product) => (
-                        <tr key={product.id}>
-                            <td className="px-6 py-4">{product.name}</td>
-                            <td className="px-6 py-4">S/ {product.price}</td>
-                            <td className="px-6 py-4">{product.stock}</td>
-                        </tr>
-                    ))}
-                    </tbody>
-                </table>
-            </div>
+                {/* 2. Tarjetas de Métricas (Stats) */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <StatCard label="Total Products" value={products.length.toString()} trend="+12%" />
+                    <StatCard label="Low Stock Alerts" value={lowStockCount.toString()} trend="Action required" isAlert />
+                    <StatCard label="Total Value" value={`S/ ${totalValue.toLocaleString()}`} trend="Updated just now" />
+                </div>
 
+                {/* 3. Contenedor de la Tabla */}
+                <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+
+                    {/* Barra de Herramientas de la Tabla */}
+                    <div className="p-4 border-b border-gray-100 flex flex-col sm:flex-row gap-4 justify-between bg-white">
+                        <div className="relative w-full sm:w-96">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                            <input
+                                type="text"
+                                placeholder="Search by product name, SKU..."
+                                className="w-full pl-10 pr-4 py-2 text-sm border border-gray-200 rounded-lg outline-none focus:border-green-500 focus:ring-1 focus:ring-green-500 transition-all"
+                            />
+                        </div>
+                        <div className="flex gap-2">
+                            <FilterButton label="All Categories" />
+                            <FilterButton label="Stock Status" />
+                            <button className="p-2 border border-gray-200 rounded-lg hover:bg-gray-50 text-gray-500">
+                                <Filter size={18} />
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* LA TABLA PRINCIPAL */}
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-left border-collapse">
+                            <thead>
+                            <tr className="bg-gray-50/50 border-b border-gray-100 text-xs uppercase tracking-wider text-gray-500 font-semibold">
+                                <th className="px-6 py-4 w-[40px]"><input type="checkbox" className="rounded border-gray-300 text-green-600 focus:ring-green-500" /></th>
+                                <th className="px-6 py-4">Product</th>
+                                <th className="px-6 py-4">SKU</th>
+                                <th className="px-6 py-4">Category</th>
+                                <th className="px-6 py-4">Price</th>
+                                <th className="px-6 py-4">Stock Level</th>
+                                <th className="px-6 py-4">Status</th>
+                                <th className="px-6 py-4 text-right">Actions</th>
+                            </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-100 bg-white">
+                            {products.map((product) => {
+                                const isLow = product.stock > 0 && product.stock < 5;
+                                const isOut = product.stock === 0;
+                                const isService = product.category === 'SERVICE';
+                                // Calculamos % para la barra (max 50 unidades visuales)
+                                const percent = Math.min((product.stock / 50) * 100, 100);
+
+                                return (
+                                    <tr key={product.id} className="hover:bg-gray-50/80 transition-colors group">
+                                        <td className="px-6 py-4"><input type="checkbox" className="rounded border-gray-300 text-green-600 focus:ring-green-500" /></td>
+
+                                        {/* Columna PRODUCTO */}
+                                        <td className="px-6 py-4">
+                                            <div className="flex items-center gap-3">
+                                                <div className="h-10 w-10 rounded-lg bg-gray-100 overflow-hidden border border-gray-200 shrink-0">
+                                                    {product.imageUrl && <img src={product.imageUrl} className="h-full w-full object-cover" />}
+                                                </div>
+                                                <div>
+                                                    <p className="text-sm font-medium text-gray-900">{product.name}</p>
+                                                    <p className="text-xs text-gray-500 truncate max-w-[140px]">{product.description}</p>
+                                                </div>
+                                            </div>
+                                        </td>
+
+                                        {/* Columna SKU */}
+                                        <td className="px-6 py-4">
+                        <span className="text-xs font-mono text-gray-500 bg-gray-100 px-2 py-1 rounded">
+                          {product.sku || '---'}
+                        </span>
+                                        </td>
+
+                                        {/* Columna CATEGORÍA */}
+                                        <td className="px-6 py-4 text-sm text-gray-600">
+                                            {isService ? 'Sewing Service' : 'Ready-to-wear'}
+                                        </td>
+
+                                        {/* Columna PRECIO */}
+                                        <td className="px-6 py-4 text-sm font-medium text-gray-900">
+                                            S/ {product.price.toFixed(2)}
+                                        </td>
+
+                                        {/* Columna STOCK (Barra Visual) */}
+                                        <td className="px-6 py-4 w-48">
+                                            {isService ? (
+                                                <span className="text-xs text-gray-400 italic">Unlimited</span>
+                                            ) : (
+                                                <div className="space-y-1.5">
+                                                    <div className="flex justify-between text-xs">
+                              <span className={`font-medium ${isLow ? 'text-amber-600' : 'text-green-600'}`}>
+                                {product.stock} units
+                              </span>
+                                                    </div>
+                                                    <div className="w-full bg-gray-100 rounded-full h-1.5 overflow-hidden">
+                                                        <div
+                                                            className={`h-full rounded-full transition-all duration-500 ${
+                                                                isOut ? 'bg-gray-300' : isLow ? 'bg-amber-400' : 'bg-green-500'
+                                                            }`}
+                                                            style={{ width: `${isOut ? 0 : Math.max(percent, 5)}%` }}
+                                                        />
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </td>
+
+                                        {/* Columna STATUS (Badge) */}
+                                        <td className="px-6 py-4">
+                                            <StatusBadge isOut={isOut} isLow={isLow} isService={isService} />
+                                        </td>
+
+                                        {/* Columna ACCIONES */}
+                                        <td className="px-6 py-4 text-right">
+                                            <button className="p-1 text-gray-400 hover:text-gray-600 rounded-md hover:bg-gray-100 transition-colors">
+                                                <MoreHorizontal size={18} />
+                                            </button>
+                                        </td>
+                                    </tr>
+                                );
+                            })}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    {/* Paginación (Visual) */}
+                    <div className="px-6 py-4 border-t border-gray-100 flex items-center justify-between bg-gray-50/30">
+                        <span className="text-xs text-gray-500">Showing 1 to {products.length} of {products.length} entries</span>
+                        <div className="flex gap-2">
+                            <button className="px-3 py-1 text-xs border border-gray-200 rounded bg-white text-gray-500 disabled:opacity-50" disabled>Previous</button>
+                            <button className="px-3 py-1 text-xs border border-gray-200 rounded bg-white text-gray-500 disabled:opacity-50" disabled>Next</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     );
+}
+
+// --- Componentes Auxiliares para limpiar el código ---
+
+function StatCard({ label, value, trend, isAlert }: { label: string, value: string, trend: string, isAlert?: boolean }) {
+    return (
+        <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
+            <p className="text-sm font-medium text-gray-500">{label}</p>
+            <div className="mt-2 flex items-baseline gap-2">
+                <h3 className="text-2xl font-bold text-gray-900">{value}</h3>
+            </div>
+            <p className={`text-xs mt-1 font-medium ${isAlert ? 'text-red-600' : 'text-green-600'}`}>
+                {trend}
+            </p>
+        </div>
+    )
+}
+
+function FilterButton({ label }: { label: string }) {
+    return (
+        <button className="px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm text-gray-600 flex items-center gap-2 hover:bg-gray-50">
+            {label}
+            <ArrowUpDown size={12} className="text-gray-400" />
+        </button>
+    )
+}
+
+function StatusBadge({ isOut, isLow, isService }: { isOut: boolean, isLow: boolean, isService: boolean }) {
+    if (isOut) return <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-50 text-red-700 border border-red-100">Out of Stock</span>;
+    if (isLow) return <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-50 text-amber-700 border border-amber-100">Low Stock</span>;
+    if (isService) return <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-100">Active</span>;
+    return <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-50 text-green-700 border border-green-100">In Stock</span>;
 }
