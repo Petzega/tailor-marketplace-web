@@ -113,3 +113,24 @@ export async function createProduct(formData: FormData) {
     revalidatePath("/admin");
     redirect("/admin");
 }
+
+export async function deleteProduct(id: string) {
+    try {
+        await db.product.delete({
+            where: { id },
+        });
+
+        // Actualizamos las vistas
+        revalidatePath("/admin");
+        revalidatePath("/");
+
+        return { success: true };
+    } catch (error) {
+        console.error("Error al eliminar:", error);
+        return { success: false, error: "No se pudo eliminar el producto" };
+    }
+}
+
+export async function updateProduct(id: string) {
+
+}

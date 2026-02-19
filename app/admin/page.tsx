@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { getProducts } from "@/actions/products";
-import { Plus, Search, Filter, Download, MoreHorizontal, ArrowUpDown } from "lucide-react";
+// Quitamos Pencil y Trash2 de aquí porque ya están dentro del componente ProductActions
+import { Plus, Search, Filter, Download, ArrowUpDown } from "lucide-react";
 import { ProductSheet } from "@/components/admin/product-sheet";
+import { ProductActions } from "@/components/admin/product-actions";
 
 interface AdminPageProps {
     searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
@@ -13,19 +15,18 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
     const params = await searchParams;
     const showNewProductForm = params?.new === 'true';
 
-    // Cálculos rápidos para las tarjetas superiores
+    // Cálculos rápidos
     const totalValue = products.reduce((acc, p) => acc + (p.price * p.stock), 0);
     const lowStockCount = products.filter(p => p.stock < 5 && p.stock > 0 && p.category !== 'SERVICE').length;
 
     return (
         <div className="p-8 relative min-h-screen bg-gray-50">
 
-            {/* Slide-over del formulario */}
             {showNewProductForm && <ProductSheet />}
 
             <div className="max-w-7xl mx-auto space-y-8">
 
-                {/* 1. Encabezado y Botones */}
+                {/* Encabezado */}
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <div>
                         <h1 className="text-2xl font-bold text-gray-900">Inventory Management</h1>
@@ -46,36 +47,28 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                     </div>
                 </div>
 
-                {/* 2. Tarjetas de Métricas (Stats) */}
+                {/* Stats Cards */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <StatCard label="Total Products" value={products.length.toString()} trend="+12%" />
                     <StatCard label="Low Stock Alerts" value={lowStockCount.toString()} trend="Action required" isAlert />
                     <StatCard label="Total Value" value={`S/ ${totalValue.toLocaleString()}`} trend="Updated just now" />
                 </div>
 
-                {/* 3. Contenedor de la Tabla */}
+                {/* Tabla */}
                 <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
 
-                    {/* Barra de Herramientas de la Tabla */}
                     <div className="p-4 border-b border-gray-100 flex flex-col sm:flex-row gap-4 justify-between bg-white">
                         <div className="relative w-full sm:w-96">
                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                            <input
-                                type="text"
-                                placeholder="Search by product name, SKU..."
-                                className="w-full pl-10 pr-4 py-2 text-sm border border-gray-200 rounded-lg outline-none focus:border-green-500 focus:ring-1 focus:ring-green-500 transition-all"
-                            />
+                            <input type="text" placeholder="Search by product name, SKU..." className="w-full pl-10 pr-4 py-2 text-sm border border-gray-200 rounded-lg outline-none focus:border-green-500 focus:ring-1 focus:ring-green-500 transition-all" />
                         </div>
                         <div className="flex gap-2">
                             <FilterButton label="All Categories" />
                             <FilterButton label="Stock Status" />
-                            <button className="p-2 border border-gray-200 rounded-lg hover:bg-gray-50 text-gray-500">
-                                <Filter size={18} />
-                            </button>
+                            <button className="p-2 border border-gray-200 rounded-lg hover:bg-gray-50 text-gray-500"><Filter size={18} /></button>
                         </div>
                     </div>
 
-                    {/* LA TABLA PRINCIPAL */}
                     <div className="overflow-x-auto">
                         <table className="w-full text-left border-collapse">
                             <thead>
@@ -95,14 +88,12 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                                 const isLow = product.stock > 0 && product.stock < 5;
                                 const isOut = product.stock === 0;
                                 const isService = product.category === 'SERVICE';
-                                // Calculamos % para la barra (max 50 unidades visuales)
                                 const percent = Math.min((product.stock / 50) * 100, 100);
 
                                 return (
                                     <tr key={product.id} className="hover:bg-gray-50/80 transition-colors group">
                                         <td className="px-6 py-4"><input type="checkbox" className="rounded border-gray-300 text-green-600 focus:ring-green-500" /></td>
 
-                                        {/* Columna PRODUCTO */}
                                         <td className="px-6 py-4">
                                             <div className="flex items-center gap-3">
                                                 <div className="h-10 w-10 rounded-lg bg-gray-100 overflow-hidden border border-gray-200 shrink-0">
@@ -115,56 +106,36 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                                             </div>
                                         </td>
 
-                                        {/* Columna SKU */}
                                         <td className="px-6 py-4">
-                        <span className="text-xs font-mono text-gray-500 bg-gray-100 px-2 py-1 rounded">
-                          {product.sku || '---'}
-                        </span>
+                                            <span className="text-xs font-mono text-gray-500 bg-gray-100 px-2 py-1 rounded">{product.sku || '---'}</span>
                                         </td>
 
-                                        {/* Columna CATEGORÍA */}
-                                        <td className="px-6 py-4 text-sm text-gray-600">
-                                            {isService ? 'Sewing Service' : 'Ready-to-wear'}
-                                        </td>
+                                        <td className="px-6 py-4 text-sm text-gray-600">{isService ? 'Sewing Service' : 'Ready-to-wear'}</td>
 
-                                        {/* Columna PRECIO */}
-                                        <td className="px-6 py-4 text-sm font-medium text-gray-900">
-                                            S/ {product.price.toFixed(2)}
-                                        </td>
+                                        <td className="px-6 py-4 text-sm font-medium text-gray-900">S/ {product.price.toFixed(2)}</td>
 
-                                        {/* Columna STOCK (Barra Visual) */}
                                         <td className="px-6 py-4 w-48">
                                             {isService ? (
                                                 <span className="text-xs text-gray-400 italic">Unlimited</span>
                                             ) : (
                                                 <div className="space-y-1.5">
                                                     <div className="flex justify-between text-xs">
-                              <span className={`font-medium ${isLow ? 'text-amber-600' : 'text-green-600'}`}>
-                                {product.stock} units
-                              </span>
+                                                        <span className={`font-medium ${isLow ? 'text-amber-600' : 'text-green-600'}`}>{product.stock} units</span>
                                                     </div>
                                                     <div className="w-full bg-gray-100 rounded-full h-1.5 overflow-hidden">
-                                                        <div
-                                                            className={`h-full rounded-full transition-all duration-500 ${
-                                                                isOut ? 'bg-gray-300' : isLow ? 'bg-amber-400' : 'bg-green-500'
-                                                            }`}
-                                                            style={{ width: `${isOut ? 0 : Math.max(percent, 5)}%` }}
-                                                        />
+                                                        <div className={`h-full rounded-full transition-all duration-500 ${isOut ? 'bg-gray-300' : isLow ? 'bg-amber-400' : 'bg-green-500'}`} style={{ width: `${isOut ? 0 : Math.max(percent, 5)}%` }} />
                                                     </div>
                                                 </div>
                                             )}
                                         </td>
 
-                                        {/* Columna STATUS (Badge) */}
                                         <td className="px-6 py-4">
                                             <StatusBadge isOut={isOut} isLow={isLow} isService={isService} />
                                         </td>
 
-                                        {/* Columna ACCIONES */}
+                                        {/* 👇 AQUÍ ESTÁ EL ARREGLO PRINCIPAL */}
                                         <td className="px-6 py-4 text-right">
-                                            <button className="p-1 text-gray-400 hover:text-gray-600 rounded-md hover:bg-gray-100 transition-colors">
-                                                <MoreHorizontal size={18} />
-                                            </button>
+                                            <ProductActions productId={product.id} />
                                         </td>
                                     </tr>
                                 );
@@ -173,7 +144,6 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                         </table>
                     </div>
 
-                    {/* Paginación (Visual) */}
                     <div className="px-6 py-4 border-t border-gray-100 flex items-center justify-between bg-gray-50/30">
                         <span className="text-xs text-gray-500">Showing 1 to {products.length} of {products.length} entries</span>
                         <div className="flex gap-2">
@@ -187,8 +157,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
     );
 }
 
-// --- Componentes Auxiliares para limpiar el código ---
-
+// Helpers
 function StatCard({ label, value, trend, isAlert }: { label: string, value: string, trend: string, isAlert?: boolean }) {
     return (
         <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
@@ -196,9 +165,7 @@ function StatCard({ label, value, trend, isAlert }: { label: string, value: stri
             <div className="mt-2 flex items-baseline gap-2">
                 <h3 className="text-2xl font-bold text-gray-900">{value}</h3>
             </div>
-            <p className={`text-xs mt-1 font-medium ${isAlert ? 'text-red-600' : 'text-green-600'}`}>
-                {trend}
-            </p>
+            <p className={`text-xs mt-1 font-medium ${isAlert ? 'text-red-600' : 'text-green-600'}`}>{trend}</p>
         </div>
     )
 }
@@ -206,8 +173,7 @@ function StatCard({ label, value, trend, isAlert }: { label: string, value: stri
 function FilterButton({ label }: { label: string }) {
     return (
         <button className="px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm text-gray-600 flex items-center gap-2 hover:bg-gray-50">
-            {label}
-            <ArrowUpDown size={12} className="text-gray-400" />
+            {label}<ArrowUpDown size={12} className="text-gray-400" />
         </button>
     )
 }
