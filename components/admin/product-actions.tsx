@@ -3,7 +3,7 @@
 import { deleteProduct } from "@/actions/products";
 import { Trash2, Pencil } from "lucide-react";
 import { useState } from "react";
-import Link from "next/link";
+import Link from "next/link"; // Usamos Link para navegación rápida
 
 export function ProductActions({ productId }: { productId: string }) {
     const [isLoading, setIsLoading] = useState(false);
@@ -18,16 +18,16 @@ export function ProductActions({ productId }: { productId: string }) {
 
     return (
         <div className="flex items-center justify-end gap-2">
-            {/* Botón Editar */}
+            {/* 👇 CAMBIO CLAVE: Usamos query params */}
             <Link
-                href={`/admin/edit/${productId}`}
+                href={`/admin?edit=${productId}`}
+                scroll={false} // Evita que la página salte arriba al hacer clic
                 className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                 title="Editar"
             >
                 <Pencil size={18} />
             </Link>
 
-            {/* Botón Eliminar */}
             <button
                 onClick={handleDelete}
                 disabled={isLoading}

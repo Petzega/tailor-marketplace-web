@@ -1,8 +1,8 @@
 import Link from "next/link";
-import { getProducts } from "@/actions/products";
-// Quitamos Pencil y Trash2 de aquí porque ya están dentro del componente ProductActions
+import { getProducts, getProductById } from "@/actions/products";
 import { Plus, Search, Filter, Download, ArrowUpDown } from "lucide-react";
 import { ProductSheet } from "@/components/admin/product-sheet";
+import { EditProductSheet } from "@/components/admin/edit-product-sheet"; // 👈 Importamos el nuevo Sidebar de Edición
 import { ProductActions } from "@/components/admin/product-actions";
 
 interface AdminPageProps {
@@ -10,20 +10,37 @@ interface AdminPageProps {
 }
 
 export default async function AdminPage({ searchParams }: AdminPageProps) {
+    // 1. Obtener datos generales
     const products = await getProducts();
 
+    // 2. Leer parámetros de URL
     const params = await searchParams;
     const showNewProductForm = params?.new === 'true';
+    const editId = params?.edit;
 
-    // Cálculos rápidos
+    // 3. Si hay ID de edición en la URL, buscamos ese producto específico
+    let productToEdit = null;
+    if (typeof editId === 'string') {
+        productToEdit = await getProductById(editId);
+    }
+
+    // Cálculos de métricas para las tarjetas
     const totalValue = products.reduce((acc, p) => acc + (p.price * p.stock), 0);
     const lowStockCount = products.filter(p => p.stock < 5 && p.stock > 0 && p.category !== 'SERVICE').length;
 
     return (
         <div className="p-8 relative min-h-screen bg-gray-50">
 
+            {/* --- SIDEBARS (Se muestran encima de todo) --- */}
+
+            {/* A. Sidebar de CREAR (Si ?new=true) */}
             {showNewProductForm && <ProductSheet />}
 
+            {/* B. Sidebar de EDITAR (Si ?edit=ID y el producto existe) */}
+            {productToEdit && <EditProductSheet product={productToEdit} />}
+
+
+            {/* --- CONTENIDO PRINCIPAL --- */}
             <div className="max-w-7xl mx-auto space-y-8">
 
                 {/* Encabezado */}
@@ -47,7 +64,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                     </div>
                 </div>
 
-                {/* Stats Cards */}
+                {/* Tarjetas de Métricas */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <StatCard label="Total Products" value={products.length.toString()} trend="+12%" />
                     <StatCard label="Low Stock Alerts" value={lowStockCount.toString()} trend="Action required" isAlert />
@@ -65,81 +82,83 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                         <div className="flex gap-2">
                             <FilterButton label="All Categories" />
                             <FilterButton label="Stock Status" />
-                            <button className="p-2 border border-gray-200 rounded-lg hover:bg-gray-50 text-gray-500"><Filter size={18} /></button>
+                            <button className="p-2 border border-gray-200 rounded-lg hover:bg-gray-50 text-gray-500">
+                                <Filter size={18} />
+                            </button>
                         </div>
                     </div>
 
                     <div className="overflow-x-auto">
                         <table className="w-full text-left border-collapse">
                             <thead>
-                            <tr className="bg-gray-50/50 border-b border-gray-100 text-xs uppercase tracking-wider text-gray-500 font-semibold">
-                                <th className="px-6 py-4 w-[40px]"><input type="checkbox" className="rounded border-gray-300 text-green-600 focus:ring-green-500" /></th>
-                                <th className="px-6 py-4">Product</th>
-                                <th className="px-6 py-4">SKU</th>
-                                <th className="px-6 py-4">Category</th>
-                                <th className="px-6 py-4">Price</th>
-                                <th className="px-6 py-4">Stock Level</th>
-                                <th className="px-6 py-4">Status</th>
-                                <th className="px-6 py-4 text-right">Actions</th>
-                            </tr>
+                                <tr className="bg-gray-50/50 border-b border-gray-100 text-xs uppercase tracking-wider text-gray-500 font-semibold">
+                                    <th className="px-6 py-4 w-[40px]"><input type="checkbox" className="rounded border-gray-300 text-green-600 focus:ring-green-500" /></th>
+                                    <th className="px-6 py-4">Product</th>
+                                    <th className="px-6 py-4">SKU</th>
+                                    <th className="px-6 py-4">Category</th>
+                                    <th className="px-6 py-4">Price</th>
+                                    <th className="px-6 py-4">Stock Level</th>
+                                    <th className="px-6 py-4">Status</th>
+                                    <th className="px-6 py-4 text-right">Actions</th>
+                                </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-100 bg-white">
-                            {products.map((product) => {
-                                const isLow = product.stock > 0 && product.stock < 5;
-                                const isOut = product.stock === 0;
-                                const isService = product.category === 'SERVICE';
-                                const percent = Math.min((product.stock / 50) * 100, 100);
+                                {products.map((product) => {
+                                    const isLow = product.stock > 0 && product.stock < 5;
+                                    const isOut = product.stock === 0;
+                                    const isService = product.category === 'SERVICE';
+                                    const percent = Math.min((product.stock / 50) * 100, 100);
 
-                                return (
-                                    <tr key={product.id} className="hover:bg-gray-50/80 transition-colors group">
-                                        <td className="px-6 py-4"><input type="checkbox" className="rounded border-gray-300 text-green-600 focus:ring-green-500" /></td>
+                                    return (
+                                        <tr key={product.id} className="hover:bg-gray-50/80 transition-colors group">
+                                            <td className="px-6 py-4"><input type="checkbox" className="rounded border-gray-300 text-green-600 focus:ring-green-500" /></td>
 
-                                        <td className="px-6 py-4">
-                                            <div className="flex items-center gap-3">
-                                                <div className="h-10 w-10 rounded-lg bg-gray-100 overflow-hidden border border-gray-200 shrink-0">
-                                                    {product.imageUrl && <img src={product.imageUrl} className="h-full w-full object-cover" />}
-                                                </div>
-                                                <div>
-                                                    <p className="text-sm font-medium text-gray-900">{product.name}</p>
-                                                    <p className="text-xs text-gray-500 truncate max-w-[140px]">{product.description}</p>
-                                                </div>
-                                            </div>
-                                        </td>
-
-                                        <td className="px-6 py-4">
-                                            <span className="text-xs font-mono text-gray-500 bg-gray-100 px-2 py-1 rounded">{product.sku || '---'}</span>
-                                        </td>
-
-                                        <td className="px-6 py-4 text-sm text-gray-600">{isService ? 'Sewing Service' : 'Ready-to-wear'}</td>
-
-                                        <td className="px-6 py-4 text-sm font-medium text-gray-900">S/ {product.price.toFixed(2)}</td>
-
-                                        <td className="px-6 py-4 w-48">
-                                            {isService ? (
-                                                <span className="text-xs text-gray-400 italic">Unlimited</span>
-                                            ) : (
-                                                <div className="space-y-1.5">
-                                                    <div className="flex justify-between text-xs">
-                                                        <span className={`font-medium ${isLow ? 'text-amber-600' : 'text-green-600'}`}>{product.stock} units</span>
+                                            <td className="px-6 py-4">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="h-10 w-10 rounded-lg bg-gray-100 overflow-hidden border border-gray-200 shrink-0">
+                                                        {product.imageUrl && <img src={product.imageUrl} className="h-full w-full object-cover" />}
                                                     </div>
-                                                    <div className="w-full bg-gray-100 rounded-full h-1.5 overflow-hidden">
-                                                        <div className={`h-full rounded-full transition-all duration-500 ${isOut ? 'bg-gray-300' : isLow ? 'bg-amber-400' : 'bg-green-500'}`} style={{ width: `${isOut ? 0 : Math.max(percent, 5)}%` }} />
+                                                    <div>
+                                                        <p className="text-sm font-medium text-gray-900">{product.name}</p>
+                                                        <p className="text-xs text-gray-500 truncate max-w-[140px]">{product.description}</p>
                                                     </div>
                                                 </div>
-                                            )}
-                                        </td>
+                                            </td>
 
-                                        <td className="px-6 py-4">
-                                            <StatusBadge isOut={isOut} isLow={isLow} isService={isService} />
-                                        </td>
+                                            <td className="px-6 py-4">
+                                                <span className="text-xs font-mono text-gray-500 bg-gray-100 px-2 py-1 rounded">{product.sku || '---'}</span>
+                                            </td>
 
-                                        {/* 👇 AQUÍ ESTÁ EL ARREGLO PRINCIPAL */}
-                                        <td className="px-6 py-4 text-right">
-                                            <ProductActions productId={product.id} />
-                                        </td>
-                                    </tr>
-                                );
-                            })}
+                                            <td className="px-6 py-4 text-sm text-gray-600">{isService ? 'Sewing Service' : 'Ready-to-wear'}</td>
+
+                                            <td className="px-6 py-4 text-sm font-medium text-gray-900">S/ {product.price.toFixed(2)}</td>
+
+                                            <td className="px-6 py-4 w-48">
+                                                {isService ? (
+                                                    <span className="text-xs text-gray-400 italic">Unlimited</span>
+                                                ) : (
+                                                    <div className="space-y-1.5">
+                                                        <div className="flex justify-between text-xs">
+                                                            <span className={`font-medium ${isLow ? 'text-amber-600' : 'text-green-600'}`}>{product.stock} units</span>
+                                                        </div>
+                                                        <div className="w-full bg-gray-100 rounded-full h-1.5 overflow-hidden">
+                                                            <div className={`h-full rounded-full transition-all duration-500 ${isOut ? 'bg-gray-300' : isLow ? 'bg-amber-400' : 'bg-green-500'}`} style={{ width: `${isOut ? 0 : Math.max(percent, 5)}%` }} />
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </td>
+
+                                            <td className="px-6 py-4">
+                                                <StatusBadge isOut={isOut} isLow={isLow} isService={isService} />
+                                            </td>
+
+                                            <td className="px-6 py-4 text-right">
+                                                {/* El componente de acciones (Lápiz y Basura) */}
+                                                <ProductActions productId={product.id} />
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
                             </tbody>
                         </table>
                     </div>

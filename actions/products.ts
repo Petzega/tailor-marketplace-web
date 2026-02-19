@@ -131,6 +131,64 @@ export async function deleteProduct(id: string) {
     }
 }
 
-export async function updateProduct(id: string) {
+export async function getProductById(id: string) {
+    try {
+        const product = await db.product.findUnique({
+            where: { id },
+        });
+        return product;
+    } catch (error) {
+        console.error("Error al obtener producto:", error);
+        return null;
+    }
+}
 
+// 2. Guardar los cambios (Update)
+export async function updateProduct(id: string, formData: FormData) {
+    const name = formData.get("name") as string;
+    const description = formData.get("description") as string;
+    const price = parseFloat(formData.get("price") as string);
+    const stock = parseInt(formData.get("stock") as string);
+    const category = formData.get("category") as string;
+
+    // 1. Recibimos URL y Archivo
+    const imageUrlText = formData.get("imageUrl") as string;
+    const imageFile = formData.get("imageFile") as File;
+
+    let finalImageUrl = undefined; // Undefined = "No actualizar este campo"
+
+    // 2. Lógica de Prioridad:
+    // Si subió un archivo nuevo, ese gana.
+    if (imageFile && imageFile.size > 0) {
+        console.log("Actualizando con archivo:", imageFile.name);
+        // AQUÍ IRÍA CLOUDINARY. Por ahora ponemos placeholder:
+        finalImageUrl = "https://placehold.co/600x400?text=Nueva+Imagen+Subida";
+    }
+    // Si no hay archivo pero sí escribió una URL nueva, usamos la URL.
+    else if (imageUrlText && imageUrlText.trim() !== "") {
+        finalImageUrl = imageUrlText;
+    }
+
+    try {
+        await db.product.update({
+            where: { id },
+            data: {
+                name,
+                description,
+                price,
+                stock,
+                category,
+                // Solo actualizamos la imagen si finalImageUrl tiene valor
+                imageUrl: finalImageUrl,
+            },
+        });
+
+        revalidatePath("/admin");
+        revalidatePath("/");
+
+        return { success: true };
+    } catch (error) {
+        console.error("Error al actualizar:", error);
+        return { success: false, error: "Error al actualizar el producto" };
+    }
 }
