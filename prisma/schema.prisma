@@ -22,5 +22,5 @@ model Product {
   updatedAt   DateTime @updatedAt
 
   // Tu campo SKU listo
-  sku         String   @unique @default(cuid())
+  sku         String   @unique @default(cuid())   
 }
