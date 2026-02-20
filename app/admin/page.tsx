@@ -2,8 +2,9 @@ import Link from "next/link";
 import { getProducts, getProductById } from "@/actions/products";
 import { Plus, Search, Filter, Download, ArrowUpDown } from "lucide-react";
 import { ProductSheet } from "@/components/admin/product-sheet";
-import { EditProductSheet } from "@/components/admin/edit-product-sheet"; // 👈 Importamos el nuevo Sidebar de Edición
+import { EditProductSheet } from "@/components/admin/edit-product-sheet";
 import { ProductActions } from "@/components/admin/product-actions";
+import { ActionToast } from "@/components/admin/action-toast"; // 👈 Importamos el Notificador
 
 interface AdminPageProps {
     searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
@@ -31,14 +32,13 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
     return (
         <div className="p-8 relative min-h-screen bg-gray-50">
 
+            {/* --- NOTIFICACIONES --- */}
+            {/* 👇 Escucha la URL para mostrar el Toast cuando se elimina algo */}
+            <ActionToast />
+
             {/* --- SIDEBARS (Se muestran encima de todo) --- */}
-
-            {/* A. Sidebar de CREAR (Si ?new=true) */}
             {showNewProductForm && <ProductSheet />}
-
-            {/* B. Sidebar de EDITAR (Si ?edit=ID y el producto existe) */}
             {productToEdit && <EditProductSheet product={productToEdit} />}
-
 
             {/* --- CONTENIDO PRINCIPAL --- */}
             <div className="max-w-7xl mx-auto space-y-8">
@@ -115,8 +115,12 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
 
                                             <td className="px-6 py-4">
                                                 <div className="flex items-center gap-3">
-                                                    <div className="h-10 w-10 rounded-lg bg-gray-100 overflow-hidden border border-gray-200 shrink-0">
-                                                        {product.imageUrl && <img src={product.imageUrl} className="h-full w-full object-cover" />}
+                                                    <div className="h-10 w-10 rounded-lg bg-gray-100 overflow-hidden border border-gray-200 shrink-0 flex items-center justify-center">
+                                                        {product.imageUrl ? (
+                                                            <img src={product.imageUrl} className="h-full w-full object-cover" alt={product.name} />
+                                                        ) : (
+                                                            <div className="text-gray-300 text-xs">No img</div>
+                                                        )}
                                                     </div>
                                                     <div>
                                                         <p className="text-sm font-medium text-gray-900">{product.name}</p>
@@ -153,8 +157,8 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                                             </td>
 
                                             <td className="px-6 py-4 text-right">
-                                                {/* El componente de acciones (Lápiz y Basura) */}
-                                                <ProductActions productId={product.id} />
+                                                {/* 👇 Pasamos el objeto product completo a los botones de acciones */}
+                                                <ProductActions product={product} />
                                             </td>
                                         </tr>
                                     );
@@ -176,7 +180,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
     );
 }
 
-// Helpers
+// --- Helpers ---
 function StatCard({ label, value, trend, isAlert }: { label: string, value: string, trend: string, isAlert?: boolean }) {
     return (
         <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">

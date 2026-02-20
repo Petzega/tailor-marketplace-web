@@ -2,7 +2,7 @@
 
 import { updateProduct } from "@/actions/products";
 import { Product } from "@/types";
-import { Save, X, AlertTriangle, CheckCircle, Link as LinkIcon, Upload, Image as ImageIcon } from "lucide-react";
+import { Save, X, AlertTriangle, Link as LinkIcon, Upload, Image as ImageIcon } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useRef } from "react";
@@ -15,21 +15,20 @@ export function EditProductSheet({ product }: EditSheetProps) {
     const router = useRouter();
 
     // Estados de UI
-    const [inputType, setInputType] = useState<'url' | 'file'>('url'); // 👈 Estado para alternar
-    const [preview, setPreview] = useState<string | null>(product.imageUrl); // Previsualización inicial
+    const [inputType, setInputType] = useState<'url' | 'file'>('url');
+    const [preview, setPreview] = useState<string | null>(product.imageUrl);
 
     const urlInputRef = useRef<HTMLInputElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const [showModal, setShowModal] = useState(false);
-    const [showToast, setShowToast] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
 
     // Manejar cambio de archivo local para previsualizarlo
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
-            setPreview(URL.createObjectURL(file)); // Mostramos la foto local inmediatamente
+            setPreview(URL.createObjectURL(file));
         }
     };
 
@@ -47,21 +46,21 @@ export function EditProductSheet({ product }: EditSheetProps) {
 
         if (result.success) {
             setShowModal(false);
-            setShowToast(true);
-            setTimeout(() => {
-                router.push("/admin");
-                router.refresh();
-            }, 1500);
+            // 👇 Redirigimos al instante con el aviso en la URL para el Notificador Global
+            router.push("/admin?action=updated", { scroll: false });
+            router.refresh();
         } else {
             setIsLoading(false);
-            alert("Error al actualizar");
+            alert("Error al actualizar el producto");
         }
     };
 
     return (
         <div className="fixed inset-0 z-50 flex justify-end">
+            {/* Backdrop oscuro */}
             <Link href="/admin" className="absolute inset-0 bg-black/20 backdrop-blur-sm transition-opacity" />
 
+            {/* SIDEBAR */}
             <div className="relative w-full max-w-md bg-white h-full shadow-2xl overflow-y-auto border-l border-gray-100 flex flex-col animate-in slide-in-from-right duration-300">
 
                 {/* Header */}
@@ -75,6 +74,7 @@ export function EditProductSheet({ product }: EditSheetProps) {
                     </Link>
                 </div>
 
+                {/* Formulario */}
                 <form id="edit-form" onSubmit={handleSubmit} className="flex-1 p-6 space-y-6">
 
                     {/* SECCIÓN IMAGEN CON PESTAÑAS */}
@@ -94,15 +94,14 @@ export function EditProductSheet({ product }: EditSheetProps) {
                                 <div className="bg-green-50 p-3 rounded-full mb-2 group-hover:scale-110 transition-transform">
                                     <LinkIcon className="text-green-600" size={20} />
                                 </div>
-                                <input ref={urlInputRef} name="imageUrl" type="url" defaultValue={product.imageUrl || ""} placeholder="Paste image URL..." className="w-full text-center text-xs bg-transparent outline-none placeholder:text-gray-400 text-gray-700" />
+                                <input ref={urlInputRef} name="imageUrl" type="url" defaultValue={product.imageUrl || ""} placeholder="Paste image URL (https://...)" className="w-full text-center text-xs bg-transparent outline-none placeholder:text-gray-400 text-gray-700" />
                             </div>
                         )}
 
-                        {/* OPCIÓN B: ARCHIVO (Con Previsualización) */}
+                        {/* OPCIÓN B: ARCHIVO */}
                         {inputType === 'file' && (
                             <div onClick={() => fileInputRef.current?.click()} className="border-2 border-dashed border-gray-200 rounded-xl p-6 flex flex-col items-center justify-center text-center hover:bg-gray-50 transition-colors group cursor-pointer relative overflow-hidden h-32">
-                                {/* Previsualización de fondo */}
-                                {preview && <img src={preview} className="absolute inset-0 w-full h-full object-cover opacity-30 group-hover:opacity-20 transition-opacity" />}
+                                {preview && <img src={preview} className="absolute inset-0 w-full h-full object-cover opacity-30 group-hover:opacity-20 transition-opacity" alt="Preview" />}
 
                                 <div className="relative z-10 flex flex-col items-center">
                                     <div className="bg-blue-50 p-3 rounded-full mb-2 group-hover:scale-110 transition-transform">
@@ -115,7 +114,6 @@ export function EditProductSheet({ product }: EditSheetProps) {
                         )}
                     </div>
 
-                    {/* ... Resto de campos (Igual que antes) ... */}
                     <div>
                         <label className="block text-xs font-semibold text-gray-700 mb-1.5 uppercase tracking-wide">Name</label>
                         <input name="name" type="text" defaultValue={product.name} required className="w-full px-4 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:border-green-500" />
@@ -123,7 +121,7 @@ export function EditProductSheet({ product }: EditSheetProps) {
 
                     <div>
                         <label className="block text-xs font-semibold text-gray-700 mb-1.5 uppercase tracking-wide">Category</label>
-                        <select name="category" defaultValue={product.category} className="w-full px-4 py-2 border border-gray-200 rounded-lg text-sm outline-none bg-white">
+                        <select name="category" defaultValue={product.category} className="w-full px-4 py-2 border border-gray-200 rounded-lg text-sm outline-none bg-white focus:border-green-500">
                             <option value="READY_MADE">Ready-to-wear</option>
                             <option value="SERVICE">Service</option>
                         </select>
@@ -157,33 +155,26 @@ export function EditProductSheet({ product }: EditSheetProps) {
 
                 </form>
 
-                {/* MODAL (Igual que antes) */}
+                {/* --- MODAL DE CONFIRMACIÓN --- */}
                 {showModal && (
-                    <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/20 backdrop-blur-[2px] animate-in fade-in">
-                        <div className="bg-white p-6 rounded-xl shadow-2xl border border-gray-100 w-[90%] max-w-sm animate-in zoom-in-95">
+                    <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/20 backdrop-blur-[2px] animate-in fade-in duration-200">
+                        <div className="bg-white p-6 rounded-xl shadow-2xl border border-gray-100 w-[90%] max-w-sm animate-in zoom-in-95 leading-tight">
                             <div className="flex items-start gap-3 text-amber-600 mb-3">
                                 <AlertTriangle size={24} className="shrink-0" />
                                 <div>
                                     <h3 className="font-bold text-gray-900">¿Confirmar cambios?</h3>
-                                    <p className="text-xs text-gray-500 mt-1">Estás a punto de actualizar <strong>{product.name}</strong>.</p>
+                                    <p className="text-xs text-gray-500 mt-1 leading-relaxed">
+                                        Estás a punto de actualizar los datos de <strong>{product.name}</strong>. Esta acción es inmediata.
+                                    </p>
                                 </div>
                             </div>
+
                             <div className="flex gap-2 mt-4">
-                                <button onClick={() => setShowModal(false)} className="flex-1 py-2 text-xs font-medium border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50">Cancel</button>
-                                <button onClick={handleConfirmUpdate} disabled={isLoading} className="flex-1 py-2 text-xs font-medium bg-green-600 text-white rounded-lg hover:bg-green-700">
+                                <button onClick={() => setShowModal(false)} className="flex-1 py-2 text-xs font-medium border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">Cancel</button>
+                                <button onClick={handleConfirmUpdate} disabled={isLoading} className="flex-1 py-2 text-xs font-medium bg-green-600 text-white rounded-lg hover:bg-green-700 shadow-sm transition-colors">
                                     {isLoading ? 'Saving...' : 'Yes, Update'}
                                 </button>
                             </div>
-                        </div>
-                    </div>
-                )}
-
-                {/* TOAST (Igual que antes) */}
-                {showToast && (
-                    <div className="absolute bottom-6 left-4 right-4 z-50 animate-in slide-in-from-bottom-5 fade-in pointer-events-none">
-                        <div className="bg-gray-900/95 backdrop-blur text-white p-4 rounded-xl shadow-2xl flex items-center gap-3 border border-gray-800">
-                            <div className="bg-green-500/20 p-2 rounded-full"><CheckCircle size={20} className="text-green-400" /></div>
-                            <div><h4 className="font-bold text-sm">¡Actualización Exitosa!</h4></div>
                         </div>
                     </div>
                 )}
