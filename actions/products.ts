@@ -119,13 +119,14 @@ export async function createProduct(formData: FormData) {
             stock,
             category,
             imageUrl: finalImageUrl || null,
-            sku: sku, // 👈 Aquí asignamos el SKU generado
+            sku: sku,
         },
     });
 
     revalidatePath("/");
     revalidatePath("/admin");
-    redirect("/admin");
+
+    return { success: true };
 }
 
 // --- 5. ACTUALIZAR PRODUCTO ---
