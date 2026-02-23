@@ -4,96 +4,121 @@ import { db } from "@/lib/db";
 import { Product } from "@/types";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { ITEMS_PER_PAGE } from "@/lib/constants";
 
-// --- 1. FUNCIÓN GENERADORA DE SKU (Lógica Fecha + Correlativo) ---
+// ─── Constante global de paginación ───────────────────────────────────────────
+//export const ITEMS_PER_PAGE = 10;
+
+// ─── Tipos ────────────────────────────────────────────────────────────────────
+export type GetProductsResult = {
+    products: Product[];
+    total: number;
+    totalPages: number;
+};
+
+// ─── 1. GENERADOR DE SKU ──────────────────────────────────────────────────────
 async function generateSku(): Promise<string> {
-    // A. Obtenemos fecha actual (Año, Mes, Día)
     const now = new Date();
     const year = now.getFullYear();
     const month = String(now.getMonth() + 1).padStart(2, '0');
     const day = String(now.getDate()).padStart(2, '0');
-
-    // Prefijo ej: "20260218"
     const prefix = `${year}${month}${day}`;
 
-    // B. Buscamos el último producto creado HOY que tenga ese prefijo
     const lastProduct = await db.product.findFirst({
-        where: {
-            sku: {
-                startsWith: prefix,
-            },
-        },
-        orderBy: {
-            sku: 'desc', // Ordenamos descendente para obtener el último
-        },
+        where: { sku: { startsWith: prefix } },
+        orderBy: { sku: 'desc' },
     });
 
-    // C. Calculamos el correlativo (Si existe el 005, toca el 006)
     let sequence = 1;
-
     if (lastProduct) {
-        // Cortamos los últimos 3 dígitos del SKU anterior
-        const lastSequenceStr = lastProduct.sku.slice(-3);
-        const lastSequence = parseInt(lastSequenceStr, 10);
-
-        if (!isNaN(lastSequence)) {
-            sequence = lastSequence + 1;
-        }
+        const lastSequence = parseInt(lastProduct.sku.slice(-3), 10);
+        if (!isNaN(lastSequence)) sequence = lastSequence + 1;
     }
 
-    // D. Devolvemos el SKU final (ej: "20260218006")
     return `${prefix}${String(sequence).padStart(3, '0')}`;
 }
 
-// --- 2. OBTENER TODOS LOS PRODUCTOS (Con Filtros) ---
-export async function getProducts(query?: string, category?: string): Promise<Product[]> {
+// ─── 2. ESTADÍSTICAS GLOBALES (para las tarjetas del admin) ──────────────────
+// Siempre muestra el estado real del inventario, sin importar los filtros activos
+export async function getProductStats() {
     try {
-        const products = await db.product.findMany({
-            where: {
-                AND: [
-                    // Filtro de búsqueda (Nombre, Descripción o SKU)
-                    query ? {
-                        OR: [
-                            { name: { contains: query } },
-                            { description: { contains: query } },
-                            { sku: { contains: query } }
-                        ]
-                    } : {},
-                    // Filtro de Categoría
-                    category && category !== 'ALL' ? {
-                        category: category
-                    } : {}
-                ]
-            },
-            orderBy: { createdAt: 'desc' },
+        const allProducts = await db.product.findMany({
+            select: { price: true, stock: true, category: true },
         });
-        return products;
+
+        return {
+            total: allProducts.length,
+            lowStockCount: allProducts.filter(
+                (p) => p.stock < 5 && p.stock > 0 && p.category !== 'SERVICE'
+            ).length,
+            totalValue: allProducts.reduce((acc, p) => acc + p.price * p.stock, 0),
+        };
     } catch (error) {
-        console.error("Error al obtener productos:", error);
-        return [];
+        console.error("Error al obtener estadísticas:", error);
+        return { total: 0, lowStockCount: 0, totalValue: 0 };
     }
 }
 
-// --- 3. OBTENER UN PRODUCTO POR ID (Para Edición) ---
+// ─── 3. OBTENER PRODUCTOS (Con búsqueda, filtros y paginación) ────────────────
+export async function getProducts(
+    query?: string,
+    category?: string,
+    page: number = 1
+): Promise<GetProductsResult> {
+    try {
+        const skip = (page - 1) * ITEMS_PER_PAGE;
+
+        const whereClause = {
+            AND: [
+                query
+                    ? {
+                        OR: [
+                            { name: { contains: query } },
+                            { description: { contains: query } },
+                            { sku: { contains: query } },
+                        ],
+                    }
+                    : {},
+                category && category !== 'ALL' ? { category } : {},
+            ],
+        };
+
+        // Ejecutamos ambas queries en paralelo para mayor performance
+        const [products, total] = await Promise.all([
+            db.product.findMany({
+                where: whereClause,
+                orderBy: { createdAt: 'desc' },
+                skip,
+                take: ITEMS_PER_PAGE,
+            }),
+            db.product.count({ where: whereClause }),
+        ]);
+
+        return {
+            products,
+            total,
+            totalPages: Math.ceil(total / ITEMS_PER_PAGE),
+        };
+    } catch (error) {
+        console.error("Error al obtener productos:", error);
+        return { products: [], total: 0, totalPages: 0 };
+    }
+}
+
+// ─── 4. OBTENER PRODUCTO POR ID ───────────────────────────────────────────────
 export async function getProductById(id: string) {
     try {
-        const product = await db.product.findUnique({
-            where: { id },
-        });
-        return product;
+        return await db.product.findUnique({ where: { id } });
     } catch (error) {
         console.error("Error al obtener producto por ID:", error);
         return null;
     }
 }
 
-// --- 4. CREAR PRODUCTO (Usa generateSku) ---
+// ─── 5. CREAR PRODUCTO ────────────────────────────────────────────────────────
 export async function createProduct(formData: FormData) {
-
-    // A. Generamos el SKU automático justo antes de guardar
     const sku = await generateSku();
 
-    // B. Lógica de Imagen (Prioridad: Archivo > URL)
     const imageUrlText = formData.get("imageUrl") as string;
     const imageFile = formData.get("imageFile") as File;
     let finalImageUrl = imageUrlText;
@@ -104,50 +129,32 @@ export async function createProduct(formData: FormData) {
         finalImageUrl = "https://placehold.co/600x400?text=Imagen+Subida";
     }
 
-    const name = formData.get("name") as string;
-    const description = formData.get("description") as string;
-    const price = parseFloat(formData.get("price") as string);
-    const stock = parseInt(formData.get("stock") as string);
-    const category = formData.get("category") as string;
-
-    // C. Guardamos en la BD
     await db.product.create({
         data: {
-            name,
-            description,
-            price,
-            stock,
-            category,
+            name: formData.get("name") as string,
+            description: formData.get("description") as string,
+            price: parseFloat(formData.get("price") as string),
+            stock: parseInt(formData.get("stock") as string),
+            category: formData.get("category") as string,
             imageUrl: finalImageUrl || null,
-            sku: sku,
+            sku,
         },
     });
 
     revalidatePath("/");
     revalidatePath("/admin");
-
     return { success: true };
 }
 
-// --- 5. ACTUALIZAR PRODUCTO ---
+// ─── 6. ACTUALIZAR PRODUCTO ───────────────────────────────────────────────────
 export async function updateProduct(id: string, formData: FormData) {
-    const name = formData.get("name") as string;
-    const description = formData.get("description") as string;
-    const price = parseFloat(formData.get("price") as string);
-    const stock = parseInt(formData.get("stock") as string);
-    const category = formData.get("category") as string;
-
-    // Lógica de Imagen para Update
     const imageUrlText = formData.get("imageUrl") as string;
     const imageFile = formData.get("imageFile") as File;
-
-    let finalImageUrl = undefined; // undefined significa "no tocar lo que ya existe"
+    let finalImageUrl: string | undefined = undefined;
 
     if (imageFile && imageFile.size > 0) {
-        // Si suben archivo nuevo, reemplazamos
         finalImageUrl = "https://placehold.co/600x400?text=Nueva+Imagen+Update";
     } else if (imageUrlText && imageUrlText.trim() !== "") {
-        // Si no hay archivo pero sí URL, usamos la URL
         finalImageUrl = imageUrlText;
     }
 
@@ -155,18 +162,17 @@ export async function updateProduct(id: string, formData: FormData) {
         await db.product.update({
             where: { id },
             data: {
-                name,
-                description,
-                price,
-                stock,
-                category,
-                imageUrl: finalImageUrl, // Si es undefined, Prisma no lo actualiza
+                name: formData.get("name") as string,
+                description: formData.get("description") as string,
+                price: parseFloat(formData.get("price") as string),
+                stock: parseInt(formData.get("stock") as string),
+                category: formData.get("category") as string,
+                imageUrl: finalImageUrl,
             },
         });
 
         revalidatePath("/admin");
         revalidatePath("/");
-
         return { success: true };
     } catch (error) {
         console.error("Error al actualizar:", error);
@@ -174,16 +180,12 @@ export async function updateProduct(id: string, formData: FormData) {
     }
 }
 
-// --- 6. ELIMINAR PRODUCTO ---
+// ─── 7. ELIMINAR PRODUCTO ─────────────────────────────────────────────────────
 export async function deleteProduct(id: string) {
     try {
-        await db.product.delete({
-            where: { id },
-        });
-
+        await db.product.delete({ where: { id } });
         revalidatePath("/admin");
         revalidatePath("/");
-
         return { success: true };
     } catch (error) {
         console.error("Error al eliminar:", error);

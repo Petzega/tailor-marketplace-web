@@ -8,7 +8,7 @@ interface ProductGridProps {
 
 export async function ProductGrid({ query, category }: ProductGridProps) {
     // Pasamos el query y la categoría al servidor para filtrar la base de datos
-    const products = await getProducts(query, category);
+    const { products } = await getProducts(query, category);
 
     // Estado Vacío: Si no hay productos (o la búsqueda no trajo nada)
     if (products.length === 0) {
