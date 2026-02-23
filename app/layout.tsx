@@ -1,32 +1,35 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Inter } from "next/font/google";
 import "./globals.css";
+import { Navbar } from "@/components/layout/navbar";
+import { CartSheet } from "@/components/cart/cart-sheet"; // 👈 Importamos el carrito
 
-const geistSans = Geist({
-    variable: "--font-geist-sans",
-    subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-    variable: "--font-geist-mono",
-    subsets: ["latin"],
-});
+const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-    title: "Tailor Marketplace",             // ✅ Actualiza el título mientras estás aquí
-    description: "Ropa a medida y servicios de sastrería",
+    title: "Stitch & Style",
+    description: "Tailor Marketplace - Custom clothing and tailoring services",
 };
 
 export default function RootLayout({
-    children,
-}: Readonly<{
+                                       children,
+                                   }: Readonly<{
     children: React.ReactNode;
 }>) {
     return (
-        <html lang="es">
-            <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
-                {children}
-            </body>
+        <html lang="en">
+        <body className={inter.className}>
+        {/* Navegación superior global */}
+        <Navbar />
+
+        {/* Contenido principal de cada página */}
+        <main>
+            {children}
+        </main>
+
+        {/* 👇 El panel lateral del carrito, disponible globalmente */}
+        <CartSheet />
+        </body>
         </html>
     );
 }

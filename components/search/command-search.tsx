@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useRef, useCallback } from 'react';
+import { useRouter } from 'next/navigation'; // 👈 Importamos el router
 import {
     Search, X, ArrowRight,
     Scissors, Ruler, Shirt, Sparkles,
@@ -24,6 +25,8 @@ function getStockLabel(stock: number) {
 
 // ─── Componente principal ─────────────────────────────────────────────────────
 export function CommandSearch() {
+    const router = useRouter(); // 👈 Inicializamos el router
+
     const [isOpen, setIsOpen] = useState(false);
     const [query, setQuery] = useState('');
     const [results, setResults] = useState<SpotlightResult>({ products: [], services: [] });
@@ -49,6 +52,19 @@ export function CommandSearch() {
         setResults({ products: [], services: [] });
         setActiveIndex(0);
     }, []);
+
+    // ── Acciones de Selección ─────────────────────────────────────────────────
+    const handleSelect = useCallback((item: SpotlightProduct) => {
+        closeModal();
+        // Redirige al detalle del producto/servicio
+        router.push(`/product/${item.id}`);
+    }, [closeModal, router]);
+
+    const handleAdvancedSearch = () => {
+        closeModal();
+        // Redirige a una página de búsqueda completa
+        router.push(`/search?q=${encodeURIComponent(query)}`);
+    };
 
     // ── Atajo global Cmd+K / Ctrl+K ───────────────────────────────────────────
     useEffect(() => {
@@ -80,10 +96,9 @@ export function CommandSearch() {
                     setActiveIndex(i => Math.max(i - 1, 0));
                     break;
                 case 'Enter':
-                    if (hasResults) {
+                    if (hasResults && allItems[activeIndex]) {
                         e.preventDefault();
-                        // TODO: redirigir al detalle del producto
-                        console.log('Selected:', allItems[activeIndex]?.name);
+                        handleSelect(allItems[activeIndex]); // 👈 Ejecuta la selección
                     }
                     break;
             }
@@ -91,7 +106,7 @@ export function CommandSearch() {
 
         window.addEventListener('keydown', handler);
         return () => window.removeEventListener('keydown', handler);
-    }, [isOpen, allItems, activeIndex, hasResults, closeModal]);
+    }, [isOpen, allItems, activeIndex, hasResults, closeModal, handleSelect]);
 
     // ── Búsqueda con debounce 300ms ───────────────────────────────────────────
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -191,6 +206,7 @@ export function CommandSearch() {
                                                             key={product.id}
                                                             isActive={isActive}
                                                             onHover={() => setActiveIndex(i)}
+                                                            onClick={() => handleSelect(product)} // 👈 Añadimos onClick
                                                             left={
                                                                 <div className="h-10 w-10 rounded-lg overflow-hidden bg-gray-100 border border-gray-200 shrink-0">
                                                                     {product.imageUrl
@@ -227,6 +243,7 @@ export function CommandSearch() {
                                                             key={service.id}
                                                             isActive={isActive}
                                                             onHover={() => setActiveIndex(globalIdx)}
+                                                            onClick={() => handleSelect(service)} // 👈 Añadimos onClick
                                                             left={
                                                                 <div className={`h-10 w-10 rounded-lg flex items-center justify-center shrink-0 ${style.bg} ${style.text}`}>
                                                                     <Icon size={18} />
@@ -257,7 +274,10 @@ export function CommandSearch() {
                                 <KbdHint keys={['↑', '↓']} label="to navigate" />
                                 <KbdHint keys={['esc']} label="to close" />
                             </div>
-                            <button className="flex items-center gap-1 text-xs text-indigo-500 hover:text-indigo-700 font-medium transition-colors">
+                            <button
+                                onClick={handleAdvancedSearch} // 👈 Conectamos el botón de Advanced Search
+                                className="flex items-center gap-1 text-xs text-indigo-500 hover:text-indigo-700 font-medium transition-colors"
+                            >
                                 Advanced Search <ArrowRight size={11} />
                             </button>
                         </div>
@@ -280,10 +300,11 @@ function SectionHeader({ label }: { label: string }) {
 }
 
 function ResultRow({
-    isActive, onHover, left, title, subtitle, right, showEnterHint,
-}: {
+                       isActive, onHover, onClick, left, title, subtitle, right, showEnterHint,
+                   }: {
     isActive: boolean;
     onHover: () => void;
+    onClick: () => void; // 👈 Agregamos onClick a las props
     left: React.ReactNode;
     title: string;
     subtitle: React.ReactNode;
@@ -293,10 +314,11 @@ function ResultRow({
     return (
         <button
             onMouseEnter={onHover}
+            onClick={onClick} // 👈 Agregamos el onClick al botón
             className={`w-full flex items-center gap-3 px-4 py-3 text-left transition-colors border-l-2 ${isActive
-                    ? 'bg-indigo-50/60 border-indigo-400'
-                    : 'border-transparent hover:bg-gray-50'
-                }`}
+                ? 'bg-indigo-50/60 border-indigo-400'
+                : 'border-transparent hover:bg-gray-50'
+            }`}
         >
             {left}
             <div className="flex-1 min-w-0">
