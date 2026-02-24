@@ -19,7 +19,6 @@ export type SpotlightResult = {
 };
 
 export async function spotlightSearch(query: string): Promise<SpotlightResult> {
-    // Mínimo 2 caracteres para buscar
     if (!query || query.trim().length < 2) {
         return { products: [], services: [] };
     }
@@ -33,7 +32,7 @@ export async function spotlightSearch(query: string): Promise<SpotlightResult> {
                     { sku: { contains: query } },
                 ],
             },
-            take: 8, // Máximo 8 resultados en el spotlight
+            take: 8,
             orderBy: { createdAt: 'desc' },
             select: {
                 id: true, name: true, description: true,

@@ -5,8 +5,8 @@ generator client {
 
 // 2. Configuración de la Base de Datos (¡Esto también faltaba!)
 datasource db {
-  provider = "sqlite"
-  url      = "file:./dev.db"
+  provider = "postgresql" // Cambiarás "sqlite" por esto
+  url      = env("DATABASE_URL")
 }
 
 // 3. Tu Modelo de Datos
