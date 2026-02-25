@@ -63,12 +63,16 @@ export async function getProductStats() {
 export async function getProducts(
     query?: string,
     category?: string,
-    page: number = 1
+    page: number = 1,
+    minPrice?: number,
+    maxPrice?: number,
+    sort?: string
 ): Promise<GetProductsResult> {
     try {
         const skip = (page - 1) * ITEMS_PER_PAGE;
 
-        const whereClause = {
+        // Construimos los filtros dinámicamente
+        const whereClause: any = {
             AND: [
                 query
                     ? {
@@ -83,11 +87,25 @@ export async function getProducts(
             ],
         };
 
-        // Ejecutamos ambas queries en paralelo para mayor performance
+        // Si hay un rango de precios, lo agregamos a la consulta
+        if (minPrice !== undefined || maxPrice !== undefined) {
+            whereClause.AND.push({
+                price: {
+                    ...(minPrice !== undefined ? { gte: minPrice } : {}),
+                    ...(maxPrice !== undefined ? { lte: maxPrice } : {}),
+                }
+            });
+        }
+
+        // Lógica de ordenamiento
+        let orderByClause: any = { createdAt: 'desc' }; // Por defecto: más recientes
+        if (sort === 'price_asc') orderByClause = { price: 'asc' }; // Menor a mayor
+        if (sort === 'price_desc') orderByClause = { price: 'desc' }; // Mayor a menor
+
         const [products, total] = await Promise.all([
             db.product.findMany({
                 where: whereClause,
-                orderBy: { createdAt: 'desc' },
+                orderBy: orderByClause,
                 skip,
                 take: ITEMS_PER_PAGE,
             }),

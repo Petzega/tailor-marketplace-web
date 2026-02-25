@@ -1,7 +1,7 @@
 import { Hero } from "@/components/layout/hero";
 import { ProductGrid } from "@/components/catalog/product-grid";
 import { Footer } from "@/components/layout/footer";
-import { CategoryTabs } from "@/components/catalog/CategoryTabs";
+import { CategoryTabs } from "@/components/catalog/category-tabs";
 
 // 1. Definimos el tipo como una Promesa
 interface HomeProps {

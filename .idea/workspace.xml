@@ -5,16 +5,13 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="ba1fb5f0-e77c-49e5-a34a-19ee4e7a4234" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/.gitignore" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/inspectionProfiles/Project_Default.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/modules.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/tailor-marketplace-web.iml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/vcs.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/PROMT.md" beforeDir="false" afterPath="$PROJECT_DIR$/PROMPT.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/package-lock.json" beforeDir="false" afterPath="$PROJECT_DIR$/package-lock.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/package.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/prisma/dev.db" beforeDir="false" afterPath="$PROJECT_DIR$/prisma/dev.db" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/prisma/schema.prisma" beforeDir="false" afterPath="$PROJECT_DIR$/prisma/schema.prisma" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/actions/products.ts" beforeDir="false" afterPath="$PROJECT_DIR$/actions/products.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/page.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/search/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/search/page.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/components/catalog/CategoryTabs.tsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/components/catalog/product-grid.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/catalog/product-grid.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/components/search/search-filters.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/search/search-filters.tsx" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -63,13 +60,13 @@
     "node.js.detected.package.tslint": "true",
     "node.js.selected.package.eslint": "(autodetect)",
     "node.js.selected.package.tslint": "(autodetect)",
-    "nodejs_interpreter_path": "/home/peterz/.var/app/com.jetbrains.WebStorm/config/JetBrains/WebStorm2025.3/node/versions/24.13.1/bin/node",
+    "nodejs_interpreter_path": "node",
     "nodejs_package_manager_path": "npm",
     "npm.Next.js: server-side.executor": "Run",
     "settings.editor.selected.configurable": "settings.prisma",
     "settings.editor.splitter.proportion": "0.28716904",
     "show.migrate.to.gradle.popup": "false",
-    "ts.external.directory.path": "/home/peterz/Documentos/Workspace/remote/tailor-marketplace-web/node_modules/typescript/lib",
+    "ts.external.directory.path": "D:\\Documents\\Workspace\\Remote\\tailor-marketplace-web\\node_modules\\typescript\\lib",
     "vue.rearranger.settings.migration": "true"
   }
 }]]></component>
@@ -98,7 +95,7 @@
   <component name="SharedIndexes">
     <attachedChunks>
       <set>
-        <option value="bundled-js-predefined-d6986cc7102b-9b0f141eb926-JavaScript-WS-253.30387.83" />
+        <option value="bundled-js-predefined-d6986cc7102b-3aa1da707db6-JavaScript-WS-252.26830.93" />
       </set>
     </attachedChunks>
   </component>
@@ -116,6 +113,7 @@
       <workItem from="1771984788546" duration="1197000" />
       <workItem from="1771989253361" duration="535000" />
       <workItem from="1771989803391" duration="2134000" />
+      <workItem from="1772045301189" duration="8662000" />
     </task>
     <servers />
   </component>

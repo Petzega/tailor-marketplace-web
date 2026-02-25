@@ -1,14 +1,17 @@
 import { getProducts } from "@/actions/products";
-import { Calendar } from "lucide-react"; // Usamos Calendar para servicios
+import { Calendar } from "lucide-react";
 
 interface ProductGridProps {
-    query?: string; // 👈 Aceptamos el texto de búsqueda
-    category?: string; // 👈 Aceptamos la categoría
+    query?: string;
+    category?: string;
+    minPrice?: number;
+    maxPrice?: number;
+    sort?: string;
 }
 
-export async function ProductGrid({ query, category }: ProductGridProps) {
-    // Pasamos el query y la categoría al servidor para filtrar la base de datos
-    const { products } = await getProducts(query, category);
+export async function ProductGrid({ query, category, minPrice, maxPrice, sort }: ProductGridProps) {
+    // Pasamos todos los parámetros al servidor
+    const { products } = await getProducts(query, category, 1, minPrice, maxPrice, sort);
 
     // Estado Vacío: Si no hay productos (o la búsqueda no trajo nada)
     if (products.length === 0) {

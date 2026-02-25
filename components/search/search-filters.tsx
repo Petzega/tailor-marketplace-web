@@ -1,11 +1,15 @@
 'use client';
 
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useCallback } from 'react';
+import { useCallback, useState } from 'react';
+import { Search } from 'lucide-react';
 
 interface SearchFiltersProps {
     currentQuery: string;
     currentCategory: string;
+    currentSort: string;
+    currentMin: string;
+    currentMax: string;
 }
 
 const CATEGORIES = [
@@ -14,37 +18,123 @@ const CATEGORIES = [
     { id: 'SERVICE', label: 'Servicios de Sastrería' },
 ];
 
-export function SearchFilters({ currentQuery, currentCategory }: SearchFiltersProps) {
+export function SearchFilters({ currentQuery, currentCategory, currentSort, currentMin, currentMax }: SearchFiltersProps) {
     const router = useRouter();
     const searchParams = useSearchParams();
 
+    const [localQuery, setLocalQuery] = useState(currentQuery);
+    const [localMin, setLocalMin] = useState(currentMin);
+    const [localMax, setLocalMax] = useState(currentMax);
 
-
-    // Utilidad para modificar un parámetro manteniendo los demás
     const createQueryString = useCallback(
-        (name: string, value: string) => {
+        (paramsToUpdate: Record<string, string | null>) => {
             const params = new URLSearchParams(searchParams.toString());
-            if (value) {
-                params.set(name, value);
-            } else {
-                params.delete(name);
-            }
+
+            Object.entries(paramsToUpdate).forEach(([name, value]) => {
+                if (value) {
+                    params.set(name, value);
+                } else {
+                    params.delete(name);
+                }
+            });
+
             return params.toString();
         },
         [searchParams]
     );
 
     const handleCategoryChange = (categoryId: string) => {
-        router.push(`/search?${createQueryString('category', categoryId)}`);
+        router.push(`/search?${createQueryString({ category: categoryId })}`);
+    };
+
+    const handleSortChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+        router.push(`/search?${createQueryString({ sort: e.target.value })}`);
+    };
+
+    const handleSearchSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        router.push(`/search?${createQueryString({ q: localQuery })}`);
+    };
+
+    const handlePriceSubmit = () => {
+        router.push(`/search?${createQueryString({ min: localMin, max: localMax })}`);
     };
 
     const clearFilters = () => {
+        setLocalQuery('');
+        setLocalMin('');
+        setLocalMax('');
         router.push('/search');
     };
 
+    const hasActiveFilters = currentQuery || currentCategory || currentSort || currentMin || currentMax;
+
     return (
         <div className="space-y-6 bg-white p-5 rounded-xl border border-gray-200 shadow-sm sticky top-24">
+            {/* Búsqueda */}
+            <div>
+                <h3 className="text-sm font-semibold text-gray-900 mb-3">Término de búsqueda</h3>
+                <form onSubmit={handleSearchSubmit} className="relative">
+                    <input
+                        type="text"
+                        value={localQuery}
+                        onChange={(e) => setLocalQuery(e.target.value)}
+                        placeholder="Ej. Basta, Entallado..."
+                        className="w-full pl-9 pr-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                    />
+                    <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
+                </form>
+            </div>
 
+            <hr className="border-gray-100" />
+
+            {/* Ordenar Por */}
+            <div>
+                <h3 className="text-sm font-semibold text-gray-900 mb-3">Ordenar por</h3>
+                <select
+                    value={currentSort}
+                    onChange={handleSortChange}
+                    className="w-full py-2 px-3 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white"
+                >
+                    <option value="">Más recientes</option>
+                    <option value="price_asc">Precio: Menor a Mayor</option>
+                    <option value="price_desc">Precio: Mayor a Menor</option>
+                </select>
+            </div>
+
+            <hr className="border-gray-100" />
+
+            {/* Rango de Precio */}
+            <div>
+                <h3 className="text-sm font-semibold text-gray-900 mb-3">Rango de precio (S/)</h3>
+                <div className="flex items-center gap-2 mb-3">
+                    <input
+                        type="number"
+                        min="0"
+                        placeholder="Min"
+                        value={localMin}
+                        onChange={(e) => setLocalMin(e.target.value)}
+                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    />
+                    <span className="text-gray-400">-</span>
+                    <input
+                        type="number"
+                        min="0"
+                        placeholder="Max"
+                        value={localMax}
+                        onChange={(e) => setLocalMax(e.target.value)}
+                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    />
+                </div>
+                <button
+                    onClick={handlePriceSubmit}
+                    className="w-full py-2 text-sm text-white bg-green-600 rounded-lg hover:bg-green-700 transition-colors font-medium border border-gray-200"
+                >
+                    Aplicar precio
+                </button>
+            </div>
+
+            <hr className="border-gray-100" />
 
             {/* Filtro de Categoría */}
             <div>
@@ -59,17 +149,18 @@ export function SearchFilters({ currentQuery, currentCategory }: SearchFiltersPr
                                 onChange={() => handleCategoryChange(cat.id)}
                                 className="h-4 w-4 text-indigo-600 border-gray-300 focus:ring-indigo-500 cursor-pointer"
                             />
-                            <span className={`text-sm transition-colors ${currentCategory === cat.id ? 'text-indigo-600 font-medium' : 'text-gray-600 group-hover:text-gray-900'
-                                }`}>
-                                {cat.label}
-                            </span>
+                            <span className={`text-sm transition-colors ${
+                                currentCategory === cat.id ? 'text-indigo-600 font-medium' : 'text-gray-600 group-hover:text-gray-900'
+                            }`}>
+                {cat.label}
+              </span>
                         </label>
                     ))}
                 </div>
             </div>
 
             {/* Botón para limpiar */}
-            {(currentQuery || currentCategory) && (
+            {hasActiveFilters && (
                 <>
                     <hr className="border-gray-100" />
                     <button
