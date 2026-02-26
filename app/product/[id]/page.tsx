@@ -1,6 +1,7 @@
 import { getProductById } from "@/actions/products";
 import { notFound } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import { ArrowLeft, ShoppingBag, ShieldCheck, Ruler, Clock, Sparkles } from "lucide-react";
 import { AddToCartButton } from "@/components/product/add-to-cart-button";
 import { SpotlightProduct } from "@/actions/search";
@@ -47,8 +48,8 @@ export default async function ProductPage({ params }: ProductPageProps) {
                     </Link>
                     <span className="text-gray-300">|</span>
                     <span className="text-xs font-mono text-gray-500 bg-white px-2 py-1 rounded border border-gray-200">
-            SKU: {product.sku}
-          </span>
+                        SKU: {product.sku}
+                    </span>
                 </div>
             </div>
 
@@ -60,10 +61,11 @@ export default async function ProductPage({ params }: ProductPageProps) {
                     <div className="space-y-4">
                         <div className="aspect-[4/5] bg-gray-100 rounded-2xl overflow-hidden border border-gray-200 relative group">
                             {product.imageUrl ? (
-                                <img
+                                <Image
                                     src={product.imageUrl}
                                     alt={product.name}
-                                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                                    fill
+                                    className="object-cover transition-transform duration-500 group-hover:scale-105"
                                 />
                             ) : (
                                 <div className="w-full h-full flex flex-col items-center justify-center text-gray-400">
@@ -79,11 +81,10 @@ export default async function ProductPage({ params }: ProductPageProps) {
 
                         {/* Categoría y Título */}
                         <div className="mb-6">
-              <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold uppercase tracking-widest mb-4 ${
-                  isService ? 'bg-indigo-50 text-indigo-600' : 'bg-green-50 text-green-600'
-              }`}>
-                {isService ? 'Tailoring Service' : 'Ready-to-wear'}
-              </span>
+                            <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold uppercase tracking-widest mb-4 ${isService ? 'bg-indigo-50 text-indigo-600' : 'bg-green-50 text-green-600'
+                                }`}>
+                                {isService ? 'Tailoring Service' : 'Ready-to-wear'}
+                            </span>
                             <h1 className="text-3xl sm:text-4xl font-extrabold text-gray-900 tracking-tight mb-2">
                                 {product.name}
                             </h1>
@@ -108,8 +109,8 @@ export default async function ProductPage({ params }: ProductPageProps) {
                             <div className="mb-8 flex items-center gap-3">
                                 <div className={`h-3 w-3 rounded-full ${isOutOfStock ? 'bg-red-500' : 'bg-green-500 animate-pulse'}`} />
                                 <span className="text-sm font-medium text-gray-700">
-                  {isOutOfStock ? 'Currently out of stock' : `${product.stock} items available ready to ship`}
-                </span>
+                                    {isOutOfStock ? 'Currently out of stock' : `${product.stock} items available ready to ship`}
+                                </span>
                             </div>
                         )}
 

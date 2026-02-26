@@ -1,7 +1,8 @@
 'use client';
 
-import { useEffect, useState, useRef, useCallback } from 'react';
+import { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
+import NextImage from 'next/image';
 import {
     Search, X, ArrowRight,
     Scissors, Ruler, Shirt, Sparkles,
@@ -34,7 +35,10 @@ export function CommandSearch() {
     const kbdRef = useRef<HTMLElement>(null);
     const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-    const allItems: SpotlightProduct[] = [...results.products, ...results.services];
+    const allItems: SpotlightProduct[] = useMemo(
+        () => [...results.products, ...results.services],
+        [results.products, results.services]
+    );
     const hasResults = allItems.length > 0;
     const showResults = query.trim().length >= 2;
 
@@ -97,7 +101,7 @@ export function CommandSearch() {
         const handler = (e: KeyboardEvent) => {
             if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
                 e.preventDefault();
-                isOpen ? closeModal() : openModal();
+                void (isOpen ? closeModal() : openModal());
             }
         };
         window.addEventListener('keydown', handler);
@@ -229,9 +233,9 @@ export function CommandSearch() {
                                                             onHover={() => setActiveIndex(i)}
                                                             onClick={() => handleSelectResult(product)}
                                                             left={
-                                                                <div className="h-10 w-10 rounded-lg overflow-hidden bg-gray-100 border border-gray-200 shrink-0">
+                                                                <div className="h-10 w-10 rounded-lg overflow-hidden bg-gray-100 border border-gray-200 shrink-0 relative">
                                                                     {product.imageUrl
-                                                                        ? <img src={product.imageUrl} alt={product.name} className="h-full w-full object-cover" />
+                                                                        ? <NextImage src={product.imageUrl} alt={product.name} fill className="object-cover" />
                                                                         : <div className="h-full w-full flex items-center justify-center text-[9px] text-gray-300">IMG</div>
                                                                     }
                                                                 </div>

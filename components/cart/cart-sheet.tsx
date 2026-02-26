@@ -1,6 +1,7 @@
 "use client"
 
 import { useCart } from "@/store/cart";
+import Image from "next/image";
 import { X, Trash2, Plus, Minus, MessageCircle } from "lucide-react";
 
 export function CartSheet() {
@@ -61,9 +62,9 @@ export function CartSheet() {
                     ) : (
                         items.map((item) => (
                             <div key={item.id} className="flex gap-4 border-b border-gray-50 pb-4">
-                                <div className="h-20 w-20 bg-gray-100 rounded-lg overflow-hidden shrink-0">
+                                <div className="h-20 w-20 bg-gray-100 rounded-lg overflow-hidden shrink-0 relative">
                                     {item.imageUrl ? (
-                                        <img src={item.imageUrl} alt={item.name} className="h-full w-full object-cover" />
+                                        <Image src={item.imageUrl} alt={item.name} fill className="object-cover" />
                                     ) : (
                                         <div className="h-full w-full flex items-center justify-center text-[10px] text-gray-400">No img</div>
                                     )}

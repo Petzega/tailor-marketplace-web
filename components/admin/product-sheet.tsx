@@ -3,6 +3,7 @@
 import { createProduct } from "@/actions/products";
 import Link from "next/link";
 import { X, Upload, Save, Link as LinkIcon, Image as ImageIcon, AlertTriangle } from "lucide-react";
+import NextImage from "next/image";
 import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
 
@@ -88,7 +89,7 @@ export function ProductSheet() {
 
                         {inputType === 'file' && (
                             <div onClick={() => fileInputRef.current?.click()} className="border-2 border-dashed border-gray-200 rounded-xl p-6 flex flex-col items-center justify-center text-center hover:bg-gray-50 transition-colors group cursor-pointer relative overflow-hidden h-32">
-                                {preview && <img src={preview} className="absolute inset-0 w-full h-full object-cover opacity-30 group-hover:opacity-20 transition-opacity" alt="Preview" />}
+                                {preview && <NextImage src={preview} fill className="object-cover opacity-30 group-hover:opacity-20 transition-opacity" alt="Preview" />}
                                 <div className="relative z-10 flex flex-col items-center">
                                     <div className="bg-blue-50 p-3 rounded-full mb-2 group-hover:scale-110 transition-transform"><ImageIcon className="text-blue-600" size={20} /></div>
                                     <p className="text-xs text-gray-500 font-medium">{preview ? "Change file" : "Upload image"}</p>

@@ -4,6 +4,7 @@ import { deleteProduct } from "@/actions/products";
 import { Trash2, Pencil, AlertTriangle, Image as ImageIcon } from "lucide-react";
 import { useState } from "react";
 import Link from "next/link";
+import NextImage from "next/image";
 import { useRouter } from "next/navigation"; // 👈 Importamos el Router
 import { Product } from "@/types";
 
@@ -64,8 +65,8 @@ export function ProductActions({ product }: { product: Product }) {
                         </div>
 
                         <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg border border-gray-100 mb-5">
-                            <div className="h-12 w-12 rounded-md bg-white border border-gray-200 overflow-hidden shrink-0 flex items-center justify-center">
-                                {product.imageUrl ? <img src={product.imageUrl} alt={product.name} className="h-full w-full object-cover" /> : <ImageIcon size={20} className="text-gray-300" />}
+                            <div className="h-12 w-12 rounded-md bg-white border border-gray-200 overflow-hidden shrink-0 flex items-center justify-center relative">
+                                {product.imageUrl ? <NextImage src={product.imageUrl} alt={product.name} fill className="object-cover" /> : <ImageIcon size={20} className="text-gray-300" />}
                             </div>
                             <div className="overflow-hidden">
                                 <p className="text-sm font-medium text-gray-900 truncate">{product.name}</p>

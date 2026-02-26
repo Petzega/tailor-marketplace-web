@@ -6,8 +6,21 @@
   <component name="ChangeListManager">
     <list default="true" id="ba1fb5f0-e77c-49e5-a34a-19ee4e7a4234" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/admin/new/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/admin/new/page.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/admin/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/admin/page.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/product/[id]/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/product/[id]/page.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/components/admin/action-toast.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/admin/action-toast.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/components/admin/edit-product-sheet.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/admin/edit-product-sheet.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/components/admin/product-actions.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/admin/product-actions.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/components/admin/product-sheet.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/admin/product-sheet.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/components/cart/cart-sheet.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/cart/cart-sheet.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/components/catalog/product-grid.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/catalog/product-grid.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/components/layout/hero.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/layout/hero.tsx" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/components/search/command-search.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/search/command-search.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/package-lock.json" beforeDir="false" afterPath="$PROJECT_DIR$/package-lock.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/components/search/mobile-filters.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/search/mobile-filters.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/package.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/types/routes.d.ts" beforeDir="false" afterPath="$PROJECT_DIR$/types/routes.d.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/types/validator.ts" beforeDir="false" afterPath="$PROJECT_DIR$/types/validator.ts" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -124,7 +137,7 @@
       <workItem from="1772045301189" duration="11066000" />
       <workItem from="1772119502247" duration="475000" />
       <workItem from="1772119993911" duration="391000" />
-      <workItem from="1772120400395" duration="1832000" />
+      <workItem from="1772120400395" duration="2650000" />
     </task>
     <task id="LOCAL-00001" summary="feat: se añade mejora de select para mobile y se termina avance de vista busqueda avanzada">
       <option name="closed" value="true" />

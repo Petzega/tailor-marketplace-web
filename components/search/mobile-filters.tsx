@@ -19,6 +19,7 @@ export function MobileFilters(props: MobileFiltersProps) {
 
     // Efecto mágico: Si la URL cambia (ej. el usuario aplicó un filtro), cerramos el panel automáticamente
     useEffect(() => {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setIsOpen(false);
     }, [searchParams]);
 

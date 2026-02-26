@@ -1,6 +1,6 @@
 import { createProduct } from "@/actions/products";
 import Link from "next/link";
-import { X, Upload, Info } from "lucide-react";
+import { X, Upload } from "lucide-react";
 
 export default function NewProductPage() {
     return (

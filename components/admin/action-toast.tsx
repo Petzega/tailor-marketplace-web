@@ -12,25 +12,27 @@ export function ActionToast() {
 
     useEffect(() => {
         const action = searchParams.get('action')
+        if (!action) return;
 
-        if (action) {
-            // 1. Elegimos el mensaje según la acción
-            if (action === 'created') {
-                setToastInfo({ title: '¡Producto Creado!', desc: 'Se ha añadido correctamente al sistema.', type: 'success' })
-            } else if (action === 'updated') {
-                setToastInfo({ title: '¡Producto Actualizado!', desc: 'Los cambios se han guardado correctamente.', type: 'success' })
-            } else if (action === 'deleted') {
-                setToastInfo({ title: '¡Producto Eliminado!', desc: 'El registro se ha borrado correctamente.', type: 'danger' })
-            }
+        // 1. Derivamos el mensaje según la acción (sin llamar a setState dentro del if)
+        const info: { title: string; desc: string; type: 'success' | 'danger' } | null =
+            action === 'created' ? { title: '¡Producto Creado!', desc: 'Se ha añadido correctamente al sistema.', type: 'success' } :
+                action === 'updated' ? { title: '¡Producto Actualizado!', desc: 'Los cambios se han guardado correctamente.', type: 'success' } :
+                    action === 'deleted' ? { title: '¡Producto Eliminado!', desc: 'El registro se ha borrado correctamente.', type: 'danger' } :
+                        null;
 
-            // 2. Lo ocultamos a los 3 segundos
-            const timer = setTimeout(() => {
-                setToastInfo(null)
-                router.replace('/admin', { scroll: false })
-            }, 3000)
+        if (!info) return;
 
-            return () => clearTimeout(timer)
-        }
+        // 2. Una única llamada a setState, sin condicionales dentro del efecto
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setToastInfo(info);
+
+        const timer = setTimeout(() => {
+            setToastInfo(null)
+            router.replace('/admin', { scroll: false })
+        }, 3000)
+
+        return () => clearTimeout(timer)
     }, [searchParams, router])
 
     if (!toastInfo) return null
