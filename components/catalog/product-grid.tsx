@@ -1,5 +1,6 @@
 import { getProducts } from "@/actions/products";
 import { Calendar } from "lucide-react";
+import { PaginationControls } from "./pagination-controls";
 
 interface ProductGridProps {
     query?: string;
@@ -7,11 +8,12 @@ interface ProductGridProps {
     minPrice?: number;
     maxPrice?: number;
     sort?: string;
+    page?: number;
 }
 
-export async function ProductGrid({ query, category, minPrice, maxPrice, sort }: ProductGridProps) {
+export async function ProductGrid({ query, category, minPrice, maxPrice, sort, page = 1 }: ProductGridProps) {
     // Pasamos todos los parámetros al servidor
-    const { products } = await getProducts(query, category, 1, minPrice, maxPrice, sort);
+    const { products, totalPages } = await getProducts(query, category, 1, minPrice, maxPrice, sort);
 
     // Estado Vacío: Si no hay productos (o la búsqueda no trajo nada)
     if (products.length === 0) {
@@ -116,6 +118,9 @@ export async function ProductGrid({ query, category, minPrice, maxPrice, sort }:
                     </div>
                 );
             })}
+            <div className="mt-auto w-full flex justify-center">
+                <PaginationControls totalPages={totalPages} currentPage={page} />
+            </div>
         </div>
     );
 }

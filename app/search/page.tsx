@@ -9,6 +9,7 @@ interface SearchPageProps {
         min?: string;
         max?: string;
         sort?: string;
+        page?: string;
     }>;
 }
 
@@ -22,6 +23,8 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
     // Convertimos a número si existen en la URL
     const minPrice = params.min ? Number(params.min) : undefined;
     const maxPrice = params.max ? Number(params.max) : undefined;
+
+    const page = params.page ? parseInt(params.page) : 1;
 
     return (
         <div className="min-h-screen bg-gray-50 flex flex-col">
@@ -55,6 +58,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
                             minPrice={minPrice}
                             maxPrice={maxPrice}
                             sort={sort}
+                            page={page}
                         />
                     </section>
                 </div>

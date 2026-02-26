@@ -3,11 +3,8 @@
 import { db } from "@/lib/db";
 import { Product } from "@/types";
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
 import { ITEMS_PER_PAGE } from "@/lib/constants";
-
-// ─── Constante global de paginación ───────────────────────────────────────────
-//export const ITEMS_PER_PAGE = 10;
+import { Prisma } from "@prisma/client";
 
 // ─── Tipos ────────────────────────────────────────────────────────────────────
 export type GetProductsResult = {
@@ -71,25 +68,25 @@ export async function getProducts(
     try {
         const skip = (page - 1) * ITEMS_PER_PAGE;
 
-        // Construimos los filtros dinámicamente
-        const whereClause: any = {
-            AND: [
-                query
-                    ? {
-                        OR: [
-                            { name: { contains: query } },
-                            { description: { contains: query } },
-                            { sku: { contains: query } },
-                        ],
-                    }
-                    : {},
-                category && category !== 'ALL' ? { category } : {},
-            ],
-        };
+        // Construimos las condiciones de forma tipada usando Prisma.ProductWhereInput
+        const andConditions: Prisma.ProductWhereInput[] = [];
 
-        // Si hay un rango de precios, lo agregamos a la consulta
+        if (query) {
+            andConditions.push({
+                OR: [
+                    { name: { contains: query } },
+                    { description: { contains: query } },
+                    { sku: { contains: query } },
+                ]
+            });
+        }
+
+        if (category && category !== 'ALL') {
+            andConditions.push({ category });
+        }
+
         if (minPrice !== undefined || maxPrice !== undefined) {
-            whereClause.AND.push({
+            andConditions.push({
                 price: {
                     ...(minPrice !== undefined ? { gte: minPrice } : {}),
                     ...(maxPrice !== undefined ? { lte: maxPrice } : {}),
@@ -97,11 +94,16 @@ export async function getProducts(
             });
         }
 
-        // Lógica de ordenamiento
-        let orderByClause: any = { createdAt: 'desc' }; // Por defecto: más recientes
-        if (sort === 'price_asc') orderByClause = { price: 'asc' }; // Menor a mayor
-        if (sort === 'price_desc') orderByClause = { price: 'desc' }; // Mayor a menor
+        // Asignamos el tipo exacto de Prisma a la cláusula WHERE
+        const whereClause: Prisma.ProductWhereInput =
+            andConditions.length > 0 ? { AND: andConditions } : {};
 
+        // Asignamos el tipo exacto a la cláusula ORDER BY
+        let orderByClause: Prisma.ProductOrderByWithRelationInput = { createdAt: 'desc' };
+        if (sort === 'price_asc') orderByClause = { price: 'asc' };
+        if (sort === 'price_desc') orderByClause = { price: 'desc' };
+
+        // Ejecutamos ambas queries en paralelo para mayor performance
         const [products, total] = await Promise.all([
             db.product.findMany({
                 where: whereClause,
@@ -113,7 +115,8 @@ export async function getProducts(
         ]);
 
         return {
-            products,
+            // Hacemos un casteo a tu tipo local Product
+            products: products as unknown as Product[],
             total,
             totalPages: Math.ceil(total / ITEMS_PER_PAGE),
         };
