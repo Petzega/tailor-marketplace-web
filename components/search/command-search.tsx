@@ -29,20 +29,22 @@ export function CommandSearch() {
     const [results, setResults] = useState<SpotlightResult>({ products: [], services: [] });
     const [isLoading, setIsLoading] = useState(false);
     const [activeIndex, setActiveIndex] = useState(0);
-    const [modifierKey, setModifierKey] = useState<string>('Ctrl');
 
     const inputRef = useRef<HTMLInputElement>(null);
+    const kbdRef = useRef<HTMLElement>(null);
     const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     const allItems: SpotlightProduct[] = [...results.products, ...results.services];
     const hasResults = allItems.length > 0;
     const showResults = query.trim().length >= 2;
 
-    // Detectar Mac/Windows
+    // Detectar Mac/Windows y actualizar el atajo de teclado directamente en el DOM
     useEffect(() => {
-        const isMac = typeof window !== 'undefined' && navigator.userAgent.toUpperCase().indexOf('MAC') >= 0;
-        setModifierKey(isMac ? '⌘' : 'Ctrl');
-    }, [setModifierKey]);
+        if (kbdRef.current) {
+            const isMac = navigator.userAgent.toUpperCase().indexOf('MAC') >= 0;
+            kbdRef.current.textContent = `${isMac ? '⌘' : 'Ctrl'} K`;
+        }
+    }, []);
 
     // 👈 MAGIA DEFINITIVA: "Bulletproof Scroll Lock"
     useEffect(() => {
@@ -169,8 +171,11 @@ export function CommandSearch() {
             >
                 <Search size={15} />
                 <span className="flex-1 text-left">Search products...</span>
-                <kbd className="hidden sm:inline-block text-[10px] border border-gray-200 px-1.5 py-0.5 rounded font-mono text-gray-300 group-hover:text-gray-400 transition-colors">
-                    {modifierKey} K
+                <kbd
+                    ref={kbdRef}
+                    className="hidden sm:inline-block text-[10px] border border-gray-200 px-1.5 py-0.5 rounded font-mono text-gray-300 group-hover:text-gray-400 transition-colors"
+                >
+                    Ctrl K
                 </kbd>
             </button>
 
