@@ -4,15 +4,9 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="ba1fb5f0-e77c-49e5-a34a-19ee4e7a4234" name="Changes" comment="">
+    <list default="true" id="ba1fb5f0-e77c-49e5-a34a-19ee4e7a4234" name="Changes" comment="feat: se añade mejora de select para mobile y se termina avance de vista busqueda avanzada">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/search/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/search/page.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/components/cart/cart-sheet.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/cart/cart-sheet.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/components/catalog/product-grid.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/catalog/product-grid.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/components/search/search-filters.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/search/search-filters.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/lib/constants.ts" beforeDir="false" afterPath="$PROJECT_DIR$/lib/constants.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/prisma/dev.db" beforeDir="false" afterPath="$PROJECT_DIR$/prisma/dev.db" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/prisma/seed.ts" beforeDir="false" afterPath="$PROJECT_DIR$/prisma/seed.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/components/search/command-search.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/search/command-search.tsx" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -116,9 +110,22 @@
       <workItem from="1771989803391" duration="2134000" />
       <workItem from="1772045301189" duration="11066000" />
     </task>
+    <task id="LOCAL-00001" summary="feat: se añade mejora de select para mobile y se termina avance de vista busqueda avanzada">
+      <option name="closed" value="true" />
+      <created>1772078588747</created>
+      <option name="number" value="00001" />
+      <option name="presentableId" value="LOCAL-00001" />
+      <option name="project" value="LOCAL" />
+      <updated>1772078588747</updated>
+    </task>
+    <option name="localTasksCounter" value="2" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
     <option name="version" value="3" />
+  </component>
+  <component name="VcsManagerConfiguration">
+    <MESSAGE value="feat: se añade mejora de select para mobile y se termina avance de vista busqueda avanzada" />
+    <option name="LAST_COMMIT_MESSAGE" value="feat: se añade mejora de select para mobile y se termina avance de vista busqueda avanzada" />
   </component>
 </project>

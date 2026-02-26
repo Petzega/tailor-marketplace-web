@@ -1,14 +1,13 @@
 'use client';
 
 import { useEffect, useState, useRef, useCallback } from 'react';
-import { useRouter } from 'next/navigation'; // 👈 Importamos el router
+import { useRouter } from 'next/navigation';
 import {
     Search, X, ArrowRight,
     Scissors, Ruler, Shirt, Sparkles,
 } from 'lucide-react';
 import { spotlightSearch, SpotlightResult, SpotlightProduct } from '@/actions/search';
 
-// ─── Íconos y colores para servicios ─────────────────────────────────────────
 const SERVICE_STYLES = [
     { icon: Scissors, bg: 'bg-blue-100', text: 'text-blue-600' },
     { icon: Ruler, bg: 'bg-green-100', text: 'text-green-600' },
@@ -16,22 +15,23 @@ const SERVICE_STYLES = [
     { icon: Sparkles, bg: 'bg-purple-100', text: 'text-purple-600' },
 ];
 
-// ─── Helpers de stock ─────────────────────────────────────────────────────────
 function getStockLabel(stock: number) {
     if (stock === 0) return { label: 'Out of Stock', cls: 'text-red-500' };
     if (stock < 5) return { label: 'Low Stock', cls: 'text-amber-500' };
     return { label: 'In Stock', cls: 'text-green-600' };
 }
 
-// ─── Componente principal ─────────────────────────────────────────────────────
 export function CommandSearch() {
-    const router = useRouter(); // 👈 Inicializamos el router
+    const router = useRouter();
 
     const [isOpen, setIsOpen] = useState(false);
     const [query, setQuery] = useState('');
     const [results, setResults] = useState<SpotlightResult>({ products: [], services: [] });
     const [isLoading, setIsLoading] = useState(false);
     const [activeIndex, setActiveIndex] = useState(0);
+
+    // 👈 Nuevo estado para el atajo dinámico (Por defecto Ctrl para evitar saltos raros)
+    const [modifierKey, setModifierKey] = useState('Ctrl');
 
     const inputRef = useRef<HTMLInputElement>(null);
     const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -40,7 +40,12 @@ export function CommandSearch() {
     const hasResults = allItems.length > 0;
     const showResults = query.trim().length >= 2;
 
-    // ── Abrir / cerrar ────────────────────────────────────────────────────────
+    // 👈 Efecto para detectar si el usuario está en Mac o en PC/Linux
+    useEffect(() => {
+        const isMac = typeof window !== 'undefined' && navigator.userAgent.toUpperCase().indexOf('MAC') >= 0;
+        setModifierKey(isMac ? '⌘' : 'Ctrl');
+    }, []);
+
     const openModal = useCallback(() => {
         setIsOpen(true);
         setTimeout(() => inputRef.current?.focus(), 60);
@@ -53,20 +58,16 @@ export function CommandSearch() {
         setActiveIndex(0);
     }, []);
 
-    // ── Acciones de Selección ─────────────────────────────────────────────────
-    const handleSelect = useCallback((item: SpotlightProduct) => {
+    const handleAdvancedSearch = useCallback(() => {
         closeModal();
-        // Redirige al detalle del producto/servicio
-        router.push(`/product/${item.id}`);
+        router.push(`/search?q=${encodeURIComponent(query)}`);
+    }, [closeModal, query, router]);
+
+    const handleSelectResult = useCallback((item: SpotlightProduct) => {
+        closeModal();
+        router.push(`/search?q=${encodeURIComponent(item.name)}`);
     }, [closeModal, router]);
 
-    const handleAdvancedSearch = () => {
-        closeModal();
-        // Redirige a una página de búsqueda completa
-        router.push(`/search?q=${encodeURIComponent(query)}`);
-    };
-
-    // ── Atajo global Cmd+K / Ctrl+K ───────────────────────────────────────────
     useEffect(() => {
         const handler = (e: KeyboardEvent) => {
             if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
@@ -78,7 +79,6 @@ export function CommandSearch() {
         return () => window.removeEventListener('keydown', handler);
     }, [isOpen, openModal, closeModal]);
 
-    // ── Navegación con teclado dentro del modal ───────────────────────────────
     useEffect(() => {
         if (!isOpen) return;
 
@@ -96,9 +96,12 @@ export function CommandSearch() {
                     setActiveIndex(i => Math.max(i - 1, 0));
                     break;
                 case 'Enter':
-                    if (hasResults && allItems[activeIndex]) {
+                    if (hasResults) {
                         e.preventDefault();
-                        handleSelect(allItems[activeIndex]); // 👈 Ejecuta la selección
+                        handleSelectResult(allItems[activeIndex]);
+                    } else if (query.trim().length > 0) {
+                        e.preventDefault();
+                        handleAdvancedSearch();
                     }
                     break;
             }
@@ -106,9 +109,8 @@ export function CommandSearch() {
 
         window.addEventListener('keydown', handler);
         return () => window.removeEventListener('keydown', handler);
-    }, [isOpen, allItems, activeIndex, hasResults, closeModal, handleSelect]);
+    }, [isOpen, allItems, activeIndex, hasResults, closeModal, handleSelectResult, handleAdvancedSearch, query]);
 
-    // ── Búsqueda con debounce 300ms ───────────────────────────────────────────
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const value = e.target.value;
         setQuery(value);
@@ -136,10 +138,8 @@ export function CommandSearch() {
         inputRef.current?.focus();
     };
 
-    // ─────────────────────────────────────────────────────────────────────────
     return (
         <>
-            {/* ── Trigger: barra de búsqueda en el navbar ── */}
             <button
                 onClick={openModal}
                 className="flex w-full items-center gap-2 px-3 py-2 text-sm text-gray-400 bg-white border border-gray-200 rounded-lg hover:border-gray-300 hover:text-gray-600 transition-all shadow-sm group min-w-[220px]"
@@ -147,24 +147,18 @@ export function CommandSearch() {
                 <Search size={15} />
                 <span className="flex-1 text-left">Search products...</span>
                 <kbd className="text-[10px] border border-gray-200 px-1.5 py-0.5 rounded font-mono text-gray-300 group-hover:text-gray-400 transition-colors">
-                    ⌘K
+                    {/* 👈 Renderizamos el atajo dinámicamente */}
+                    {modifierKey} K
                 </kbd>
             </button>
 
-            {/* ── Modal ── */}
             {isOpen && (
                 <>
-                    {/* Backdrop */}
-                    <div
-                        className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50"
-                        onClick={closeModal}
-                    />
+                    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50" onClick={closeModal} />
 
-                    {/* Panel */}
-                    <div className="fixed top-[18%] left-1/2 -translate-x-1/2 z-50 w-full max-w-xl bg-white rounded-2xl shadow-2xl overflow-hidden border border-gray-100">
+                    <div className="fixed top-[18%] left-1/2 -translate-x-1/2 z-50 w-full max-w-xl bg-white rounded-2xl shadow-2xl overflow-hidden border border-gray-100 flex flex-col max-h-[70vh]">
 
-                        {/* ── Input ── */}
-                        <div className="flex items-center gap-3 px-4 py-3.5 border-b border-gray-100">
+                        <div className="flex items-center gap-3 px-4 py-3.5 border-b border-gray-100 shrink-0">
                             <Search size={17} className="text-gray-400 shrink-0" />
                             <input
                                 ref={inputRef}
@@ -185,16 +179,14 @@ export function CommandSearch() {
                             </div>
                         </div>
 
-                        {/* ── Resultados ── */}
                         {showResults && (
-                            <div className="max-h-[380px] overflow-y-auto">
+                            <div className="overflow-y-auto flex-1">
                                 {isLoading ? (
                                     <LoadingState />
                                 ) : !hasResults ? (
                                     <EmptyState query={query} />
                                 ) : (
                                     <>
-                                        {/* Sección PRODUCTS */}
                                         {results.products.length > 0 && (
                                             <section>
                                                 <SectionHeader label="Products" />
@@ -206,7 +198,7 @@ export function CommandSearch() {
                                                             key={product.id}
                                                             isActive={isActive}
                                                             onHover={() => setActiveIndex(i)}
-                                                            onClick={() => handleSelect(product)} // 👈 Añadimos onClick
+                                                            onClick={() => handleSelectResult(product)}
                                                             left={
                                                                 <div className="h-10 w-10 rounded-lg overflow-hidden bg-gray-100 border border-gray-200 shrink-0">
                                                                     {product.imageUrl
@@ -229,7 +221,6 @@ export function CommandSearch() {
                                             </section>
                                         )}
 
-                                        {/* Sección SERVICES */}
                                         {results.services.length > 0 && (
                                             <section>
                                                 <SectionHeader label="Services" />
@@ -243,7 +234,7 @@ export function CommandSearch() {
                                                             key={service.id}
                                                             isActive={isActive}
                                                             onHover={() => setActiveIndex(globalIdx)}
-                                                            onClick={() => handleSelect(service)} // 👈 Añadimos onClick
+                                                            onClick={() => handleSelectResult(service)}
                                                             left={
                                                                 <div className={`h-10 w-10 rounded-lg flex items-center justify-center shrink-0 ${style.bg} ${style.text}`}>
                                                                     <Icon size={18} />
@@ -267,16 +258,15 @@ export function CommandSearch() {
                             </div>
                         )}
 
-                        {/* ── Footer con hints de teclado ── */}
-                        <div className="flex items-center justify-between px-4 py-2.5 border-t border-gray-100 bg-gray-50/60">
+                        <div className="flex items-center justify-between px-4 py-2.5 border-t border-gray-100 bg-gray-50/60 shrink-0">
                             <div className="flex items-center gap-3">
                                 <KbdHint keys={['↵']} label="to select" />
                                 <KbdHint keys={['↑', '↓']} label="to navigate" />
                                 <KbdHint keys={['esc']} label="to close" />
                             </div>
                             <button
-                                onClick={handleAdvancedSearch} // 👈 Conectamos el botón de Advanced Search
-                                className="flex items-center gap-1 text-xs text-indigo-500 hover:text-indigo-700 font-medium transition-colors"
+                                onClick={handleAdvancedSearch}
+                                className="flex items-center gap-1 text-xs text-indigo-500 hover:text-indigo-700 font-medium transition-colors cursor-pointer"
                             >
                                 Advanced Search <ArrowRight size={11} />
                             </button>
@@ -288,8 +278,6 @@ export function CommandSearch() {
         </>
     );
 }
-
-// ─── Sub-componentes ──────────────────────────────────────────────────────────
 
 function SectionHeader({ label }: { label: string }) {
     return (
@@ -304,7 +292,7 @@ function ResultRow({
                    }: {
     isActive: boolean;
     onHover: () => void;
-    onClick: () => void; // 👈 Agregamos onClick a las props
+    onClick: () => void;
     left: React.ReactNode;
     title: string;
     subtitle: React.ReactNode;
@@ -314,7 +302,7 @@ function ResultRow({
     return (
         <button
             onMouseEnter={onHover}
-            onClick={onClick} // 👈 Agregamos el onClick al botón
+            onClick={onClick}
             className={`w-full flex items-center gap-3 px-4 py-3 text-left transition-colors border-l-2 ${isActive
                 ? 'bg-indigo-50/60 border-indigo-400'
                 : 'border-transparent hover:bg-gray-50'
