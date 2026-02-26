@@ -25,7 +25,7 @@ export function CartSheet() {
         const encodedMessage = encodeURIComponent(message);
 
         // 3. Tu número de WhatsApp de Perú (Cambia los ceros por tu número real, conservando el 51)
-        const phoneNumber = "51000000000";
+        const phoneNumber = "51992431513";
 
         // 4. Abrir WhatsApp
         window.open(`https://wa.me/${phoneNumber}?text=${encodedMessage}`, "_blank");

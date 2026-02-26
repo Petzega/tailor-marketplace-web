@@ -4,6 +4,15 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useState } from 'react';
 import { Search } from 'lucide-react';
 
+// Importamos el nuevo Select de Shadcn
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
+
 interface SearchFiltersProps {
     currentQuery: string;
     currentCategory: string;
@@ -47,8 +56,11 @@ export function SearchFilters({ currentQuery, currentCategory, currentSort, curr
         router.push(`/search?${createQueryString({ category: categoryId })}`);
     };
 
-    const handleSortChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-        router.push(`/search?${createQueryString({ sort: e.target.value })}`);
+    // 👈 Shadcn pasa directamente el valor (string), no un evento (e)
+    const handleSortChange = (value: string) => {
+        // Si elige "recent" (la opción por defecto), lo vaciamos en la URL
+        const sortValue = value === "recent" ? "" : value;
+        router.push(`/search?${createQueryString({ sort: sortValue })}`);
     };
 
     const handleSearchSubmit = (e: React.FormEvent) => {
@@ -88,18 +100,22 @@ export function SearchFilters({ currentQuery, currentCategory, currentSort, curr
 
             <hr className="border-gray-100" />
 
-            {/* Ordenar Por */}
+            {/* 👈 Nuestro nuevo Select a prueba de WebViews */}
             <div>
                 <h3 className="text-sm font-semibold text-gray-900 mb-3">Ordenar por</h3>
-                <select
-                    value={currentSort}
-                    onChange={handleSortChange}
-                    className="w-full py-2 px-3 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white"
+                <Select
+                    value={currentSort || "recent"}
+                    onValueChange={handleSortChange}
                 >
-                    <option value="">Más recientes</option>
-                    <option value="price_asc">Precio: Menor a Mayor</option>
-                    <option value="price_desc">Precio: Mayor a Menor</option>
-                </select>
+                    <SelectTrigger className="w-full bg-white border-gray-300 focus:ring-indigo-500 h-10">
+                        <SelectValue placeholder="Más recientes" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="recent">Más recientes</SelectItem>
+                        <SelectItem value="price_asc">Precio: Menor a Mayor</SelectItem>
+                        <SelectItem value="price_desc">Precio: Mayor a Menor</SelectItem>
+                    </SelectContent>
+                </Select>
             </div>
 
             <hr className="border-gray-100" />
@@ -128,7 +144,7 @@ export function SearchFilters({ currentQuery, currentCategory, currentSort, curr
                 </div>
                 <button
                     onClick={handlePriceSubmit}
-                    className="w-full py-2 text-sm text-white bg-green-600 rounded-lg hover:bg-green-700 transition-colors font-medium border border-gray-200"
+                    className="w-full py-2 text-sm text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 transition-colors font-medium shadow-sm"
                 >
                     Aplicar precio
                 </button>

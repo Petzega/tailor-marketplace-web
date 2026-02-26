@@ -6,9 +6,11 @@
   <component name="ChangeListManager">
     <list default="true" id="ba1fb5f0-e77c-49e5-a34a-19ee4e7a4234" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/actions/products.ts" beforeDir="false" afterPath="$PROJECT_DIR$/actions/products.ts" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/app/search/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/search/page.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/components/cart/cart-sheet.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/cart/cart-sheet.tsx" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/components/catalog/product-grid.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/catalog/product-grid.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/components/search/search-filters.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/search/search-filters.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/lib/constants.ts" beforeDir="false" afterPath="$PROJECT_DIR$/lib/constants.ts" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/prisma/dev.db" beforeDir="false" afterPath="$PROJECT_DIR$/prisma/dev.db" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/prisma/seed.ts" beforeDir="false" afterPath="$PROJECT_DIR$/prisma/seed.ts" afterDir="false" />
     </list>
@@ -65,7 +67,7 @@
     "settings.editor.selected.configurable": "settings.prisma",
     "settings.editor.splitter.proportion": "0.28716904",
     "show.migrate.to.gradle.popup": "false",
-    "ts.external.directory.path": "D:\\Documents\\Workspace\\Remote\\tailor-marketplace-web\\node_modules\\typescript\\lib",
+    "ts.external.directory.path": "/home/peterz/Documentos/Workspace/remote/tailor-marketplace-web/node_modules/typescript/lib",
     "vue.rearranger.settings.migration": "true"
   }
 }]]></component>
