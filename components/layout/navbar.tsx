@@ -3,26 +3,28 @@
 import Link from "next/link";
 import { ShoppingBag, User } from "lucide-react";
 import { CommandSearch } from "@/components/search/command-search";
-import { useCart } from "@/store/cart"; // 👈 Importamos el store del carrito
+import { useCart } from "@/store/cart";
 
 export function Navbar() {
-    const { items, openCart } = useCart(); // 👈 Traemos el estado del carrito
+    const { items, openCart } = useCart();
 
     return (
         <nav className="sticky top-0 z-50 w-full border-b border-gray-100 bg-white shadow-sm">
+            {/* Fila 1: Logo, Búsqueda (Desktop) e Iconos */}
             <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
 
                 {/* 1. Logo */}
-                <Link href="/" className="flex items-center gap-2">
+                <Link href="/" className="flex items-center gap-2 shrink-0">
                     <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-green-600 text-white font-bold">
                         S
                     </div>
-                    <span className="text-xl font-bold text-gray-900 tracking-tight">
+                    {/* Ocultamos el texto en celulares MUY pequeños para que no choque con los iconos, pero se ve en iPhone normal */}
+                    <span className="text-[1.1rem] sm:text-xl font-bold text-gray-900 tracking-tight">
                         Stitch & Style
                     </span>
                 </Link>
 
-                {/* 2. Barra de Búsqueda INTELIGENTE */}
+                {/* 2. Barra de Búsqueda INTELIGENTE (Visible solo en Desktop/Tablet) */}
                 <div className="hidden md:flex flex-1 items-center justify-center px-8">
                     <div className="w-full max-w-md">
                         <CommandSearch />
@@ -30,9 +32,9 @@ export function Navbar() {
                 </div>
 
                 {/* 3. Iconos */}
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2 sm:gap-4 shrink-0">
 
-                    {/* 👇 Botón del Carrito */}
+                    {/* Botón del Carrito */}
                     <button
                         onClick={openCart}
                         className="relative p-2 text-gray-600 hover:text-green-600 transition-colors"
@@ -40,7 +42,7 @@ export function Navbar() {
                     >
                         <ShoppingBag className="h-5 w-5" />
 
-                        {/* Indicador de cantidad (Solo se muestra si hay > 0) */}
+                        {/* Indicador de cantidad */}
                         {items.length > 0 && (
                             <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-green-600 text-[10px] font-bold text-white shadow-sm ring-2 ring-white">
                                 {items.length}
@@ -54,6 +56,11 @@ export function Navbar() {
                     </button>
                 </div>
 
+            </div>
+
+            {/* Fila 2: Barra de Búsqueda (Visible SOLO en Celulares - Estilo App) */}
+            <div className="md:hidden px-4 pb-3">
+                <CommandSearch />
             </div>
         </nav>
     );

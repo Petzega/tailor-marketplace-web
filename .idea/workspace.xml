@@ -6,6 +6,7 @@
   <component name="ChangeListManager">
     <list default="true" id="ba1fb5f0-e77c-49e5-a34a-19ee4e7a4234" name="Changes" comment="feat: se añade mejora de select para mobile y se termina avance de vista busqueda avanzada">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/components/layout/navbar.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/layout/navbar.tsx" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/components/search/command-search.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/search/command-search.tsx" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />

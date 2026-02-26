@@ -29,9 +29,7 @@ export function CommandSearch() {
     const [results, setResults] = useState<SpotlightResult>({ products: [], services: [] });
     const [isLoading, setIsLoading] = useState(false);
     const [activeIndex, setActiveIndex] = useState(0);
-
-    // 👈 Nuevo estado para el atajo dinámico (Por defecto Ctrl para evitar saltos raros)
-    const [modifierKey, setModifierKey] = useState('Ctrl');
+    const [modifierKey, setModifierKey] = useState<string>('Ctrl');
 
     const inputRef = useRef<HTMLInputElement>(null);
     const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -40,11 +38,36 @@ export function CommandSearch() {
     const hasResults = allItems.length > 0;
     const showResults = query.trim().length >= 2;
 
-    // 👈 Efecto para detectar si el usuario está en Mac o en PC/Linux
+    // Detectar Mac/Windows
     useEffect(() => {
         const isMac = typeof window !== 'undefined' && navigator.userAgent.toUpperCase().indexOf('MAC') >= 0;
         setModifierKey(isMac ? '⌘' : 'Ctrl');
-    }, []);
+    }, [setModifierKey]);
+
+    // 👈 MAGIA DEFINITIVA: "Bulletproof Scroll Lock"
+    useEffect(() => {
+        if (!isOpen) return;
+
+        // 1. Guardamos la posición exacta de la página antes de abrir el buscador
+        const scrollY = window.scrollY;
+        // 2. Calculamos el ancho de la barra de scroll (para que no salte el diseño en PC)
+        const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
+
+        // 3. Fijamos el fondo para que sea FÍSICAMENTE imposible hacer scroll
+        document.body.style.position = 'fixed';
+        document.body.style.top = `-${scrollY}px`;
+        document.body.style.width = '100%';
+        document.body.style.paddingRight = `${scrollbarWidth}px`;
+
+        return () => {
+            // 4. Al cerrar, restauramos todo a la normalidad y lo devolvemos a su posición exacta
+            document.body.style.position = '';
+            document.body.style.top = '';
+            document.body.style.width = '';
+            document.body.style.paddingRight = '';
+            window.scrollTo(0, scrollY);
+        };
+    }, [isOpen]);
 
     const openModal = useCallback(() => {
         setIsOpen(true);
@@ -146,41 +169,42 @@ export function CommandSearch() {
             >
                 <Search size={15} />
                 <span className="flex-1 text-left">Search products...</span>
-                <kbd className="text-[10px] border border-gray-200 px-1.5 py-0.5 rounded font-mono text-gray-300 group-hover:text-gray-400 transition-colors">
-                    {/* 👈 Renderizamos el atajo dinámicamente */}
+                <kbd className="hidden sm:inline-block text-[10px] border border-gray-200 px-1.5 py-0.5 rounded font-mono text-gray-300 group-hover:text-gray-400 transition-colors">
                     {modifierKey} K
                 </kbd>
             </button>
 
             {isOpen && (
                 <>
-                    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50" onClick={closeModal} />
+                    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 overscroll-none touch-none" onClick={closeModal} />
 
-                    <div className="fixed top-[18%] left-1/2 -translate-x-1/2 z-50 w-full max-w-xl bg-white rounded-2xl shadow-2xl overflow-hidden border border-gray-100 flex flex-col max-h-[70vh]">
+                    <div className="fixed z-50 flex flex-col bg-white overflow-hidden shadow-2xl transition-all
+                                    inset-0 w-full h-[100dvh] rounded-none
+                                    sm:inset-auto sm:top-[18%] sm:left-1/2 sm:-translate-x-1/2 sm:w-full sm:max-w-xl sm:h-auto sm:max-h-[70vh] sm:rounded-2xl sm:border sm:border-gray-100">
 
-                        <div className="flex items-center gap-3 px-4 py-3.5 border-b border-gray-100 shrink-0">
+                        <div className="flex items-center gap-3 px-4 py-3.5 border-b border-gray-100 shrink-0 mt-2 sm:mt-0">
                             <Search size={17} className="text-gray-400 shrink-0" />
                             <input
                                 ref={inputRef}
                                 value={query}
                                 onChange={handleChange}
-                                placeholder="Search for threads, fabrics, or alteration services..."
-                                className="flex-1 text-sm text-gray-700 placeholder:text-gray-400 outline-none bg-transparent"
+                                placeholder="Search products or services..."
+                                className="flex-1 text-base sm:text-sm text-gray-700 placeholder:text-gray-400 outline-none bg-transparent"
                             />
                             <div className="flex items-center gap-2 shrink-0">
                                 {query && (
-                                    <button onClick={clearQuery} className="text-gray-400 hover:text-gray-600 transition-colors">
-                                        <X size={14} />
+                                    <button onClick={clearQuery} className="p-2 -mr-2 text-gray-400 hover:text-gray-600 transition-colors">
+                                        <X size={16} />
                                     </button>
                                 )}
-                                <kbd className="text-[10px] text-gray-400 border border-gray-200 px-1.5 py-0.5 rounded font-mono">
+                                <kbd className="hidden sm:inline-block text-[10px] text-gray-400 border border-gray-200 px-1.5 py-0.5 rounded font-mono">
                                     ESC
                                 </kbd>
                             </div>
                         </div>
 
                         {showResults && (
-                            <div className="overflow-y-auto flex-1">
+                            <div className="overflow-y-auto flex-1 overscroll-contain">
                                 {isLoading ? (
                                     <LoadingState />
                                 ) : !hasResults ? (
@@ -258,17 +282,22 @@ export function CommandSearch() {
                             </div>
                         )}
 
-                        <div className="flex items-center justify-between px-4 py-2.5 border-t border-gray-100 bg-gray-50/60 shrink-0">
-                            <div className="flex items-center gap-3">
+                        <div className="flex items-center justify-between px-4 py-3 sm:py-2.5 border-t border-gray-100 bg-gray-50/60 shrink-0 pb-safe">
+                            <div className="hidden sm:flex items-center gap-3">
                                 <KbdHint keys={['↵']} label="to select" />
                                 <KbdHint keys={['↑', '↓']} label="to navigate" />
                                 <KbdHint keys={['esc']} label="to close" />
                             </div>
+
+                            <button onClick={closeModal} className="sm:hidden text-sm text-gray-500 font-medium px-2">
+                                Cancelar
+                            </button>
+
                             <button
                                 onClick={handleAdvancedSearch}
-                                className="flex items-center gap-1 text-xs text-indigo-500 hover:text-indigo-700 font-medium transition-colors cursor-pointer"
+                                className="flex items-center gap-1 text-sm sm:text-xs text-indigo-600 hover:text-indigo-700 font-bold sm:font-medium transition-colors cursor-pointer"
                             >
-                                Advanced Search <ArrowRight size={11} />
+                                Advanced Search <ArrowRight size={14} className="sm:w-3 sm:h-3" />
                             </button>
                         </div>
 
@@ -288,8 +317,8 @@ function SectionHeader({ label }: { label: string }) {
 }
 
 function ResultRow({
-                       isActive, onHover, onClick, left, title, subtitle, right, showEnterHint,
-                   }: {
+    isActive, onHover, onClick, left, title, subtitle, right, showEnterHint,
+}: {
     isActive: boolean;
     onHover: () => void;
     onClick: () => void;
@@ -306,7 +335,7 @@ function ResultRow({
             className={`w-full flex items-center gap-3 px-4 py-3 text-left transition-colors border-l-2 ${isActive
                 ? 'bg-indigo-50/60 border-indigo-400'
                 : 'border-transparent hover:bg-gray-50'
-            }`}
+                }`}
         >
             {left}
             <div className="flex-1 min-w-0">
@@ -316,7 +345,7 @@ function ResultRow({
             <div className="flex items-center gap-2 shrink-0">
                 {right}
                 {showEnterHint && (
-                    <kbd className="text-[10px] text-gray-400 border border-gray-200 px-1 py-0.5 rounded font-mono">
+                    <kbd className="hidden sm:inline-block text-[10px] text-gray-400 border border-gray-200 px-1 py-0.5 rounded font-mono">
                         ↵
                     </kbd>
                 )}
