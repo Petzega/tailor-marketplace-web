@@ -44,8 +44,8 @@ export async function ProductGrid({
     const isCarousel = layout === "carousel";
 
     const itemClasses = isCarousel
-        ? "group relative flex flex-col gap-3 snap-start shrink-0 w-[280px] sm:w-[300px] outline-none"
-        : "group relative flex flex-col gap-3";
+        ? "group relative flex flex-col gap-3 snap-start shrink-0 w-[280px] sm:w-[300px] outline-none transition-transform active:scale-[0.98]"
+        : "group relative flex flex-col gap-3 transition-transform active:scale-[0.98]";
 
     const productCards = displayProducts.map((product) => {
         const isOutOfStock = product.stock === 0;

@@ -42,7 +42,7 @@ export function AutoCarousel({ children }: { children: React.ReactNode }) {
 
     useEffect(() => {
         if (isHovered) return;
-        const intervalId = setInterval(scrollNext, 3000); // 👈 3 segundos
+        const intervalId = setInterval(scrollNext, 3000);
         return () => clearInterval(intervalId);
     }, [isHovered]);
 
@@ -56,7 +56,7 @@ export function AutoCarousel({ children }: { children: React.ReactNode }) {
         >
             <button
                 onClick={scrollPrev}
-                className="absolute left-2 top-[40%] -translate-y-1/2 z-20 flex h-12 w-12 items-center justify-center rounded-full bg-white/90 text-gray-800 shadow-lg opacity-0 transition-all duration-300 hover:bg-white hover:scale-110 group-hover/carousel:opacity-100 disabled:opacity-0"
+                className="absolute left-4 sm:left-6 lg:left-8 top-[40%] -translate-y-1/2 z-20 flex h-12 w-12 items-center justify-center rounded-full bg-white/90 text-gray-800 shadow-lg opacity-0 transition-all duration-300 hover:bg-white hover:scale-110 group-hover/carousel:opacity-100 disabled:opacity-0"
                 aria-label="Anterior"
             >
                 <ChevronLeft size={28} />
@@ -64,18 +64,19 @@ export function AutoCarousel({ children }: { children: React.ReactNode }) {
 
             <button
                 onClick={scrollNext}
-                className="absolute right-2 top-[40%] -translate-y-1/2 z-20 flex h-12 w-12 items-center justify-center rounded-full bg-white/90 text-gray-800 shadow-lg opacity-0 transition-all duration-300 hover:bg-white hover:scale-110 group-hover/carousel:opacity-100"
+                className="absolute right-4 sm:right-6 lg:right-8 top-[40%] -translate-y-1/2 z-20 flex h-12 w-12 items-center justify-center rounded-full bg-white/90 text-gray-800 shadow-lg opacity-0 transition-all duration-300 hover:bg-white hover:scale-110 group-hover/carousel:opacity-100"
                 aria-label="Siguiente"
             >
                 <ChevronRight size={28} />
             </button>
 
+            {/* 👇 EL SECRETO ESTÁ AQUÍ: Agregamos scroll-pl-* para que el "imán" de scroll respete el margen */}
             <div
                 ref={carouselRef}
-                className="flex overflow-x-auto snap-x snap-mandatory pb-8 pt-2 focus:outline-none [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
+                className="flex overflow-x-auto snap-x snap-mandatory pb-8 pt-2 focus:outline-none scroll-pl-4 sm:scroll-pl-6 lg:scroll-pl-8 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
                 tabIndex={0}
             >
-                <div ref={trackRef} className="flex gap-6 shrink-0 pr-6">
+                <div ref={trackRef} className="flex gap-6 shrink-0 pl-4 sm:pl-6 lg:pl-8 pr-6">
                     {children}
                 </div>
                 <div className="flex gap-6 shrink-0 pr-6" aria-hidden="true">
