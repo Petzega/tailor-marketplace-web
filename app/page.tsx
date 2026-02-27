@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
-import { Navbar } from "@/components/layout/navbar";
 import { Footer } from "@/components/layout/footer";
 import { Hero } from "@/components/layout/hero";
 import { ProductGrid } from "@/components/catalog/product-grid";
@@ -9,11 +8,10 @@ import { getProducts } from "@/actions/products";
 export default async function Home() {
     const { products } = await getProducts();
     // Ahora traemos 8 productos para que el carrusel se vea surtido
-    const featuredProducts = products.slice(0, 8);
+    const featuredProducts = products.slice(0, 12);
 
     return (
         <main className="min-h-screen bg-white">
-            <Navbar />
 
             <Hero />
 

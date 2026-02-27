@@ -1,12 +1,10 @@
-"use client"; // 👈 IMPORTANTE: Esto es necesario para usar hooks como useEffect y useState
-
 import { getProducts } from "@/actions/products";
 import { Calendar } from "lucide-react";
 import { Product } from "@/types";
 import Image from "next/image";
 import { ProductPagination } from "@/components/admin/product-pagination";
 import { ITEMS_PER_PAGE } from "@/lib/constants";
-import { useEffect, useRef, useState } from "react"; // 👈 Importamos los hooks necesarios
+import { AutoCarousel } from "./auto-carousel"; // 👈 Importamos nuestro nuevo envoltorio cliente
 
 interface ProductGridProps {
     query?: string;
@@ -53,148 +51,103 @@ export async function ProductGrid({
         );
     }
 
-    // --- LÓGICA DEL CARRUSEL AUTOMÁTICO ---
-    const carouselRef = useRef<HTMLDivElement>(null);
-    const [isHovered, setIsHovered] = useState(false); // Estado para saber si el mouse está encima
-
-    useEffect(() => {
-        // Solo ejecutamos la lógica si estamos en modo carrusel y el mouse NO está encima
-        if (layout !== "carousel" || isHovered) return;
-
-        const carousel = carouselRef.current;
-        if (!carousel) return;
-
-        // Función que realiza el desplazamiento
-        const scrollCarousel = () => {
-            const { scrollLeft, offsetWidth, scrollWidth } = carousel;
-
-            // Calculamos cuánto scroll falta para llegar al final
-            const maxScroll = scrollWidth - offsetWidth;
-
-            // Si estamos cerca del final, volvemos al principio. Si no, avanzamos una "página" (el ancho visible).
-            // Usamos un pequeño margen de error (5px) para la comparación
-            if (scrollLeft >= maxScroll - 5) {
-                carousel.scrollTo({ left: 0, behavior: "smooth" });
-            } else {
-                carousel.scrollBy({ left: offsetWidth, behavior: "smooth" });
-            }
-        };
-
-        // Creamos el intervalo de 3 segundos (3000ms)
-        const intervalId = setInterval(scrollCarousel, 3000);
-
-        // Función de limpieza: se ejecuta cuando el componente se desmonta o cambia el layout/hover
-        // Esto es crucial para evitar que el temporizador siga corriendo en segundo plano
-        return () => clearInterval(intervalId);
-    }, [layout, isHovered]); // El efecto se vuelve a ejecutar si cambia el layout o el estado de hover
-
-    // --- CLASES DINÁMICAS (CORRECCIÓN DE ICONOS CORTADOS) ---
-    const containerClasses = layout === "carousel"
-        ? "flex overflow-x-auto snap-x snap-mandatory gap-6 pb-8 pt-2 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] focus:outline-none" // 👈 Eliminados -mx-4 px-4, añadido focus:outline-none
-        : "grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8";
-
-    const itemClasses = layout === "carousel"
-        ? "group relative flex flex-col gap-3 snap-start shrink-0 w-[280px] sm:w-[300px] outline-none" // 👈 Añadido outline-none
+    const isCarousel = layout === "carousel";
+    const itemClasses = isCarousel
+        ? "group relative flex flex-col gap-3 snap-start shrink-0 w-[280px] sm:w-[300px] outline-none"
         : "group relative flex flex-col gap-3";
+
+    // Extraemos las tarjetas a una variable para no repetir código
+    const productCards = displayProducts.map((product) => {
+        const isOutOfStock = product.stock === 0;
+        const isLowStock = product.stock > 0 && product.stock < 5;
+        const isService = product.category === 'SERVICE';
+
+        return (
+            <div key={product.id} className={itemClasses} tabIndex={0}>
+                <div className="relative aspect-square w-full overflow-hidden rounded-lg bg-gray-100 shadow-sm">
+                    {product.imageUrl ? (
+                        <Image
+                            src={product.imageUrl}
+                            alt={product.name}
+                            fill
+                            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                            className={`object-cover transition-transform duration-500 group-hover:scale-105 ${isOutOfStock ? 'opacity-50 grayscale' : ''}`}
+                        />
+                    ) : (
+                        <div className="flex h-full items-center justify-center text-gray-400 bg-gray-200">
+                            Sin Foto
+                        </div>
+                    )}
+
+                    <div className="absolute top-2 left-2 flex flex-col gap-1 z-10">
+                        {isService && (
+                            <span className="bg-black text-white text-[10px] px-2 py-1 font-bold uppercase tracking-wide rounded">
+                                Servicio
+                            </span>
+                        )}
+                        {!isService && !isOutOfStock && (
+                            <span className="bg-white/90 text-black text-[10px] px-2 py-1 font-bold uppercase tracking-wide rounded shadow-sm">
+                                Nuevo
+                            </span>
+                        )}
+                    </div>
+
+                    {isOutOfStock && (
+                        <div className="absolute inset-0 flex items-center justify-center bg-black/40 backdrop-blur-[1px] z-10">
+                            <span className="bg-white text-black px-3 py-1 text-sm font-bold uppercase tracking-wider rounded-sm shadow-lg">
+                                Agotado
+                            </span>
+                        </div>
+                    )}
+                </div>
+
+                <div className="space-y-1">
+                    <h3 className="text-lg font-medium text-gray-900 group-hover:text-gray-600 transition-colors">
+                        {product.name}
+                    </h3>
+                    <p className="text-sm text-gray-500 line-clamp-1">
+                        {product.description}
+                    </p>
+                </div>
+
+                <div className="flex items-center justify-between mt-auto">
+                    <span className="text-xl font-bold text-gray-900">
+                        S/ {product.price.toFixed(2)}
+                    </span>
+                    {isLowStock && (
+                        <span className="bg-yellow-100 text-yellow-800 text-[10px] px-2 py-1 rounded-full font-bold uppercase tracking-wide">
+                            ¡Quedan {product.stock}!
+                        </span>
+                    )}
+                </div>
+
+                {isOutOfStock ? (
+                    <button disabled className="w-full flex items-center justify-center gap-2 rounded-md bg-gray-100 px-4 py-3 text-sm font-medium text-gray-400 cursor-not-allowed border border-gray-200">
+                        No disponible
+                    </button>
+                ) : (
+                    <button className="w-full flex items-center justify-center gap-2 rounded-md bg-green-600 hover:bg-green-700 transition-all duration-200 px-4 py-3 text-sm font-medium text-white shadow-md hover:shadow-lg active:scale-[0.98]">
+                        {isService ? <Calendar size={18} /> : <WhatsAppIcon />}
+                        {isService ? 'Agendar Cita' : 'Pedir por WhatsApp'}
+                    </button>
+                )}
+            </div>
+        );
+    });
 
     return (
         <div className="flex flex-col gap-8">
-            {/* Contenedor dinámico (Grid o Carrusel) */}
-            <div
-                ref={carouselRef} // 👈 Asignamos la referencia para controlar el scroll
-                className={containerClasses}
-                // Eventos para pausar/reanudar el movimiento automático
-                onMouseEnter={() => setIsHovered(true)}
-                onMouseLeave={() => setIsHovered(false)}
-                onTouchStart={() => setIsHovered(true)} // Para dispositivos táctiles
-                onTouchEnd={() => setIsHovered(false)}
-                tabIndex={0} // Permite que el div reciba foco para pausar con teclado
-            >
-                {displayProducts.map((product) => {
-                    const isOutOfStock = product.stock === 0;
-                    const isLowStock = product.stock > 0 && product.stock < 5;
-                    const isService = product.category === 'SERVICE';
+            {/* Si es carrusel usamos el componente interactivo, sino la grilla normal */}
+            {isCarousel ? (
+                <AutoCarousel>
+                    {productCards}
+                </AutoCarousel>
+            ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
+                    {productCards}
+                </div>
+            )}
 
-                    return (
-                        <div key={product.id} className={itemClasses} tabIndex={0}> {/* tabIndex para accesibilidad */}
-                            {/* 1. Imagen y Badges */}
-                            <div className="relative aspect-square w-full overflow-hidden rounded-lg bg-gray-100 shadow-sm">
-                                {product.imageUrl ? (
-                                    <Image
-                                        src={product.imageUrl}
-                                        alt={product.name}
-                                        fill
-                                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                                        className={`object-cover transition-transform duration-500 group-hover:scale-105 ${isOutOfStock ? 'opacity-50 grayscale' : ''}`}
-                                    />
-                                ) : (
-                                    <div className="flex h-full items-center justify-center text-gray-400 bg-gray-200">
-                                        Sin Foto
-                                    </div>
-                                )}
-
-                                <div className="absolute top-2 left-2 flex flex-col gap-1 z-10">
-                                    {isService && (
-                                        <span className="bg-black text-white text-[10px] px-2 py-1 font-bold uppercase tracking-wide rounded">
-                                            Servicio
-                                        </span>
-                                    )}
-                                    {!isService && !isOutOfStock && (
-                                        <span className="bg-white/90 text-black text-[10px] px-2 py-1 font-bold uppercase tracking-wide rounded shadow-sm">
-                                            Nuevo
-                                        </span>
-                                    )}
-                                </div>
-
-                                {isOutOfStock && (
-                                    <div className="absolute inset-0 flex items-center justify-center bg-black/40 backdrop-blur-[1px] z-10">
-                                        <span className="bg-white text-black px-3 py-1 text-sm font-bold uppercase tracking-wider rounded-sm shadow-lg">
-                                            Agotado
-                                        </span>
-                                    </div>
-                                )}
-                            </div>
-
-                            {/* 2. Información del Producto */}
-                            <div className="space-y-1">
-                                <h3 className="text-lg font-medium text-gray-900 group-hover:text-gray-600 transition-colors">
-                                    {product.name}
-                                </h3>
-                                <p className="text-sm text-gray-500 line-clamp-1">
-                                    {product.description}
-                                </p>
-                            </div>
-
-                            {/* 3. Precio y Stock */}
-                            <div className="flex items-center justify-between mt-auto">
-                                <span className="text-xl font-bold text-gray-900">
-                                    S/ {product.price.toFixed(2)}
-                                </span>
-
-                                {isLowStock && (
-                                    <span className="bg-yellow-100 text-yellow-800 text-[10px] px-2 py-1 rounded-full font-bold uppercase tracking-wide">
-                                        ¡Quedan {product.stock}!
-                                    </span>
-                                )}
-                            </div>
-
-                            {/* 4. Botón de Acción */}
-                            {isOutOfStock ? (
-                                <button disabled className="w-full flex items-center justify-center gap-2 rounded-md bg-gray-100 px-4 py-3 text-sm font-medium text-gray-400 cursor-not-allowed border border-gray-200">
-                                    No disponible
-                                </button>
-                            ) : (
-                                <button className="w-full flex items-center justify-center gap-2 rounded-md bg-green-600 hover:bg-green-700 transition-all duration-200 px-4 py-3 text-sm font-medium text-white shadow-md hover:shadow-lg active:scale-[0.98]">
-                                    {isService ? <Calendar size={18} /> : <WhatsAppIcon />}
-                                    {isService ? 'Agendar Cita' : 'Pedir por WhatsApp'}
-                                </button>
-                            )}
-                        </div>
-                    );
-                })}
-            </div>
-
-            {/* 5. Paginador */}
             {!passedProducts && totalPages > 1 && (
                 <div className="mt-8 rounded-lg overflow-hidden border border-gray-100">
                     <ProductPagination
