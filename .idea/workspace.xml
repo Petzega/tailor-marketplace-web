@@ -4,145 +4,46 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="ba1fb5f0-e77c-49e5-a34a-19ee4e7a4234" name="Changes" comment="">
+    <list default="true" id="50f95e57-e980-4f0a-8236-918a1132539a" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/components/catalog/auto-carousel.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/catalog/auto-carousel.tsx" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/components/catalog/product-grid.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/catalog/product-grid.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/components/product/add-to-cart-button.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/product/add-to-cart-button.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/store/cart.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/store/cart.tsx" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
     <option name="LAST_RESOLUTION" value="IGNORE" />
   </component>
-  <component name="FileTemplateManagerImpl">
-    <option name="RECENT_TEMPLATES">
-      <list>
-        <option value="TypeScript File" />
-        <option value="TypeScript JSX File" />
-      </list>
-    </option>
-  </component>
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
-  <component name="GitHubPullRequestSearchHistory">{
-  &quot;lastFilter&quot;: {
-    &quot;state&quot;: &quot;OPEN&quot;,
-    &quot;assignee&quot;: &quot;Petzega&quot;
-  }
-}</component>
-  <component name="GithubPullRequestsUISettings">{
-  &quot;selectedUrlAndAccountId&quot;: {
-    &quot;url&quot;: &quot;https://github.com/Petzega/tailor-marketplace-web.git&quot;,
-    &quot;accountId&quot;: &quot;d4d75d7f-7110-43e6-bd97-0ddd45e1cfab&quot;
-  }
-}</component>
-  <component name="PrismaServiceSettings">
-    <option name="lspServerPackageName" value="$PROJECT_DIR$/node_modules/@prisma/language-server" />
-  </component>
-  <component name="ProblemsViewState">
-    <option name="selectedTabId" value="CurrentFile" />
-  </component>
-  <component name="ProjectColorInfo">{
-  &quot;associatedIndex&quot;: 4
-}</component>
-  <component name="ProjectId" id="39xmyYxxsnL1UVMPd6fVKZr8ne5" />
-  <component name="ProjectViewState">
-    <option name="hideEmptyMiddlePackages" value="true" />
-    <option name="showLibraryContents" value="true" />
-  </component>
   <component name="PropertiesComponent"><![CDATA[{
   "keyToString": {
-    "ModuleVcsDetector.initialDetectionPerformed": "true",
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252": "true",
-    "RunOnceActivity.git.unshallow": "true",
-    "RunOnceActivity.typescript.service.memoryLimit.init": "true",
-    "dart.analysis.tool.window.visible": "false",
-    "deletionFromPopupRequiresConfirmation": "false",
     "git-widget-placeholder": "feature/landing",
     "javascript.preferred.runtime.type.id": "node",
-    "js.debugger.nextJs.config.created.client": "true",
-    "js.debugger.nextJs.config.created.server": "true",
-    "last_opened_file_path": "/home/peterz/Documentos/Workspace/remote/tailor-marketplace-web/node_modules/@prisma/language-server",
-    "node.js.detected.package.eslint": "true",
-    "node.js.detected.package.tslint": "true",
-    "node.js.selected.package.eslint": "(autodetect)",
     "node.js.selected.package.tslint": "(autodetect)",
-    "nodejs_interpreter_path": "/home/peterz/.nvm/versions/node/v25.2.1/bin/node",
-    "nodejs_package_manager_path": "npm",
-    "npm.Next.js: server-side.executor": "Run",
     "npm.dev.executor": "Run",
-    "settings.editor.selected.configurable": "settings.javascript.runtime",
-    "settings.editor.splitter.proportion": "0.28716904",
-    "show.migrate.to.gradle.popup": "false",
-    "ts.external.directory.path": "/home/peterz/Documentos/Workspace/remote/tailor-marketplace-web/node_modules/typescript/lib",
-    "vue.rearranger.settings.migration": "true"
+    "ts.external.directory.path": "/home/peterz/Documentos/Workspace/remote/tailor-marketplace-web/node_modules/typescript/lib"
   }
 }]]></component>
-  <component name="RunManager" selected="npm.dev">
-    <configuration name="Next.js: debug client-side" type="JavascriptDebugType" engineId="98ca6316-2f89-46d9-a9e5-fa9e2b0625b3" uri="http://localhost:3000/">
-      <method v="2" />
-    </configuration>
+  <component name="RunManager">
     <configuration name="dev" type="js.build_tools.npm" nameIsGenerated="true">
       <package-json value="$PROJECT_DIR$/package.json" />
       <command value="run" />
       <scripts>
         <script value="dev" />
       </scripts>
-      <node-interpreter value="$USER_HOME$/.nvm/versions/node/v25.2.1/bin/node" />
+      <node-interpreter value="project" />
       <envs />
       <EXTENSION ID="com.intellij.javascript.debugger.execution.StartBrowserRunConfigurationExtension">
         <browser with-js-debugger="true" />
       </EXTENSION>
       <method v="2" />
     </configuration>
-    <list>
-      <item itemvalue="JavaScript Debug.Next.js: debug client-side" />
-      <item itemvalue="npm.dev" />
-    </list>
-  </component>
-  <component name="SharedIndexes">
-    <attachedChunks>
-      <set>
-        <option value="bundled-js-predefined-d6986cc7102b-9b0f141eb926-JavaScript-WS-253.30387.83" />
-      </set>
-    </attachedChunks>
   </component>
   <component name="TaskManager">
-    <task active="true" id="Default" summary="Default task">
-      <changelist id="ba1fb5f0-e77c-49e5-a34a-19ee4e7a4234" name="Changes" comment="" />
-      <created>1771646350694</created>
-      <option name="number" value="Default" />
-      <option name="presentableId" value="Default" />
-      <updated>1771646350694</updated>
-      <workItem from="1771646351835" duration="99000" />
-      <workItem from="1771646461584" duration="4356000" />
-      <workItem from="1771816327328" duration="7184000" />
-      <workItem from="1771905045902" duration="753000" />
-      <workItem from="1771984788546" duration="1197000" />
-      <workItem from="1771989253361" duration="535000" />
-      <workItem from="1771989803391" duration="2134000" />
-      <workItem from="1772045301189" duration="11066000" />
-      <workItem from="1772119502247" duration="475000" />
-      <workItem from="1772119993911" duration="391000" />
-      <workItem from="1772120400395" duration="2650000" />
-    </task>
-    <task id="LOCAL-00001" summary="feat: se añade mejora de select para mobile y se termina avance de vista busqueda avanzada">
-      <option name="closed" value="true" />
-      <created>1772078588747</created>
-      <option name="number" value="00001" />
-      <option name="presentableId" value="LOCAL-00001" />
-      <option name="project" value="LOCAL" />
-      <updated>1772078588747</updated>
-    </task>
-    <option name="localTasksCounter" value="2" />
     <servers />
-  </component>
-  <component name="TypeScriptGeneratedFilesManager">
-    <option name="version" value="3" />
-  </component>
-  <component name="VcsManagerConfiguration">
-    <MESSAGE value="feat: se añade mejora de select para mobile y se termina avance de vista busqueda avanzada" />
-    <option name="LAST_COMMIT_MESSAGE" value="feat: se añade mejora de select para mobile y se termina avance de vista busqueda avanzada" />
   </component>
 </project>

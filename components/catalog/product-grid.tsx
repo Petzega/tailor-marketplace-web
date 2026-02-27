@@ -1,13 +1,10 @@
 import { getProducts } from "@/actions/products";
-import { Calendar, ShoppingCart } from "lucide-react"; // 👈 1. Importamos el ShoppingCart
-import { Product } from "@/types";
 import Image from "next/image";
-import { ProductPagination } from "@/components/admin/product-pagination";
-import { ITEMS_PER_PAGE } from "@/lib/constants";
+import { PaginationControls } from "./pagination-controls";
+import { AddToCartButton } from "@/components/product/add-to-cart-button";
 import { AutoCarousel } from "./auto-carousel";
-
-// 👇 2. AQUÍ PONDRÁS EL NÚMERO DE WHATSAPP DE TU TIENDA (Código de país + número, sin el símbolo +)
-const WHATSAPP_NUMBER = "51999999999";
+import { Calendar } from "lucide-react";
+import { Product } from "@/types";
 
 interface ProductGridProps {
     query?: string;
@@ -21,164 +18,124 @@ interface ProductGridProps {
 }
 
 export async function ProductGrid({
-                                      query,
-                                      category,
-                                      minPrice,
-                                      maxPrice,
-                                      sort,
-                                      page = 1,
-                                      products: passedProducts,
-                                      layout = "grid"
-                                  }: ProductGridProps) {
+    query, category, minPrice, maxPrice, sort, page = 1,
+    products: passedProducts, layout = "grid"
+}: ProductGridProps) {
 
     let displayProducts = passedProducts;
     let totalPages = 0;
-    let totalItems = 0;
 
     if (!displayProducts) {
-        const data = await getProducts(query, category, page);
+        const data = await getProducts(query, category, page, minPrice, maxPrice, sort);
         displayProducts = data.products;
         totalPages = data.totalPages;
-        totalItems = data.total;
     }
 
     if (displayProducts.length === 0) {
         return (
             <div className="text-center py-20 bg-white rounded-lg border border-dashed border-gray-200">
                 <p className="text-gray-500 text-lg">
-                    {query
-                        ? `No encontramos productos para "${query}"`
-                        : "No hay productos disponibles por el momento."}
+                    {query ? `No encontramos productos para "${query}"` : "No hay productos disponibles por el momento."}
                 </p>
             </div>
         );
     }
 
     const isCarousel = layout === "carousel";
+
     const itemClasses = isCarousel
-        ? "group relative flex flex-col gap-3 shrink-0 w-[280px] sm:w-[300px] outline-none snap-start"
+        ? "group relative flex flex-col gap-3 snap-start shrink-0 w-[280px] sm:w-[300px] outline-none"
         : "group relative flex flex-col gap-3";
 
     const productCards = displayProducts.map((product) => {
         const isOutOfStock = product.stock === 0;
-        const isLowStock = product.stock > 0 && product.stock < 5;
         const isService = product.category === 'SERVICE';
 
-        // 👇 3. LÓGICA DE WHATSAPP: Creamos enlaces dinámicos con el mensaje listo
-        const whatsappMessage = encodeURIComponent(`Hola, estoy interesado en el producto: ${product.name} (S/ ${product.price.toFixed(2)}). ¿Tienen stock disponible?`);
-        const whatsappProductUrl = `https://wa.me/${WHATSAPP_NUMBER}?text=${whatsappMessage}`;
-
-        const serviceMessage = encodeURIComponent(`Hola, me gustaría agendar una cita o pedir información sobre el servicio: ${product.name}.`);
-        const serviceUrl = `https://wa.me/${WHATSAPP_NUMBER}?text=${serviceMessage}`;
+        const whatsappMessage = encodeURIComponent(`Hola, me interesa el ${isService ? 'servicio' : 'producto'}: ${product.name} (SKU: ${product.sku}). ¿Podrían darme más información?`);
+        const whatsappLink = `https://wa.me/51992431513?text=${whatsappMessage}`;
 
         return (
             <div key={product.id} className={itemClasses} tabIndex={0}>
-                {/* 1. Imagen y Badges */}
-                <div className="relative aspect-square w-full overflow-hidden rounded-lg bg-gray-100 shadow-sm">
-                    {product.imageUrl ? (
-                        <Image
-                            src={product.imageUrl}
-                            alt={product.name}
-                            fill
-                            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                            className={`object-cover transition-transform duration-500 group-hover:scale-105 ${isOutOfStock ? 'opacity-50 grayscale' : ''}`}
-                        />
-                    ) : (
-                        <div className="flex h-full items-center justify-center text-gray-400 bg-gray-200">
-                            Sin Foto
-                        </div>
-                    )}
-
-                    <div className="absolute top-2 left-2 flex flex-col gap-1 z-10">
-                        {isService && (
-                            <span className="bg-black text-white text-[10px] px-2 py-1 font-bold uppercase tracking-wide rounded">
-                                Servicio
-                            </span>
-                        )}
-                        {!isService && !isOutOfStock && (
-                            <span className="bg-white/90 text-black text-[10px] px-2 py-1 font-bold uppercase tracking-wide rounded shadow-sm">
-                                Nuevo
-                            </span>
-                        )}
+                <div className="relative aspect-square w-full overflow-hidden rounded-xl bg-gray-100 border border-gray-200">
+                    <div className="absolute top-2 left-2 z-10 bg-white px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-gray-900 rounded-sm shadow-sm">
+                        NUEVO
                     </div>
 
+                    <Image
+                        src={product.imageUrl || "https://placehold.co/600x400?text=Sin+Imagen"}
+                        alt={product.name}
+                        fill
+                        className={`object-cover object-center transition-transform duration-300 group-hover:scale-105 ${isOutOfStock ? 'opacity-50 grayscale' : ''}`}
+                    />
+
                     {isOutOfStock && (
-                        <div className="absolute inset-0 flex items-center justify-center bg-black/40 backdrop-blur-[1px] z-10">
-                            <span className="bg-white text-black px-3 py-1 text-sm font-bold uppercase tracking-wider rounded-sm shadow-lg">
-                                Agotado
+                        <div className="absolute inset-0 flex items-center justify-center">
+                            <span className="bg-white px-3 py-1.5 text-xs font-bold uppercase tracking-wider text-gray-900 rounded-sm shadow-md">
+                                AGOTADO
                             </span>
                         </div>
                     )}
                 </div>
 
-                {/* 2. Información del Producto */}
-                <div className="space-y-1">
-                    <h3 className="text-lg font-medium text-gray-900 group-hover:text-gray-600 transition-colors">
+                <div className="flex flex-col flex-1 mt-2">
+                    <h3 className="text-base font-semibold text-gray-900 line-clamp-2">
                         {product.name}
                     </h3>
-                    <p className="text-sm text-gray-500 line-clamp-1">
+                    <p className="mt-1 text-sm text-gray-500 line-clamp-1">
                         {product.description}
                     </p>
-                </div>
 
-                {/* 3. Precio y Stock */}
-                <div className="flex items-center justify-between mt-auto">
-                    <span className="text-xl font-bold text-gray-900">
-                        S/ {product.price.toFixed(2)}
-                    </span>
-                    {isLowStock && (
-                        <span className="bg-yellow-100 text-yellow-800 text-[10px] px-2 py-1 rounded-full font-bold uppercase tracking-wide">
-                            ¡Quedan {product.stock}!
-                        </span>
-                    )}
-                </div>
+                    <div className="mt-2 flex items-center justify-between">
+                        <p className="text-lg font-bold text-gray-900">
+                            S/ {product.price.toFixed(2)}
+                        </p>
+                    </div>
 
-                {/* 4. BOTONES DE ACCIÓN ACTUALIZADOS */}
-                <div className="mt-2 w-full">
-                    {isOutOfStock ? (
-                        <button disabled className="w-full flex items-center justify-center gap-2 rounded-lg bg-gray-100 px-4 py-3 text-sm font-medium text-gray-400 cursor-not-allowed border border-gray-200">
-                            No disponible
-                        </button>
-                    ) : isService ? (
-                        <a
-                            href={serviceUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="w-full flex items-center justify-center gap-2 rounded-lg bg-green-600 hover:bg-green-700 transition-all duration-200 px-4 py-3 text-sm font-medium text-white shadow-md hover:shadow-lg active:scale-[0.98]"
-                        >
-                            <Calendar size={18} />
-                            Agendar Cita
-                        </a>
-                    ) : (
-                        // 👇 CAMBIO AQUÍ: Usamos grid para que los tamaños sean exactos y no se desborden
-                        <div className="grid grid-cols-[1fr_48px] gap-2">
-                            <button
-                                className="flex items-center justify-center gap-2 rounded-lg bg-gray-900 hover:bg-black transition-all duration-200 px-4 py-3 text-sm font-medium text-white shadow-md hover:shadow-lg active:scale-[0.98]"
-                                // onClick={() => {/* Lógica de agregar al carrito aquí */}}
-                            >
-                                <ShoppingCart size={18} />
-                                Agregar
+                    {/* 👇 ZONA DE BOTONES ESTANDARIZADA */}
+                    <div className="mt-4 mt-auto">
+                        {isOutOfStock ? (
+                            // Botón Agotado: Altura fija de h-12
+                            <button disabled className="w-full h-12 flex items-center justify-center gap-2 bg-gray-50 text-gray-400 font-medium rounded-lg text-sm cursor-not-allowed border border-gray-200">
+                                No disponible
                             </button>
-
+                        ) : isService ? (
+                            // Botón Servicios: Altura fija de h-12
                             <a
-                                href={whatsappProductUrl}
+                                href={whatsappLink}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                // El color #25D366 es el verde oficial de la marca WhatsApp
-                                className="flex items-center justify-center rounded-lg bg-[#25D366] hover:bg-[#20bd5a] transition-all duration-200 text-white shadow-md hover:shadow-lg active:scale-[0.98]"
-                                title="Preguntar por WhatsApp"
+                                className="w-full h-12 flex items-center justify-center gap-2 bg-[#25D366] hover:bg-[#20bd5a] text-white font-medium rounded-lg text-sm transition-colors shadow-sm active:scale-[0.98]"
                             >
-                                <WhatsAppIcon />
+                                <Calendar size={18} />
+                                Agendar Cita
                             </a>
-                        </div>
-                    )}
+                        ) : (
+                            // Cuadrícula estricta: 48px de alto en total (h-12).
+                            // Columna derecha de 48px exactos, columna izquierda toma el resto.
+                            <div className="grid grid-cols-[1fr_48px] gap-2 h-12">
+                                <AddToCartButton product={product} isOutOfStock={isOutOfStock} />
+
+                                <a
+                                    href={whatsappLink}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="flex h-full w-full items-center justify-center rounded-lg bg-[#25D366] hover:bg-[#20bd5a] transition-all duration-200 text-white shadow-md hover:shadow-lg active:scale-[0.98]"
+                                    title="Preguntar por WhatsApp"
+                                >
+                                    <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                        <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51a12.8 12.8 0 0 0-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413Z" />
+                                    </svg>
+                                </a>
+                            </div>
+                        )}
+                    </div>
                 </div>
             </div>
         );
     });
 
     return (
-        <div className="flex flex-col gap-8">
+        <div className="flex flex-col w-full h-full">
             {isCarousel ? (
                 <AutoCarousel>
                     {productCards}
@@ -189,24 +146,11 @@ export async function ProductGrid({
                 </div>
             )}
 
-            {!passedProducts && totalPages > 1 && (
-                <div className="mt-8 rounded-lg overflow-hidden border border-gray-100">
-                    <ProductPagination
-                        currentPage={page}
-                        totalPages={totalPages}
-                        totalItems={totalItems}
-                        itemsPerPage={ITEMS_PER_PAGE}
-                    />
+            {!isCarousel && totalPages > 1 && (
+                <div className="mt-12 w-full flex justify-center pb-8">
+                    <PaginationControls totalPages={totalPages} currentPage={page} />
                 </div>
             )}
         </div>
     );
-}
-
-function WhatsAppIcon() {
-    return (
-        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor" className="inline-block">
-            <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.305-5.235c0-5.438 4.411-9.856 9.854-9.856 2.632 0 5.108 1.026 6.969 2.888 1.861 1.862 2.888 4.337 2.888 6.968 0 5.443-4.415 9.865-9.855 9.865" />
-        </svg>
-    )
 }
