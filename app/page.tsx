@@ -7,23 +7,18 @@ import { getProducts } from "@/actions/products";
 
 export default async function Home() {
     const { products } = await getProducts();
-    // Ahora traemos 8 productos para que el carrusel se vea surtido
     const featuredProducts = products.slice(0, 12);
 
     return (
         <main className="min-h-screen bg-white">
-
             <Hero />
 
-            {/* SECCIÓN 1: Productos Destacados (Carrusel Automático) */}
+            {/* SECCIÓN 1: Productos Destacados */}
             <section className="py-16 sm:py-20">
-                {/* 👈 PASO 2: Aquí está el cambio. Quitamos 'px-4 sm:px-6 lg:px-8' para pantallas pequeñas y medianas,
-                   pero mantenemos el max-w-7xl y el centrado mx-auto.
-                   El ProductGrid ahora manejará su propio espaciado interno para no cortarse. */}
-                <div className="mx-auto max-w-7xl">
+                {/* 👇 Aquí restauramos el padding para el margen izquierdo y derecho */}
+                <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
 
-                    {/* Título y enlace (Mantenemos el padding aquí para alineación de texto) */}
-                    <div className="flex items-end justify-between mb-8 px-4 sm:px-6 lg:px-8">
+                    <div className="flex items-end justify-between mb-8">
                         <div>
                             <h2 className="text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">Nuevos Ingresos</h2>
                             <p className="mt-2 text-gray-500">Nuestra colección más reciente, lista para ti.</p>
@@ -33,11 +28,11 @@ export default async function Home() {
                         </Link>
                     </div>
 
-                    {/* Llamamos al ProductGrid en modo carrusel (ahora automático) */}
-                    <ProductGrid products={featuredProducts} layout="carousel" />
+                    <div className="w-full relative">
+                        <ProductGrid products={featuredProducts} layout="carousel" />
+                    </div>
 
-                    {/* Botón para móviles (Mantenemos el padding aquí) */}
-                    <div className="mt-10 flex justify-center sm:hidden px-4">
+                    <div className="mt-10 flex justify-center sm:hidden">
                         <Link href="/search" className="flex w-full items-center justify-center gap-2 rounded-full border-2 border-green-600 bg-white px-6 py-3 text-sm font-bold text-green-600 shadow-sm hover:bg-green-50 active:scale-95 transition-all">
                             Ver catálogo completo
                         </Link>
@@ -54,19 +49,16 @@ export default async function Home() {
                     </div>
 
                     <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3">
-                        {/* Tarjeta 1 */}
                         <div className="relative flex flex-col items-center justify-center rounded-3xl bg-white p-8 text-center shadow-sm border border-gray-100 transition-all hover:shadow-md hover:-translate-y-1">
                             <div className="mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-blue-50 text-3xl">✂️</div>
                             <h3 className="text-lg font-bold text-gray-900">Alteraciones</h3>
                             <p className="mt-3 text-sm text-gray-500 leading-relaxed">Ajustes de talla, bastas y entalles para un fit perfecto en tus prendas favoritas.</p>
                         </div>
-                        {/* Tarjeta 2 */}
                         <div className="relative flex flex-col items-center justify-center rounded-3xl bg-white p-8 text-center shadow-sm border border-gray-100 transition-all hover:shadow-md hover:-translate-y-1">
                             <div className="mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-orange-50 text-3xl">🧵</div>
                             <h3 className="text-lg font-bold text-gray-900">Reparaciones</h3>
                             <p className="mt-3 text-sm text-gray-500 leading-relaxed">Cambio de cierres, botones y remiendos invisibles para darle nueva vida a tu ropa.</p>
                         </div>
-                        {/* Tarjeta 3 */}
                         <div className="relative flex flex-col items-center justify-center rounded-3xl bg-white p-8 text-center shadow-sm border border-gray-100 transition-all hover:shadow-md hover:-translate-y-1">
                             <div className="mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-purple-50 text-3xl">✨</div>
                             <h3 className="text-lg font-bold text-gray-900">Confección Custom</h3>

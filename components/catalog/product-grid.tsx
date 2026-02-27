@@ -45,7 +45,7 @@ export async function ProductGrid({
     const isCarousel = layout === "carousel";
 
     const itemClasses = isCarousel
-        ? "group relative flex flex-col gap-3 snap-start shrink-0 w-[280px] sm:w-[300px] outline-none transition-transform active:scale-[0.98]"
+        ? "group relative flex flex-col gap-3 snap-start shrink-0 w-full sm:w-[calc(50%-0.75rem)] md:w-[calc(33.333%-1rem)] lg:w-[calc(25%-1.125rem)] outline-none transition-transform active:scale-[0.98]"
         : "group relative flex flex-col gap-3 transition-transform active:scale-[0.98]";
 
     const productCards = displayProducts.map((product) => {
