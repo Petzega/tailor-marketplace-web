@@ -19,32 +19,28 @@ interface CartStore {
 
 export const useCart = create<CartStore>()(
     persist(
-        (set, get) => ({
+        (set) => ({
             items: [],
             isOpen: false,
             openCart: () => set({ isOpen: true }),
             closeCart: () => set({ isOpen: false }),
 
-            addItem: (product) => {
-                const currentItems = get().items;
-                const existingItem = currentItems.find((item) => item.id === product.id);
-
+            // 👇 A CONTINUACIÓN LA FUNCIÓN CORREGIDA SIN ABRIR EL CARRITO
+            addItem: (product) => set((state) => {
+                const existingItem = state.items.find((item) => item.id === product.id);
                 if (existingItem) {
-                    set({
-                        items: currentItems.map((item) =>
-                            item.id === product.id
-                                ? { ...item, quantity: item.quantity + 1 }
-                                : item
-                        ),
-                        isOpen: true,
-                    });
-                } else {
-                    set({
-                        items: [...currentItems, { ...product, quantity: 1 }],
-                        isOpen: true
-                    });
+                    return {
+                        items: state.items.map((item) =>
+                            item.id === product.id ? { ...item, quantity: item.quantity + 1 } : item
+                        )
+                        // Se eliminó isOpen: true
+                    };
                 }
-            },
+                return {
+                    items: [...state.items, { ...product, quantity: 1 }]
+                    // Se eliminó isOpen: true
+                };
+            }),
 
             removeItem: (productId) => set((state) => ({
                 items: state.items.filter((item) => item.id !== productId)
