@@ -110,6 +110,10 @@ export async function getProducts(
                 orderBy: orderByClause,
                 skip,
                 take: ITEMS_PER_PAGE,
+                // 👇 AQUÍ AGREGAMOS LA GALERÍA PARA EL CATÁLOGO
+                include: {
+                    gallery: true
+                }
             }),
             db.product.count({ where: whereClause }),
         ]);
@@ -129,7 +133,13 @@ export async function getProducts(
 // ─── 4. OBTENER PRODUCTO POR ID ───────────────────────────────────────────────
 export async function getProductById(id: string) {
     try {
-        return await db.product.findUnique({ where: { id } });
+        return await db.product.findUnique({
+            where: { id },
+            // 👇 AQUÍ AGREGAMOS LA GALERÍA PARA LA VISTA DE DETALLE
+            include: {
+                gallery: true
+            }
+        });
     } catch (error) {
         console.error("Error al obtener producto por ID:", error);
         return null;

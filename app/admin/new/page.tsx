@@ -2,6 +2,11 @@ import { createProduct } from "@/actions/products";
 import Link from "next/link";
 import { X, Upload } from "lucide-react";
 
+async function handleCreate(formData: FormData): Promise<void> {
+    "use server";
+    await createProduct(formData);
+}
+
 export default function NewProductPage() {
     return (
         <div className="min-h-screen bg-gray-100/50 flex justify-center items-start pt-10 pb-10">
@@ -21,7 +26,7 @@ export default function NewProductPage() {
                 </div>
 
                 {/* 2. Formulario */}
-                <form action={createProduct} className="px-8 py-8 space-y-8">
+                <form action={handleCreate} className="px-8 py-8 space-y-8">
 
                     {/* Sección Imagen (Simulación visual de Upload) */}
                     <div className="space-y-3">

@@ -1,10 +1,11 @@
 import { getProducts } from "@/actions/products";
-import Image from "next/image";
+import Link from "next/link";
 import { PaginationControls } from "./pagination-controls";
 import { AddToCartButton } from "@/components/product/add-to-cart-button";
 import { AutoCarousel } from "./auto-carousel";
 import { Calendar } from "lucide-react";
 import { Product } from "@/types";
+import { ProductCardGallery } from "./product-card-gallery"; // 👈 1. Importamos el nuevo componente
 
 interface ProductGridProps {
     query?: string;
@@ -18,9 +19,9 @@ interface ProductGridProps {
 }
 
 export async function ProductGrid({
-    query, category, minPrice, maxPrice, sort, page = 1,
-    products: passedProducts, layout = "grid"
-}: ProductGridProps) {
+                                      query, category, minPrice, maxPrice, sort, page = 1,
+                                      products: passedProducts, layout = "grid"
+                                  }: ProductGridProps) {
 
     let displayProducts = passedProducts;
     let totalPages = 0;
@@ -54,33 +55,23 @@ export async function ProductGrid({
         const whatsappMessage = encodeURIComponent(`Hola, me interesa el ${isService ? 'servicio' : 'producto'}: ${product.name} (SKU: ${product.sku}). ¿Podrían darme más información?`);
         const whatsappLink = `https://wa.me/51992431513?text=${whatsappMessage}`;
 
+        const productWithGallery = product as any;
+
         return (
             <div key={product.id} className={itemClasses} tabIndex={0}>
-                <div className="relative aspect-square w-full overflow-hidden rounded-xl bg-gray-100 border border-gray-200">
-                    <div className="absolute top-2 left-2 z-10 bg-white px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-gray-900 rounded-sm shadow-sm">
-                        NUEVO
-                    </div>
 
-                    <Image
-                        src={product.imageUrl || "https://placehold.co/600x400?text=Sin+Imagen"}
-                        alt={product.name}
-                        fill
-                        className={`object-cover object-center transition-transform duration-300 group-hover:scale-105 ${isOutOfStock ? 'opacity-50 grayscale' : ''}`}
-                    />
+                {/* 👇 2. AQUÍ ESTÁ EL CAMBIO: Usamos la galería interactiva en lugar de la imagen estática */}
+                <ProductCardGallery product={productWithGallery} isOutOfStock={isOutOfStock} />
 
-                    {isOutOfStock && (
-                        <div className="absolute inset-0 flex items-center justify-center">
-                            <span className="bg-white px-3 py-1.5 text-xs font-bold uppercase tracking-wider text-gray-900 rounded-sm shadow-md">
-                                AGOTADO
-                            </span>
-                        </div>
-                    )}
-                </div>
-
+                {/* 2. INFORMACIÓN DEL PRODUCTO */}
                 <div className="flex flex-col flex-1 mt-2">
-                    <h3 className="text-base font-semibold text-gray-900 line-clamp-2">
-                        {product.name}
-                    </h3>
+
+                    <Link href={`/product/${product.id}`} className="group/link block">
+                        <h3 className="text-base font-semibold text-gray-900 line-clamp-2 group-hover/link:text-green-600 transition-colors">
+                            {product.name}
+                        </h3>
+                    </Link>
+
                     <p className="mt-1 text-sm text-gray-500 line-clamp-1">
                         {product.description}
                     </p>
@@ -91,15 +82,13 @@ export async function ProductGrid({
                         </p>
                     </div>
 
-                    {/* 👇 ZONA DE BOTONES ESTANDARIZADA */}
+                    {/* 3. ZONA DE BOTONES DE ACCIÓN */}
                     <div className="mt-4 mt-auto">
                         {isOutOfStock ? (
-                            // Botón Agotado: Altura fija de h-12
                             <button disabled className="w-full h-12 flex items-center justify-center gap-2 bg-gray-50 text-gray-400 font-medium rounded-lg text-sm cursor-not-allowed border border-gray-200">
                                 No disponible
                             </button>
                         ) : isService ? (
-                            // Botón Servicios: Altura fija de h-12
                             <a
                                 href={whatsappLink}
                                 target="_blank"
@@ -110,8 +99,6 @@ export async function ProductGrid({
                                 Agendar Cita
                             </a>
                         ) : (
-                            // Cuadrícula estricta: 48px de alto en total (h-12).
-                            // Columna derecha de 48px exactos, columna izquierda toma el resto.
                             <div className="grid grid-cols-[1fr_48px] gap-2 h-12">
                                 <AddToCartButton product={product} isOutOfStock={isOutOfStock} />
 
