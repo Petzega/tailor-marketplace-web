@@ -1,10 +1,12 @@
+"use client"; // 👈 IMPORTANTE: Esto es necesario para usar hooks como useEffect y useState
+
 import { getProducts } from "@/actions/products";
+import { Calendar } from "lucide-react";
 import { Product } from "@/types";
 import Image from "next/image";
-import { Calendar } from "lucide-react";
 import { ProductPagination } from "@/components/admin/product-pagination";
 import { ITEMS_PER_PAGE } from "@/lib/constants";
-import { ProductCarousel } from "@/components/catalog/product-carousel";
+import { useEffect, useRef, useState } from "react"; // 👈 Importamos los hooks necesarios
 
 interface ProductGridProps {
     query?: string;
@@ -14,19 +16,19 @@ interface ProductGridProps {
     sort?: string;
     page?: number;
     products?: Product[];
-    layout?: "grid" | "carousel"; // 👈 Aquí le decimos que acepte la instrucción
+    layout?: "grid" | "carousel";
 }
 
 export async function ProductGrid({
-    query,
-    category,
-    minPrice,
-    maxPrice,
-    sort,
-    page = 1,
-    products: passedProducts,
-    layout = "grid"
-}: ProductGridProps) {
+                                      query,
+                                      category,
+                                      minPrice,
+                                      maxPrice,
+                                      sort,
+                                      page = 1,
+                                      products: passedProducts,
+                                      layout = "grid"
+                                  }: ProductGridProps) {
 
     let displayProducts = passedProducts;
     let totalPages = 0;
@@ -51,21 +53,70 @@ export async function ProductGrid({
         );
     }
 
-    // Modo carrusel: delegamos al Client Component con botones de navegación
-    if (layout === "carousel") {
-        return <ProductCarousel products={displayProducts} />;
-    }
+    // --- LÓGICA DEL CARRUSEL AUTOMÁTICO ---
+    const carouselRef = useRef<HTMLDivElement>(null);
+    const [isHovered, setIsHovered] = useState(false); // Estado para saber si el mouse está encima
+
+    useEffect(() => {
+        // Solo ejecutamos la lógica si estamos en modo carrusel y el mouse NO está encima
+        if (layout !== "carousel" || isHovered) return;
+
+        const carousel = carouselRef.current;
+        if (!carousel) return;
+
+        // Función que realiza el desplazamiento
+        const scrollCarousel = () => {
+            const { scrollLeft, offsetWidth, scrollWidth } = carousel;
+
+            // Calculamos cuánto scroll falta para llegar al final
+            const maxScroll = scrollWidth - offsetWidth;
+
+            // Si estamos cerca del final, volvemos al principio. Si no, avanzamos una "página" (el ancho visible).
+            // Usamos un pequeño margen de error (5px) para la comparación
+            if (scrollLeft >= maxScroll - 5) {
+                carousel.scrollTo({ left: 0, behavior: "smooth" });
+            } else {
+                carousel.scrollBy({ left: offsetWidth, behavior: "smooth" });
+            }
+        };
+
+        // Creamos el intervalo de 3 segundos (3000ms)
+        const intervalId = setInterval(scrollCarousel, 3000);
+
+        // Función de limpieza: se ejecuta cuando el componente se desmonta o cambia el layout/hover
+        // Esto es crucial para evitar que el temporizador siga corriendo en segundo plano
+        return () => clearInterval(intervalId);
+    }, [layout, isHovered]); // El efecto se vuelve a ejecutar si cambia el layout o el estado de hover
+
+    // --- CLASES DINÁMICAS (CORRECCIÓN DE ICONOS CORTADOS) ---
+    const containerClasses = layout === "carousel"
+        ? "flex overflow-x-auto snap-x snap-mandatory gap-6 pb-8 pt-2 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] focus:outline-none" // 👈 Eliminados -mx-4 px-4, añadido focus:outline-none
+        : "grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8";
+
+    const itemClasses = layout === "carousel"
+        ? "group relative flex flex-col gap-3 snap-start shrink-0 w-[280px] sm:w-[300px] outline-none" // 👈 Añadido outline-none
+        : "group relative flex flex-col gap-3";
 
     return (
         <div className="flex flex-col gap-8">
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
+            {/* Contenedor dinámico (Grid o Carrusel) */}
+            <div
+                ref={carouselRef} // 👈 Asignamos la referencia para controlar el scroll
+                className={containerClasses}
+                // Eventos para pausar/reanudar el movimiento automático
+                onMouseEnter={() => setIsHovered(true)}
+                onMouseLeave={() => setIsHovered(false)}
+                onTouchStart={() => setIsHovered(true)} // Para dispositivos táctiles
+                onTouchEnd={() => setIsHovered(false)}
+                tabIndex={0} // Permite que el div reciba foco para pausar con teclado
+            >
                 {displayProducts.map((product) => {
                     const isOutOfStock = product.stock === 0;
                     const isLowStock = product.stock > 0 && product.stock < 5;
                     const isService = product.category === 'SERVICE';
 
                     return (
-                        <div key={product.id} className="group relative flex flex-col gap-3">
+                        <div key={product.id} className={itemClasses} tabIndex={0}> {/* tabIndex para accesibilidad */}
                             {/* 1. Imagen y Badges */}
                             <div className="relative aspect-square w-full overflow-hidden rounded-lg bg-gray-100 shadow-sm">
                                 {product.imageUrl ? (
