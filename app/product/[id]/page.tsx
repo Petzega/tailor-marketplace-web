@@ -4,11 +4,17 @@ import { ShieldCheck, Clock, Sparkles, Calendar } from "lucide-react";
 import { AddToCartButton } from "@/components/product/add-to-cart-button";
 import { SpotlightProduct } from "@/actions/search";
 import { BackButton } from "@/components/product/back-button";
-import { ProductGallery } from "@/components/product/product-gallery"; // 👈 Importamos la nueva galería
+import { ProductGallery } from "@/components/product/product-gallery";
+import { ScrollToTop } from "@/components/product/scroll-to-top";
 
 interface ProductPageProps {
     params: Promise<{ id: string }>;
 }
+
+// Creamos un tipo seguro para que TypeScript no se queje de la galería
+type ProductWithGallery = SpotlightProduct & {
+    gallery?: { url: string }[];
+};
 
 export default async function ProductPage({ params }: ProductPageProps) {
     const { id } = await params;
@@ -36,15 +42,18 @@ export default async function ProductPage({ params }: ProductPageProps) {
     const whatsappMessage = encodeURIComponent(`Hola, me interesa el ${isService ? 'servicio' : 'producto'}: ${product.name} (SKU: ${product.sku}). ¿Podrían darme más información?`);
     const whatsappLink = `https://wa.me/51992431513?text=${whatsappMessage}`;
 
-    // 👇 Preparamos el array de imágenes combinando la principal con la galería
-    const productWithGallery = product as any; // Truco TypeScript temporal
+    // Preparamos el array de imágenes usando el tipo seguro (sin "any")
+    const typedProduct = product as unknown as ProductWithGallery;
     const allImages = [
-        productWithGallery.imageUrl,
-        ...(productWithGallery.gallery?.map((g: any) => g.url) || [])
+        typedProduct.imageUrl,
+        ...(typedProduct.gallery?.map((g) => g.url) || [])
     ].filter(Boolean) as string[];
 
     return (
         <div className="min-h-screen bg-white">
+
+            {/* 👈 2. Colocamos el componente aquí. Se encargará de llevar la vista hasta arriba siempre */}
+            <ScrollToTop />
 
             {/* --- BREADCRUMB / NAVEGACIÓN --- */}
             <div className="border-b border-gray-100 bg-gray-50/50">
@@ -60,7 +69,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 lg:py-16">
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-16 items-start">
 
-                    {/* 👇 COLUMNA IZQUIERDA: Usamos nuestro nuevo componente de Galería */}
+                    {/* COLUMNA IZQUIERDA: Galería */}
                     <ProductGallery
                         images={allImages}
                         isOutOfStock={isOutOfStock}
@@ -80,9 +89,9 @@ export default async function ProductPage({ params }: ProductPageProps) {
                         </div>
 
                         <div className="mb-6 pb-6 border-b border-gray-100">
-                            <p className="text-4xl font-extrabold text-gray-900 flex items-baseline gap-1">
-                                <span className="text-2xl text-gray-400 font-medium">S/</span>
-                                {product.price.toFixed(2)}
+                            {/* 👇 AQUÍ ESTÁ EL CAMBIO: Precio estandarizado y sólido, sin formatos partidos */}
+                            <p className="text-3xl sm:text-4xl font-extrabold text-gray-900">
+                                S/ {product.price.toFixed(2)}
                             </p>
                             {isService && <p className="text-sm text-gray-500 mt-2">Precio base. El costo final puede variar según los requerimientos de la prenda.</p>}
                         </div>
@@ -101,7 +110,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
                             </div>
                         )}
 
-                        {/* 👇 ZONA DE BOTONES DE ACCIÓN */}
+                        {/* ZONA DE BOTONES DE ACCIÓN */}
                         <div className="mt-auto">
                             {isOutOfStock ? (
                                 <button disabled className="w-full h-14 flex items-center justify-center gap-2 bg-gray-50 text-gray-400 font-medium rounded-xl text-base cursor-not-allowed border border-gray-200">

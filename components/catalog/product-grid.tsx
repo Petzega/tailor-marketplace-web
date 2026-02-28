@@ -44,7 +44,6 @@ export async function ProductGrid({
 
     const isCarousel = layout === "carousel";
 
-    // Agregamos 'h-full' para que todas las tarjetas se estiren a la misma altura
     const itemClasses = isCarousel
         ? "group relative flex flex-col h-full snap-start shrink-0 w-full sm:w-[calc(50%-0.75rem)] md:w-[calc(33.333%-1rem)] lg:w-[calc(25%-1.125rem)] outline-none transition-transform active:scale-[0.98]"
         : "group relative flex flex-col h-full transition-transform active:scale-[0.98]";
@@ -58,30 +57,34 @@ export async function ProductGrid({
 
         const productWithGallery = product as any;
 
+        // 👇 LA SOLUCIÓN: Si es carrusel (Home), le mandamos un array de galería vacío.
+        // Así el componente interno asume que solo hay 1 foto y no dibuja los puntitos ni las flechas.
+        const productToDisplay = isCarousel
+            ? { ...productWithGallery, gallery: [] }
+            : productWithGallery;
+
         return (
             <div key={product.id} className={itemClasses} tabIndex={0}>
 
-                {/* 1. MINI GALERÍA INTERACTIVA */}
-                <ProductCardGallery product={productWithGallery} isOutOfStock={isOutOfStock} />
+                {/* 1. MINI GALERÍA INTERACTIVA (Ahora condicionada) */}
+                <ProductCardGallery product={productToDisplay} isOutOfStock={isOutOfStock} />
 
                 {/* 2. INFORMACIÓN DEL PRODUCTO */}
                 <div className="flex flex-col flex-1 mt-3">
 
-                    {/* ZONA SUPERIOR: Textos estandarizados */}
                     <div className="flex flex-col mb-3">
                         <Link href={`/product/${product.id}`} className="group/link block">
-                            {/* min-h-[3rem] asegura que los títulos de 1 línea ocupen el mismo espacio que los de 2 líneas */}
                             <h3 className="text-base font-semibold text-gray-900 line-clamp-2 min-h-[3rem] group-hover/link:text-green-600 transition-colors">
                                 {product.name}
                             </h3>
                         </Link>
 
-                        <p className="mt-1 text-sm text-gray-500 line-clamp-1">
-                            {product.description}
+                        <p className="mt-1 text-sm text-gray-500 line-clamp-1 min-h-[1.25rem]">
+                            {product.description || "\u00A0"}
                         </p>
                     </div>
 
-                    {/* 👇 ZONA INFERIOR: Precio y botones. Con 'mt-auto' se anclan al fondo exacto de la tarjeta 👇 */}
+                    {/* ZONA INFERIOR: Precio y botones */}
                     <div className="mt-auto flex flex-col gap-4">
                         <div className="flex items-center justify-between">
                             <p className="text-lg font-bold text-gray-900">
