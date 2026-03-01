@@ -11,19 +11,20 @@ export function ProductGridSkeleton() {
                         {/* Caja de la Imagen (aspect-square) */}
                         <div className="relative aspect-square w-full rounded-xl bg-gray-200 mb-3" />
 
-                        {/* Textos Simulados */}
+                        {/* Información del Producto (Imitando la tarjeta real) */}
                         <div className="flex flex-col flex-1">
                             <div className="flex flex-col mb-3 gap-2">
-                                {/* Simula un título de 2 líneas */}
+                                {/* Simula un título de 2 líneas (min-h-[3rem]) */}
                                 <div className="h-5 w-3/4 bg-gray-200 rounded" />
                                 <div className="h-5 w-1/2 bg-gray-200 rounded" />
-                                {/* Simula la descripción */}
+                                {/* Simula la descripción (1 línea) */}
                                 <div className="h-4 w-full bg-gray-100 rounded mt-2" />
                             </div>
 
-                            {/* Precio y Botones anclados al fondo exacto */}
+                            {/* 👇 Precio y Botones anclados al fondo exacto con mt-auto 👇 */}
                             <div className="mt-auto flex flex-col gap-4">
-                                <div className="h-6 w-1/3 bg-gray-200 rounded" />
+                                <div className="h-7 w-1/3 bg-gray-200 rounded" />
+                                {/* Botón simulado (h-12 para igualar a tu botón real) */}
                                 <div className="h-12 w-full bg-gray-200 rounded-lg" />
                             </div>
                         </div>
