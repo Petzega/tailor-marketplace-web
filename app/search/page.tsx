@@ -1,9 +1,11 @@
 import { Suspense } from "react";
+import Link from "next/link";
+import { ChevronLeft } from "lucide-react";
 import { Footer } from "@/components/layout/footer";
 import { ProductGrid } from "@/components/catalog/product-grid";
 import { SearchFilters } from "@/components/search/search-filters";
 import { MobileFilters } from "@/components/search/mobile-filters";
-import { Spinner } from "@/components/ui/spinner"; // 👈 Importamos nuestro loader estándar
+import { ProductGridSkeleton } from "@/components/catalog/product-grid-skeleton";
 
 interface SearchPageProps {
     searchParams: Promise<{
@@ -39,6 +41,15 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
     return (
         <div className="min-h-screen bg-gray-50 flex flex-col">
             <main className="flex-1 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-10 w-full">
+
+                {/* 👇 NUEVO: Botón sutil de regreso al inicio (Breadcrumb) */}
+                <div className="mb-6">
+                    <Link href="/" className="inline-flex items-center text-sm font-medium text-gray-500 hover:text-green-600 transition-colors">
+                        <ChevronLeft size={16} className="mr-1" />
+                        Volver al inicio
+                    </Link>
+                </div>
+
                 <div className="flex flex-col lg:flex-row lg:items-baseline lg:justify-between border-b border-gray-200 pb-6 mb-8 gap-4">
                     <div>
                         <h1 className="text-3xl font-bold tracking-tight text-gray-900">
@@ -60,12 +71,8 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
                     </aside>
 
                     <section className="flex-1">
-                        {/* 👇 Usamos nuestro Spinner estándar en lugar del Skeleton */}
-                        <Suspense key={suspenseKey} fallback={
-                            <div className="py-20 bg-white rounded-xl border border-gray-100 shadow-sm flex items-center justify-center">
-                                <Spinner text="Buscando productos..." />
-                            </div>
-                        }>
+                        {/* 👇 Usamos nuestro Skeleton (cajas grises) en lugar del Spinner para una mejor experiencia visual en el catálogo */}
+                        <Suspense key={suspenseKey} fallback={<ProductGridSkeleton />}>
                             <ProductGrid
                                 query={query}
                                 category={category}

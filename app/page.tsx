@@ -15,7 +15,6 @@ export default async function Home() {
 
             {/* SECCIÓN 1: Productos Destacados */}
             <section className="py-16 sm:py-20">
-                {/* 👇 Aquí restauramos el padding para el margen izquierdo y derecho */}
                 <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
 
                     <div className="flex items-end justify-between mb-8">
@@ -40,8 +39,8 @@ export default async function Home() {
                 </div>
             </section>
 
-            {/* SECCIÓN 2: Servicios a Medida */}
-            <section className="bg-gray-50/50 py-16 sm:py-20 border-t border-gray-100">
+            {/* SECCIÓN 2: Servicios a Medida (Añadido id="services") */}
+            <section id="services" className="bg-gray-50/50 py-16 sm:py-20 border-t border-gray-100">
                 <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
                     <div className="mb-12 md:text-center max-w-2xl md:mx-auto">
                         <h2 className="text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">Nuestros Servicios a Medida</h2>
@@ -49,21 +48,26 @@ export default async function Home() {
                     </div>
 
                     <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3">
-                        <div className="relative flex flex-col items-center justify-center rounded-3xl bg-white p-8 text-center shadow-sm border border-gray-100 transition-all hover:shadow-md hover:-translate-y-1">
-                            <div className="mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-blue-50 text-3xl">✂️</div>
-                            <h3 className="text-lg font-bold text-gray-900">Alteraciones</h3>
+                        {/* Tarjeta 1 convertida a Link con hover effects */}
+                        <Link href="/search?category=SERVICE" className="group relative flex flex-col items-center justify-center rounded-3xl bg-white p-8 text-center shadow-sm border border-gray-100 transition-all hover:shadow-md hover:-translate-y-1">
+                            <div className="mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-blue-50 text-3xl group-hover:scale-110 transition-transform">✂️</div>
+                            <h3 className="text-lg font-bold text-gray-900 group-hover:text-green-600 transition-colors">Alteraciones</h3>
                             <p className="mt-3 text-sm text-gray-500 leading-relaxed">Ajustes de talla, bastas y entalles para un fit perfecto en tus prendas favoritas.</p>
-                        </div>
-                        <div className="relative flex flex-col items-center justify-center rounded-3xl bg-white p-8 text-center shadow-sm border border-gray-100 transition-all hover:shadow-md hover:-translate-y-1">
-                            <div className="mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-orange-50 text-3xl">🧵</div>
-                            <h3 className="text-lg font-bold text-gray-900">Reparaciones</h3>
+                        </Link>
+
+                        {/* Tarjeta 2 convertida a Link con hover effects */}
+                        <Link href="/search?category=SERVICE" className="group relative flex flex-col items-center justify-center rounded-3xl bg-white p-8 text-center shadow-sm border border-gray-100 transition-all hover:shadow-md hover:-translate-y-1">
+                            <div className="mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-orange-50 text-3xl group-hover:scale-110 transition-transform">🧵</div>
+                            <h3 className="text-lg font-bold text-gray-900 group-hover:text-green-600 transition-colors">Reparaciones</h3>
                             <p className="mt-3 text-sm text-gray-500 leading-relaxed">Cambio de cierres, botones y remiendos invisibles para darle nueva vida a tu ropa.</p>
-                        </div>
-                        <div className="relative flex flex-col items-center justify-center rounded-3xl bg-white p-8 text-center shadow-sm border border-gray-100 transition-all hover:shadow-md hover:-translate-y-1">
-                            <div className="mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-purple-50 text-3xl">✨</div>
-                            <h3 className="text-lg font-bold text-gray-900">Confección Custom</h3>
+                        </Link>
+
+                        {/* Tarjeta 3 convertida a Link con hover effects */}
+                        <Link href="/search?category=SERVICE" className="group relative flex flex-col items-center justify-center rounded-3xl bg-white p-8 text-center shadow-sm border border-gray-100 transition-all hover:shadow-md hover:-translate-y-1">
+                            <div className="mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-purple-50 text-3xl group-hover:scale-110 transition-transform">✨</div>
+                            <h3 className="text-lg font-bold text-gray-900 group-hover:text-green-600 transition-colors">Confección Custom</h3>
                             <p className="mt-3 text-sm text-gray-500 leading-relaxed">Trajes, camisas y vestidos diseñados y fabricados exclusivamente para tus medidas.</p>
-                        </div>
+                        </Link>
                     </div>
                 </div>
             </section>
