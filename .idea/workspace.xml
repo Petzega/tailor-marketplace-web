@@ -6,7 +6,7 @@
   <component name="ChangeListManager">
     <list default="true" id="50f95e57-e980-4f0a-8236-918a1132539a" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/components/catalog/product-grid-skeleton.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/catalog/product-grid-skeleton.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/components/cart/cart-sheet.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/cart/cart-sheet.tsx" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -79,7 +79,7 @@
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
       <updated>1772250627748</updated>
-      <workItem from="1772250628146" duration="6711000" />
+      <workItem from="1772250628146" duration="7605000" />
     </task>
     <servers />
   </component>
