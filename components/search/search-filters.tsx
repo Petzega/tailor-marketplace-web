@@ -1,10 +1,10 @@
 'use client';
 
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useCallback, useState } from 'react';
+import { useCallback, useState, useEffect, useId } from 'react';
 import { Search } from 'lucide-react';
+import { GENDERS, CLOTHING_TYPES, ERROR_MESSAGES } from '@/lib/constants';
 
-// Importamos el nuevo Select de Shadcn
 import {
     Select,
     SelectContent,
@@ -19,6 +19,9 @@ interface SearchFiltersProps {
     currentSort: string;
     currentMin: string;
     currentMax: string;
+    currentGender?: string;
+    currentClothingType?: string;
+    onClose?: () => void;
 }
 
 const CATEGORIES = [
@@ -27,13 +30,25 @@ const CATEGORIES = [
     { id: 'SERVICE', label: 'Servicios de Sastrería' },
 ];
 
-export function SearchFilters({ currentQuery, currentCategory, currentSort, currentMin, currentMax }: SearchFiltersProps) {
+export function SearchFilters({
+                                  currentQuery, currentCategory, currentSort, currentMin, currentMax,
+                                  currentGender = "", currentClothingType = "",
+                                  onClose
+                              }: SearchFiltersProps) {
     const router = useRouter();
     const searchParams = useSearchParams();
+    const uniqueId = useId();
 
     const [localQuery, setLocalQuery] = useState(currentQuery);
     const [localMin, setLocalMin] = useState(currentMin);
     const [localMax, setLocalMax] = useState(currentMax);
+
+    const [priceError, setPriceError] = useState("");
+    const [localCategory, setLocalCategory] = useState(currentCategory);
+
+    useEffect(() => {
+        setLocalCategory(currentCategory);
+    }, [currentCategory]);
 
     const createQueryString = useCallback(
         (paramsToUpdate: Record<string, string | null>) => {
@@ -47,52 +62,103 @@ export function SearchFilters({ currentQuery, currentCategory, currentSort, curr
                 }
             });
 
+            params.delete('page');
             return params.toString();
         },
         [searchParams]
     );
 
     const handleCategoryChange = (categoryId: string) => {
-        router.push(`/search?${createQueryString({ category: categoryId })}`);
+        setLocalCategory(categoryId);
+        router.push(`/search?${createQueryString({ category: categoryId })}`, { scroll: false });
     };
 
-    // 👈 Shadcn pasa directamente el valor (string), no un evento (e)
     const handleSortChange = (value: string) => {
-        // Si elige "recent" (la opción por defecto), lo vaciamos en la URL
         const sortValue = value === "recent" ? "" : value;
-        router.push(`/search?${createQueryString({ sort: sortValue })}`);
+        router.push(`/search?${createQueryString({ sort: sortValue })}`, { scroll: false });
+    };
+
+    const handleGenderChange = (value: string) => {
+        const genderValue = value === "all" ? "" : value;
+        router.push(`/search?${createQueryString({ gender: genderValue })}`, { scroll: false });
+    };
+
+    const handleClothingTypeChange = (value: string) => {
+        const typeValue = value === "all" ? "" : value;
+        router.push(`/search?${createQueryString({ type: typeValue })}`, { scroll: false });
     };
 
     const handleSearchSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         router.push(`/search?${createQueryString({ q: localQuery })}`);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        onClose?.();
     };
 
     const handlePriceSubmit = () => {
+        const minVal = localMin ? Number(localMin) : 0;
+        const maxVal = localMax ? Number(localMax) : Infinity;
+
+        if (minVal < 0 || maxVal < 0) {
+            setPriceError(ERROR_MESSAGES.FILTERS.NEGATIVE_PRICE);
+            return;
+        }
+
+        if (minVal > 50000 || maxVal > 50000) {
+            setPriceError(ERROR_MESSAGES.FILTERS.PRICE_TOO_HIGH);
+            return;
+        }
+
+        if (localMin && localMax && minVal > maxVal) {
+            setPriceError(ERROR_MESSAGES.FILTERS.MIN_GREATER_THAN_MAX);
+            return;
+        }
+
+        setPriceError("");
         router.push(`/search?${createQueryString({ min: localMin, max: localMax })}`);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        onClose?.();
     };
 
     const clearFilters = () => {
         setLocalQuery('');
         setLocalMin('');
         setLocalMax('');
+        setLocalCategory('');
+        setPriceError('');
         router.push('/search');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        onClose?.();
     };
 
-    const hasActiveFilters = currentQuery || currentCategory || currentSort || currentMin || currentMax;
+    const hasActiveFilters = currentQuery || currentCategory || currentSort || currentMin || currentMax || currentGender || currentClothingType;
+
+    // Formateador inteligente para las etiquetas
+    const formatLabel = (text: string) => {
+        if (text === 'NINO') return 'Niño';
+        if (text === 'NINA') return 'Niña';
+        return text.replace('_', ' ').toLowerCase().replace(/\b\w/g, l => l.toUpperCase());
+    };
+
+    // Ordenamiento alfabético en español dinámico
+    const sortedGenders = [...GENDERS].sort((a, b) =>
+        formatLabel(a).localeCompare(formatLabel(b), 'es')
+    );
+    const sortedClothingTypes = [...CLOTHING_TYPES].sort((a, b) =>
+        formatLabel(a).localeCompare(formatLabel(b), 'es')
+    );
 
     return (
         <div className="space-y-6 bg-white p-5 rounded-xl border border-gray-200 shadow-sm sticky top-24">
-            {/* Búsqueda */}
             <div>
-                <h3 className="text-sm font-semibold text-gray-900 mb-3">Término de búsqueda</h3>
+                <h3 className="text-sm font-semibold text-gray-900 mb-3">Buscar</h3>
                 <form onSubmit={handleSearchSubmit} className="relative">
                     <input
                         type="text"
                         value={localQuery}
                         onChange={(e) => setLocalQuery(e.target.value)}
                         placeholder="Ej. Basta, Entallado..."
-                        className="w-full pl-9 pr-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                        className="w-full pl-9 pr-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-gray-900 transition-colors"
                     />
                     <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
                 </form>
@@ -100,14 +166,75 @@ export function SearchFilters({ currentQuery, currentCategory, currentSort, curr
 
             <hr className="border-gray-100" />
 
-            {/* 👈 Nuestro nuevo Select a prueba de WebViews */}
+            <div>
+                <h3 className="text-sm font-semibold text-gray-900 mb-3">Categoría General</h3>
+                <div className="space-y-3">
+                    {CATEGORIES.map((cat) => (
+                        <div key={cat.id} className="flex items-center gap-3 group">
+                            <input
+                                type="radio"
+                                id={`${uniqueId}-category-${cat.id}`}
+                                name={`${uniqueId}-category`}
+                                value={cat.id}
+                                checked={localCategory === cat.id}
+                                onChange={() => handleCategoryChange(cat.id)}
+                                className="h-4 w-4 text-gray-900 border-gray-300 focus:ring-gray-900 cursor-pointer"
+                            />
+                            <label
+                                htmlFor={`${uniqueId}-category-${cat.id}`}
+                                className={`text-sm cursor-pointer transition-colors ${
+                                    localCategory === cat.id ? 'text-gray-900 font-bold' : 'text-gray-600 group-hover:text-gray-900'
+                                }`}
+                            >
+                                {cat.label}
+                            </label>
+                        </div>
+                    ))}
+                </div>
+            </div>
+
+            {localCategory !== 'SERVICE' && (
+                <>
+                    <hr className="border-gray-100" />
+
+                    <div>
+                        <h3 className="text-sm font-semibold text-gray-900 mb-3">Género</h3>
+                        <Select value={currentGender || "all"} onValueChange={handleGenderChange}>
+                            <SelectTrigger className="w-full bg-white border-gray-300 h-10 focus:ring-gray-900">
+                                <SelectValue placeholder="Todos los géneros" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">Todos los géneros</SelectItem>
+                                {sortedGenders.map((g) => (
+                                    <SelectItem key={g} value={g}>{formatLabel(g)}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+
+                    <div className="mt-4">
+                        <h3 className="text-sm font-semibold text-gray-900 mb-3">Tipo de Prenda</h3>
+                        <Select value={currentClothingType || "all"} onValueChange={handleClothingTypeChange}>
+                            <SelectTrigger className="w-full bg-white border-gray-300 h-10 focus:ring-gray-900">
+                                <SelectValue placeholder="Todas las prendas" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">Todas las prendas</SelectItem>
+                                {sortedClothingTypes.map((type) => (
+                                    <SelectItem key={type} value={type}>{formatLabel(type)}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+                </>
+            )}
+
+            <hr className="border-gray-100" />
+
             <div>
                 <h3 className="text-sm font-semibold text-gray-900 mb-3">Ordenar por</h3>
-                <Select
-                    value={currentSort || "recent"}
-                    onValueChange={handleSortChange}
-                >
-                    <SelectTrigger className="w-full bg-white border-gray-300 focus:ring-indigo-500 h-10">
+                <Select value={currentSort || "recent"} onValueChange={handleSortChange}>
+                    <SelectTrigger className="w-full bg-white border-gray-300 focus:ring-gray-900 h-10">
                         <SelectValue placeholder="Más recientes" />
                     </SelectTrigger>
                     <SelectContent>
@@ -120,17 +247,28 @@ export function SearchFilters({ currentQuery, currentCategory, currentSort, curr
 
             <hr className="border-gray-100" />
 
-            {/* Rango de Precio */}
             <div>
                 <h3 className="text-sm font-semibold text-gray-900 mb-3">Rango de precio (S/)</h3>
+
+                {priceError && (
+                    <p className="text-xs font-medium text-red-500 mb-2">{priceError}</p>
+                )}
+
                 <div className="flex items-center gap-2 mb-3">
                     <input
                         type="number"
                         min="0"
                         placeholder="Min"
                         value={localMin}
-                        onChange={(e) => setLocalMin(e.target.value)}
-                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        onChange={(e) => {
+                            setLocalMin(e.target.value);
+                            setPriceError("");
+                        }}
+                        className={`w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 transition-colors ${
+                            priceError
+                                ? 'border-red-400 focus:ring-red-500 focus:border-red-500'
+                                : 'border-gray-300 focus:ring-gray-900'
+                        }`}
                     />
                     <span className="text-gray-400">-</span>
                     <input
@@ -138,50 +276,32 @@ export function SearchFilters({ currentQuery, currentCategory, currentSort, curr
                         min="0"
                         placeholder="Max"
                         value={localMax}
-                        onChange={(e) => setLocalMax(e.target.value)}
-                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        onChange={(e) => {
+                            setLocalMax(e.target.value);
+                            setPriceError("");
+                        }}
+                        className={`w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 transition-colors ${
+                            priceError
+                                ? 'border-red-400 focus:ring-red-500 focus:border-red-500'
+                                : 'border-gray-300 focus:ring-gray-900'
+                        }`}
                     />
                 </div>
+
                 <button
                     onClick={handlePriceSubmit}
-                    className="w-full py-2 text-sm text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 transition-colors font-medium shadow-sm"
+                    className="w-full py-2.5 text-sm text-white bg-gray-900 rounded-lg hover:bg-gray-800 transition-colors font-medium shadow-sm active:scale-[0.98]"
                 >
                     Aplicar precio
                 </button>
             </div>
 
-            <hr className="border-gray-100" />
-
-            {/* Filtro de Categoría */}
-            <div>
-                <h3 className="text-sm font-semibold text-gray-900 mb-3">Categoría</h3>
-                <div className="space-y-3">
-                    {CATEGORIES.map((cat) => (
-                        <label key={cat.id} className="flex items-center gap-3 cursor-pointer group">
-                            <input
-                                type="radio"
-                                name="category"
-                                checked={currentCategory === cat.id}
-                                onChange={() => handleCategoryChange(cat.id)}
-                                className="h-4 w-4 text-indigo-600 border-gray-300 focus:ring-indigo-500 cursor-pointer"
-                            />
-                            <span className={`text-sm transition-colors ${
-                                currentCategory === cat.id ? 'text-indigo-600 font-medium' : 'text-gray-600 group-hover:text-gray-900'
-                            }`}>
-                {cat.label}
-              </span>
-                        </label>
-                    ))}
-                </div>
-            </div>
-
-            {/* Botón para limpiar */}
             {hasActiveFilters && (
                 <>
                     <hr className="border-gray-100" />
                     <button
                         onClick={clearFilters}
-                        className="w-full py-2 text-sm text-red-600 bg-red-50 rounded-lg hover:bg-red-100 transition-colors font-medium"
+                        className="w-full py-2 text-sm text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 hover:text-gray-900 transition-colors font-medium"
                     >
                         Limpiar filtros
                     </button>

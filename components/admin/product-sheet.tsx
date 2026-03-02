@@ -6,15 +6,13 @@ import { X, Upload, Save, Link as LinkIcon, Image as ImageIcon, AlertTriangle } 
 import NextImage from "next/image";
 import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
+import { GENDERS, CLOTHING_TYPES } from "@/lib/constants";
 
 export function ProductSheet() {
     const router = useRouter();
 
-    // Estados de UI
     const [inputType, setInputType] = useState<'url' | 'file'>('url');
     const [preview, setPreview] = useState<string | null>(null);
-
-    // Estados para Modal
     const [showModal, setShowModal] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
 
@@ -26,13 +24,11 @@ export function ProductSheet() {
         if (file) setPreview(URL.createObjectURL(file));
     };
 
-    // 1. Interceptamos el envío
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         setShowModal(true);
     };
 
-    // 2. Confirmamos la creación
     const handleConfirmCreate = async () => {
         setIsLoading(true);
         const form = document.getElementById("create-form") as HTMLFormElement;
@@ -42,7 +38,6 @@ export function ProductSheet() {
 
         if (result.success) {
             setShowModal(false);
-            // 👇 Redirigimos al instante con el aviso en la URL para el Notificador Global
             router.push("/admin?action=created", { scroll: false });
             router.refresh();
         } else {
@@ -51,13 +46,21 @@ export function ProductSheet() {
         }
     };
 
+    const formatLabel = (text: string) => {
+        if (text === 'NINO') return 'Niño';
+        if (text === 'NINA') return 'Niña';
+        return text.replace('_', ' ').toLowerCase().replace(/\b\w/g, l => l.toUpperCase());
+    };
+
+    const sortedGenders = [...GENDERS].sort((a, b) => formatLabel(a).localeCompare(formatLabel(b), 'es'));
+    const sortedClothingTypes = [...CLOTHING_TYPES].sort((a, b) => formatLabel(a).localeCompare(formatLabel(b), 'es'));
+
     return (
         <div className="fixed inset-0 z-50 flex justify-end">
             <Link href="/admin" className="absolute inset-0 bg-black/20 backdrop-blur-sm transition-opacity" />
 
             <div className="relative w-full max-w-md bg-white h-full shadow-2xl overflow-y-auto border-l border-gray-100 flex flex-col animate-in slide-in-from-right duration-300">
 
-                {/* Header */}
                 <div className="px-6 py-5 border-b border-gray-100 flex justify-between items-center bg-white sticky top-0 z-10">
                     <div>
                         <h2 className="text-lg font-bold text-gray-900">New Product</h2>
@@ -68,7 +71,6 @@ export function ProductSheet() {
                     </Link>
                 </div>
 
-                {/* Formulario */}
                 <form id="create-form" onSubmit={handleSubmit} className="flex-1 p-6 space-y-6">
 
                     <div className="space-y-3">
@@ -114,6 +116,27 @@ export function ProductSheet() {
 
                     <div className="grid grid-cols-2 gap-4">
                         <div>
+                            <label className="block text-xs font-semibold text-gray-700 mb-1.5 uppercase tracking-wide">Género</label>
+                            <select name="gender" className="w-full px-4 py-2 border border-gray-200 rounded-lg text-sm bg-white outline-none focus:border-green-500">
+                                <option value="">Sin especificar</option>
+                                {sortedGenders.map(g => (
+                                    <option key={g} value={g}>{formatLabel(g)}</option>
+                                ))}
+                            </select>
+                        </div>
+                        <div>
+                            <label className="block text-xs font-semibold text-gray-700 mb-1.5 uppercase tracking-wide">Tipo Prenda</label>
+                            <select name="clothingType" className="w-full px-4 py-2 border border-gray-200 rounded-lg text-sm bg-white outline-none focus:border-green-500">
+                                <option value="">Sin especificar</option>
+                                {sortedClothingTypes.map(c => (
+                                    <option key={c} value={c}>{formatLabel(c)}</option>
+                                ))}
+                            </select>
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                        <div>
                             <label className="block text-xs font-semibold text-gray-700 mb-1.5 uppercase tracking-wide">Price</label>
                             <div className="relative">
                                 <span className="absolute left-3 top-2 text-gray-400 text-sm">S/</span>
@@ -140,7 +163,6 @@ export function ProductSheet() {
 
                 </form>
 
-                {/* --- MODAL CONFIRMACIÓN --- */}
                 {showModal && (
                     <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/20 backdrop-blur-[2px] animate-in fade-in duration-200">
                         <div className="bg-white p-6 rounded-xl shadow-2xl border border-gray-100 w-[90%] max-w-sm animate-in zoom-in-95 leading-tight">

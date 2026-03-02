@@ -35,8 +35,7 @@ async function generateSku(): Promise<string> {
     return `${prefix}${String(sequence).padStart(3, '0')}`;
 }
 
-// ─── 2. ESTADÍSTICAS GLOBALES (para las tarjetas del admin) ──────────────────
-// Siempre muestra el estado real del inventario, sin importar los filtros activos
+// ─── 2. ESTADÍSTICAS GLOBALES ─────────────────────────────────────────────────
 export async function getProductStats() {
     try {
         const allProducts = await db.product.findMany({
@@ -68,7 +67,6 @@ export async function getProducts(
     try {
         const skip = (page - 1) * ITEMS_PER_PAGE;
 
-        // Construimos las condiciones de forma tipada usando Prisma.ProductWhereInput
         const andConditions: Prisma.ProductWhereInput[] = [];
 
         if (query) {
@@ -94,32 +92,25 @@ export async function getProducts(
             });
         }
 
-        // Asignamos el tipo exacto de Prisma a la cláusula WHERE
         const whereClause: Prisma.ProductWhereInput =
             andConditions.length > 0 ? { AND: andConditions } : {};
 
-        // Asignamos el tipo exacto a la cláusula ORDER BY
         let orderByClause: Prisma.ProductOrderByWithRelationInput = { createdAt: 'desc' };
         if (sort === 'price_asc') orderByClause = { price: 'asc' };
         if (sort === 'price_desc') orderByClause = { price: 'desc' };
 
-        // Ejecutamos ambas queries en paralelo para mayor performance
         const [products, total] = await Promise.all([
             db.product.findMany({
                 where: whereClause,
                 orderBy: orderByClause,
                 skip,
                 take: ITEMS_PER_PAGE,
-                // 👇 AQUÍ AGREGAMOS LA GALERÍA PARA EL CATÁLOGO
-                include: {
-                    gallery: true
-                }
+                include: { gallery: true }
             }),
             db.product.count({ where: whereClause }),
         ]);
 
         return {
-            // Hacemos un casteo a tu tipo local Product
             products: products as unknown as Product[],
             total,
             totalPages: Math.ceil(total / ITEMS_PER_PAGE),
@@ -135,10 +126,7 @@ export async function getProductById(id: string) {
     try {
         return await db.product.findUnique({
             where: { id },
-            // 👇 AQUÍ AGREGAMOS LA GALERÍA PARA LA VISTA DE DETALLE
-            include: {
-                gallery: true
-            }
+            include: { gallery: true }
         });
     } catch (error) {
         console.error("Error al obtener producto por ID:", error);
@@ -155,10 +143,12 @@ export async function createProduct(formData: FormData) {
     let finalImageUrl = imageUrlText;
 
     if (imageFile && imageFile.size > 0) {
-        console.log("Archivo recibido para crear:", imageFile.name);
-        // TODO: Conectar Cloudinary aquí
         finalImageUrl = "https://placehold.co/600x400?text=Imagen+Subida";
     }
+
+    // 👇 Extraemos los nuevos campos (si vienen vacíos, mandamos null)
+    const gender = formData.get("gender") as string;
+    const clothingType = formData.get("clothingType") as string;
 
     await db.product.create({
         data: {
@@ -169,6 +159,8 @@ export async function createProduct(formData: FormData) {
             category: formData.get("category") as string,
             imageUrl: finalImageUrl || null,
             sku,
+            gender: gender || null,             // 👈 Guardamos el género
+            clothingType: clothingType || null, // 👈 Guardamos el tipo de prenda
         },
     });
 
@@ -189,6 +181,10 @@ export async function updateProduct(id: string, formData: FormData) {
         finalImageUrl = imageUrlText;
     }
 
+    // 👇 Extraemos los nuevos campos
+    const gender = formData.get("gender") as string;
+    const clothingType = formData.get("clothingType") as string;
+
     try {
         await db.product.update({
             where: { id },
@@ -199,6 +195,8 @@ export async function updateProduct(id: string, formData: FormData) {
                 stock: parseInt(formData.get("stock") as string),
                 category: formData.get("category") as string,
                 imageUrl: finalImageUrl,
+                gender: gender || null,             // 👈 Actualizamos el género
+                clothingType: clothingType || null, // 👈 Actualizamos el tipo de prenda
             },
         });
 
