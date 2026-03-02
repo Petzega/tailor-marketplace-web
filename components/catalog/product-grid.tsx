@@ -16,18 +16,24 @@ interface ProductGridProps {
     page?: number;
     products?: Product[];
     layout?: "grid" | "carousel";
+    // 👇 AÑADIMOS LOS NUEVOS PROPS AQUÍ
+    gender?: string;
+    clothingType?: string;
 }
 
 export async function ProductGrid({
                                       query, category, minPrice, maxPrice, sort, page = 1,
-                                      products: passedProducts, layout = "grid"
+                                      products: passedProducts, layout = "grid",
+                                      // 👇 LOS RECIBIMOS AQUÍ
+                                      gender, clothingType
                                   }: ProductGridProps) {
 
     let displayProducts = passedProducts;
     let totalPages = 0;
 
     if (!displayProducts) {
-        const data = await getProducts(query, category, page, minPrice, maxPrice, sort);
+        // 👇 Y SE LOS PASAMOS AL BACKEND AL FINAL DE LA FUNCIÓN
+        const data = await getProducts(query, category, page, minPrice, maxPrice, sort, gender, clothingType);
         displayProducts = data.products;
         totalPages = data.totalPages;
     }
@@ -55,10 +61,9 @@ export async function ProductGrid({
         const whatsappMessage = encodeURIComponent(`Hola, me interesa el ${isService ? 'servicio' : 'producto'}: ${product.name} (SKU: ${product.sku}). ¿Podrían darme más información?`);
         const whatsappLink = `https://wa.me/51992431513?text=${whatsappMessage}`;
 
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const productWithGallery = product as any;
 
-        // 👇 LA SOLUCIÓN: Si es carrusel (Home), le mandamos un array de galería vacío.
-        // Así el componente interno asume que solo hay 1 foto y no dibuja los puntitos ni las flechas.
         const productToDisplay = isCarousel
             ? { ...productWithGallery, gallery: [] }
             : productWithGallery;
@@ -66,10 +71,8 @@ export async function ProductGrid({
         return (
             <div key={product.id} className={itemClasses} tabIndex={0}>
 
-                {/* 1. MINI GALERÍA INTERACTIVA (Ahora condicionada) */}
                 <ProductCardGallery product={productToDisplay} isOutOfStock={isOutOfStock} />
 
-                {/* 2. INFORMACIÓN DEL PRODUCTO */}
                 <div className="flex flex-col flex-1 mt-3">
 
                     <div className="flex flex-col mb-3">
@@ -84,7 +87,6 @@ export async function ProductGrid({
                         </p>
                     </div>
 
-                    {/* ZONA INFERIOR: Precio y botones */}
                     <div className="mt-auto flex flex-col gap-4">
                         <div className="flex items-center justify-between">
                             <p className="text-lg font-bold text-gray-900">
@@ -92,7 +94,6 @@ export async function ProductGrid({
                             </p>
                         </div>
 
-                        {/* 3. ZONA DE BOTONES DE ACCIÓN */}
                         <div className="w-full">
                             {isOutOfStock ? (
                                 <button disabled className="w-full h-12 flex items-center justify-center gap-2 bg-gray-50 text-gray-400 font-medium rounded-lg text-sm cursor-not-allowed border border-gray-200">

@@ -63,12 +63,14 @@ export async function getProducts(
     page: number = 1,
     minPrice?: number,
     maxPrice?: number,
-    sort?: string
+    sort?: string,
+    // 👇 NUEVOS PARÁMETROS AÑADIDOS
+    gender?: string,
+    clothingType?: string
 ): Promise<GetProductsResult> {
     try {
         const skip = (page - 1) * ITEMS_PER_PAGE;
 
-        // Construimos las condiciones de forma tipada usando Prisma.ProductWhereInput
         const andConditions: Prisma.ProductWhereInput[] = [];
 
         if (query) {
@@ -94,23 +96,28 @@ export async function getProducts(
             });
         }
 
-        // Asignamos el tipo exacto de Prisma a la cláusula WHERE
+        // 👇 NUEVA LÓGICA DE FILTRADO
+        if (gender) {
+            andConditions.push({ gender });
+        }
+
+        if (clothingType) {
+            andConditions.push({ clothingType });
+        }
+
         const whereClause: Prisma.ProductWhereInput =
             andConditions.length > 0 ? { AND: andConditions } : {};
 
-        // Asignamos el tipo exacto a la cláusula ORDER BY
         let orderByClause: Prisma.ProductOrderByWithRelationInput = { createdAt: 'desc' };
         if (sort === 'price_asc') orderByClause = { price: 'asc' };
         if (sort === 'price_desc') orderByClause = { price: 'desc' };
 
-        // Ejecutamos ambas queries en paralelo para mayor performance
         const [products, total] = await Promise.all([
             db.product.findMany({
                 where: whereClause,
                 orderBy: orderByClause,
                 skip,
                 take: ITEMS_PER_PAGE,
-                // 👇 AQUÍ AGREGAMOS LA GALERÍA PARA EL CATÁLOGO
                 include: {
                     gallery: true
                 }
@@ -119,7 +126,6 @@ export async function getProducts(
         ]);
 
         return {
-            // Hacemos un casteo a tu tipo local Product
             products: products as unknown as Product[],
             total,
             totalPages: Math.ceil(total / ITEMS_PER_PAGE),

@@ -3,8 +3,8 @@
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useState } from 'react';
 import { Search } from 'lucide-react';
+import { GENDERS, CLOTHING_TYPES } from '@/lib/constants';
 
-// Importamos el nuevo Select de Shadcn
 import {
     Select,
     SelectContent,
@@ -19,6 +19,9 @@ interface SearchFiltersProps {
     currentSort: string;
     currentMin: string;
     currentMax: string;
+    // 👇 NUEVOS PROPS
+    currentGender?: string;
+    currentClothingType?: string;
 }
 
 const CATEGORIES = [
@@ -27,7 +30,10 @@ const CATEGORIES = [
     { id: 'SERVICE', label: 'Servicios de Sastrería' },
 ];
 
-export function SearchFilters({ currentQuery, currentCategory, currentSort, currentMin, currentMax }: SearchFiltersProps) {
+export function SearchFilters({
+                                  currentQuery, currentCategory, currentSort, currentMin, currentMax,
+                                  currentGender = "", currentClothingType = ""
+                              }: SearchFiltersProps) {
     const router = useRouter();
     const searchParams = useSearchParams();
 
@@ -47,6 +53,8 @@ export function SearchFilters({ currentQuery, currentCategory, currentSort, curr
                 }
             });
 
+            // Si cambiamos de filtro, siempre regresamos a la página 1
+            params.delete('page');
             return params.toString();
         },
         [searchParams]
@@ -56,11 +64,20 @@ export function SearchFilters({ currentQuery, currentCategory, currentSort, curr
         router.push(`/search?${createQueryString({ category: categoryId })}`);
     };
 
-    // 👈 Shadcn pasa directamente el valor (string), no un evento (e)
     const handleSortChange = (value: string) => {
-        // Si elige "recent" (la opción por defecto), lo vaciamos en la URL
         const sortValue = value === "recent" ? "" : value;
         router.push(`/search?${createQueryString({ sort: sortValue })}`);
+    };
+
+    // 👇 NUEVOS MANEJADORES
+    const handleGenderChange = (value: string) => {
+        const genderValue = value === "all" ? "" : value;
+        router.push(`/search?${createQueryString({ gender: genderValue })}`);
+    };
+
+    const handleClothingTypeChange = (value: string) => {
+        const typeValue = value === "all" ? "" : value;
+        router.push(`/search?${createQueryString({ type: typeValue })}`);
     };
 
     const handleSearchSubmit = (e: React.FormEvent) => {
@@ -79,13 +96,19 @@ export function SearchFilters({ currentQuery, currentCategory, currentSort, curr
         router.push('/search');
     };
 
-    const hasActiveFilters = currentQuery || currentCategory || currentSort || currentMin || currentMax;
+    const hasActiveFilters = currentQuery || currentCategory || currentSort || currentMin || currentMax || currentGender || currentClothingType;
+
+    // Función auxiliar para capitalizar (ej: "ROPA_INTERIOR" -> "Ropa Interior")
+    const formatLabel = (text: string) => {
+        return text.replace('_', ' ').toLowerCase().replace(/\b\w/g, l => l.toUpperCase());
+    };
 
     return (
         <div className="space-y-6 bg-white p-5 rounded-xl border border-gray-200 shadow-sm sticky top-24">
+
             {/* Búsqueda */}
             <div>
-                <h3 className="text-sm font-semibold text-gray-900 mb-3">Término de búsqueda</h3>
+                <h3 className="text-sm font-semibold text-gray-900 mb-3">Buscar</h3>
                 <form onSubmit={handleSearchSubmit} className="relative">
                     <input
                         type="text"
@@ -100,13 +123,72 @@ export function SearchFilters({ currentQuery, currentCategory, currentSort, curr
 
             <hr className="border-gray-100" />
 
-            {/* 👈 Nuestro nuevo Select a prueba de WebViews */}
+            {/* Categoría Principal */}
+            <div>
+                <h3 className="text-sm font-semibold text-gray-900 mb-3">Categoría General</h3>
+                <div className="space-y-3">
+                    {CATEGORIES.map((cat) => (
+                        <label key={cat.id} className="flex items-center gap-3 cursor-pointer group">
+                            <input
+                                type="radio"
+                                name="category"
+                                checked={currentCategory === cat.id}
+                                onChange={() => handleCategoryChange(cat.id)}
+                                className="h-4 w-4 text-indigo-600 border-gray-300 focus:ring-indigo-500 cursor-pointer"
+                            />
+                            <span className={`text-sm transition-colors ${
+                                currentCategory === cat.id ? 'text-indigo-600 font-medium' : 'text-gray-600 group-hover:text-gray-900'
+                            }`}>
+                                {cat.label}
+                            </span>
+                        </label>
+                    ))}
+                </div>
+            </div>
+
+            {/* 👇 NUEVO: Mostrar filtros avanzados SOLO si estamos en Productos (Ready-made) */}
+            {currentCategory !== 'SERVICE' && (
+                <>
+                    <hr className="border-gray-100" />
+
+                    <div>
+                        <h3 className="text-sm font-semibold text-gray-900 mb-3">Género</h3>
+                        <Select value={currentGender || "all"} onValueChange={handleGenderChange}>
+                            <SelectTrigger className="w-full bg-white border-gray-300 h-10">
+                                <SelectValue placeholder="Todos los géneros" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">Todos los géneros</SelectItem>
+                                {GENDERS.map((g) => (
+                                    <SelectItem key={g} value={g}>{formatLabel(g)}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+
+                    <div className="mt-4">
+                        <h3 className="text-sm font-semibold text-gray-900 mb-3">Tipo de Prenda</h3>
+                        <Select value={currentClothingType || "all"} onValueChange={handleClothingTypeChange}>
+                            <SelectTrigger className="w-full bg-white border-gray-300 h-10">
+                                <SelectValue placeholder="Todas las prendas" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">Todas las prendas</SelectItem>
+                                {CLOTHING_TYPES.map((type) => (
+                                    <SelectItem key={type} value={type}>{formatLabel(type)}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+                </>
+            )}
+
+            <hr className="border-gray-100" />
+
+            {/* Ordenar */}
             <div>
                 <h3 className="text-sm font-semibold text-gray-900 mb-3">Ordenar por</h3>
-                <Select
-                    value={currentSort || "recent"}
-                    onValueChange={handleSortChange}
-                >
+                <Select value={currentSort || "recent"} onValueChange={handleSortChange}>
                     <SelectTrigger className="w-full bg-white border-gray-300 focus:ring-indigo-500 h-10">
                         <SelectValue placeholder="Más recientes" />
                     </SelectTrigger>
@@ -148,31 +230,6 @@ export function SearchFilters({ currentQuery, currentCategory, currentSort, curr
                 >
                     Aplicar precio
                 </button>
-            </div>
-
-            <hr className="border-gray-100" />
-
-            {/* Filtro de Categoría */}
-            <div>
-                <h3 className="text-sm font-semibold text-gray-900 mb-3">Categoría</h3>
-                <div className="space-y-3">
-                    {CATEGORIES.map((cat) => (
-                        <label key={cat.id} className="flex items-center gap-3 cursor-pointer group">
-                            <input
-                                type="radio"
-                                name="category"
-                                checked={currentCategory === cat.id}
-                                onChange={() => handleCategoryChange(cat.id)}
-                                className="h-4 w-4 text-indigo-600 border-gray-300 focus:ring-indigo-500 cursor-pointer"
-                            />
-                            <span className={`text-sm transition-colors ${
-                                currentCategory === cat.id ? 'text-indigo-600 font-medium' : 'text-gray-600 group-hover:text-gray-900'
-                            }`}>
-                {cat.label}
-              </span>
-                        </label>
-                    ))}
-                </div>
             </div>
 
             {/* Botón para limpiar */}
