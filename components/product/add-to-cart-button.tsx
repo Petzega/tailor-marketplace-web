@@ -3,9 +3,9 @@
 import { ShoppingCart, Check } from "lucide-react";
 import { useCart } from "@/store/cart";
 import { useState } from "react";
-import { Product } from "@/types";
+import { SpotlightProduct } from "@/actions/search";
 
-export function AddToCartButton({ product, isOutOfStock }: { product: Product; isOutOfStock: boolean }) {
+export function AddToCartButton({ product, isOutOfStock }: { product: SpotlightProduct; isOutOfStock: boolean }) {
     const addItem = useCart((state) => state.addItem);
     const [added, setAdded] = useState(false);
 

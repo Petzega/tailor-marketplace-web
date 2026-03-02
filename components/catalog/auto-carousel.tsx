@@ -5,50 +5,79 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 
 export function AutoCarousel({ children }: { children: React.ReactNode }) {
     const carouselRef = useRef<HTMLDivElement>(null);
-    const trackRef = useRef<HTMLDivElement>(null);
     const [isHovered, setIsHovered] = useState(false);
+
+    // 🧠 MAGIA MATEMÁTICA: Calculamos la distancia exacta en píxeles entre las tarjetas originales y sus clones
+    const getShiftAmount = () => {
+        const carousel = carouselRef.current;
+        if (!carousel) return 0;
+
+        const totalItems = carousel.children.length;
+        if (totalItems < 2) return 0;
+
+        const midpoint = Math.floor(totalItems / 2);
+        const firstItem = carousel.children[0] as HTMLElement;
+        const cloneItem = carousel.children[midpoint] as HTMLElement;
+
+        if (firstItem && cloneItem) {
+            return cloneItem.offsetLeft - firstItem.offsetLeft;
+        }
+        return 0;
+    };
 
     const scrollNext = () => {
         const carousel = carouselRef.current;
-        const track = trackRef.current;
-        if (!carousel || !track) return;
+        if (!carousel) return;
 
         const scrollAmount = carousel.offsetWidth;
-        const snapPoint = track.offsetWidth;
+        const shift = getShiftAmount();
 
-        if (carousel.scrollLeft >= snapPoint) {
-            carousel.scrollLeft = carousel.scrollLeft - snapPoint;
-        }
-        setTimeout(() => {
+        // Si ya entramos a la zona de las tarjetas clonadas...
+        if (shift > 0 && carousel.scrollLeft >= shift) {
+            // 1. Truco de magia: Salto silencioso e invisible de regreso a las tarjetas originales
+            carousel.scrollTo({ left: carousel.scrollLeft - shift, behavior: "auto" });
+
+            // 2. Esperamos una fracción de segundo y hacemos el scroll suave
+            setTimeout(() => {
+                carousel.scrollBy({ left: scrollAmount, behavior: "smooth" });
+            }, 10);
+        } else {
+            // Scroll normal
             carousel.scrollBy({ left: scrollAmount, behavior: "smooth" });
-        }, 10);
+        }
     };
 
     const scrollPrev = () => {
         const carousel = carouselRef.current;
-        const track = trackRef.current;
-        if (!carousel || !track) return;
+        if (!carousel) return;
 
         const scrollAmount = carousel.offsetWidth;
-        const snapPoint = track.offsetWidth;
+        const shift = getShiftAmount();
 
-        if (carousel.scrollLeft <= 0) {
-            carousel.scrollLeft = snapPoint;
-        }
-        setTimeout(() => {
+        // Si estamos al principio y el usuario intenta ir hacia atrás...
+        if (shift > 0 && carousel.scrollLeft <= 0) {
+            // 1. Truco de magia: Salto silencioso hacia el final (zona clonada)
+            carousel.scrollTo({ left: carousel.scrollLeft + shift, behavior: "auto" });
+
+            // 2. Animamos hacia atrás suavemente
+            setTimeout(() => {
+                carousel.scrollBy({ left: -scrollAmount, behavior: "smooth" });
+            }, 10);
+        } else {
+            // Scroll normal
             carousel.scrollBy({ left: -scrollAmount, behavior: "smooth" });
-        }, 10);
+        }
     };
 
     useEffect(() => {
         if (isHovered) return;
-        const intervalId = setInterval(scrollNext, 3000); // 👈 3 segundos
+        const intervalId = setInterval(scrollNext, 4000);
         return () => clearInterval(intervalId);
     }, [isHovered]);
 
     return (
         <div
-            className="relative group/carousel"
+            className="w-full relative group/carousel"
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => setIsHovered(false)}
             onTouchStart={() => setIsHovered(true)}
@@ -56,31 +85,31 @@ export function AutoCarousel({ children }: { children: React.ReactNode }) {
         >
             <button
                 onClick={scrollPrev}
-                className="absolute left-2 top-[40%] -translate-y-1/2 z-20 flex h-12 w-12 items-center justify-center rounded-full bg-white/90 text-gray-800 shadow-lg opacity-0 transition-all duration-300 hover:bg-white hover:scale-110 group-hover/carousel:opacity-100 disabled:opacity-0"
+                className="absolute left-2 sm:-left-5 top-[35%] -translate-y-1/2 z-40 flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-full bg-white text-gray-900 shadow-[0_4px_16px_rgba(0,0,0,0.25)] border border-gray-100 transition-all duration-300 hover:bg-white hover:scale-110 opacity-90 sm:opacity-0 sm:group-hover/carousel:opacity-100"
                 aria-label="Anterior"
             >
-                <ChevronLeft size={28} />
+                <ChevronLeft className="w-6 h-6 sm:w-7 sm:h-7" />
             </button>
 
             <button
                 onClick={scrollNext}
-                className="absolute right-2 top-[40%] -translate-y-1/2 z-20 flex h-12 w-12 items-center justify-center rounded-full bg-white/90 text-gray-800 shadow-lg opacity-0 transition-all duration-300 hover:bg-white hover:scale-110 group-hover/carousel:opacity-100"
+                className="absolute right-2 sm:-right-5 top-[35%] -translate-y-1/2 z-40 flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-full bg-white text-gray-900 shadow-[0_4px_16px_rgba(0,0,0,0.25)] border border-gray-100 transition-all duration-300 hover:bg-white hover:scale-110 opacity-90 sm:opacity-0 sm:group-hover/carousel:opacity-100"
                 aria-label="Siguiente"
             >
-                <ChevronRight size={28} />
+                <ChevronRight className="w-6 h-6 sm:w-7 sm:h-7" />
             </button>
 
+            {/* Los estilos aquí siguen EXACTAMENTE iguales a como los dejaste */}
             <div
                 ref={carouselRef}
-                className="flex overflow-x-auto snap-x snap-mandatory pb-8 pt-2 focus:outline-none [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
+                className="flex overflow-x-auto snap-x snap-mandatory gap-4 sm:gap-6 pb-8 pt-2 focus:outline-none [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] w-full"
                 tabIndex={0}
             >
-                <div ref={trackRef} className="flex gap-6 shrink-0 pr-6">
-                    {children}
-                </div>
-                <div className="flex gap-6 shrink-0 pr-6" aria-hidden="true">
-                    {children}
-                </div>
+                {/* Renderizamos las tarjetas originales */}
+                {children}
+
+                {/* 👈 ESTE ES EL SECRETO: Volvemos a renderizar las mismas tarjetas justo al lado para crear el bucle infinito */}
+                {children}
             </div>
         </div>
     );

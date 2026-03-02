@@ -1,5 +1,12 @@
 export type Category = 'READY_MADE' | 'SERVICE';
 
+export interface ProductImage {
+    id: string;
+    url: string;
+    productId: string;
+    createdAt: Date;
+}
+
 export interface Product {
     id: string;
     name: string;
@@ -11,4 +18,5 @@ export interface Product {
     createdAt: Date;
     sku: string;
     updatedAt: Date;
+    gallery?: ProductImage[];
 }
