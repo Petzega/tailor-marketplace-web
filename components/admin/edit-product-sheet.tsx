@@ -7,6 +7,8 @@ import Link from "next/link";
 import NextImage from "next/image";
 import { useRouter } from "next/navigation";
 import { useState, useRef } from "react";
+// 👇 Importamos las constantes
+import { GENDERS, CLOTHING_TYPES } from "@/lib/constants";
 
 interface EditSheetProps {
     product: Product;
@@ -15,7 +17,6 @@ interface EditSheetProps {
 export function EditProductSheet({ product }: EditSheetProps) {
     const router = useRouter();
 
-    // Estados de UI
     const [inputType, setInputType] = useState<'url' | 'file'>('url');
     const [preview, setPreview] = useState<string | null>(product.imageUrl);
 
@@ -25,7 +26,6 @@ export function EditProductSheet({ product }: EditSheetProps) {
     const [showModal, setShowModal] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
 
-    // Manejar cambio de archivo local para previsualizarlo
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
@@ -47,7 +47,6 @@ export function EditProductSheet({ product }: EditSheetProps) {
 
         if (result.success) {
             setShowModal(false);
-            // 👇 Redirigimos al instante con el aviso en la URL para el Notificador Global
             router.push("/admin?action=updated", { scroll: false });
             router.refresh();
         } else {
@@ -56,15 +55,22 @@ export function EditProductSheet({ product }: EditSheetProps) {
         }
     };
 
+    // 👇 Funciones para ordenar las categorías alfabéticamente
+    const formatLabel = (text: string) => {
+        if (text === 'NINO') return 'Niño';
+        if (text === 'NINA') return 'Niña';
+        return text.replace('_', ' ').toLowerCase().replace(/\b\w/g, l => l.toUpperCase());
+    };
+
+    const sortedGenders = [...GENDERS].sort((a, b) => formatLabel(a).localeCompare(formatLabel(b), 'es'));
+    const sortedClothingTypes = [...CLOTHING_TYPES].sort((a, b) => formatLabel(a).localeCompare(formatLabel(b), 'es'));
+
     return (
         <div className="fixed inset-0 z-50 flex justify-end">
-            {/* Backdrop oscuro */}
             <Link href="/admin" className="absolute inset-0 bg-black/20 backdrop-blur-sm transition-opacity" />
 
-            {/* SIDEBAR */}
             <div className="relative w-full max-w-md bg-white h-full shadow-2xl overflow-y-auto border-l border-gray-100 flex flex-col animate-in slide-in-from-right duration-300">
 
-                {/* Header */}
                 <div className="px-6 py-5 border-b border-gray-100 flex justify-between items-center bg-white sticky top-0 z-10">
                     <div>
                         <h2 className="text-lg font-bold text-gray-900">Editar Producto</h2>
@@ -75,21 +81,17 @@ export function EditProductSheet({ product }: EditSheetProps) {
                     </Link>
                 </div>
 
-                {/* Formulario */}
                 <form id="edit-form" onSubmit={handleSubmit} className="flex-1 p-6 space-y-6">
 
-                    {/* SECCIÓN IMAGEN CON PESTAÑAS */}
                     <div className="space-y-3">
                         <div className="flex items-center justify-between">
                             <label className="text-xs font-semibold text-gray-700 uppercase tracking-wide">Product Image</label>
-                            {/* Botones Toggle */}
                             <div className="flex bg-gray-100 p-1 rounded-lg">
                                 <button type="button" onClick={() => setInputType('url')} className={`p-1.5 rounded-md transition-all ${inputType === 'url' ? 'bg-white shadow-sm text-green-600' : 'text-gray-400'}`} title="URL"><LinkIcon size={14} /></button>
                                 <button type="button" onClick={() => setInputType('file')} className={`p-1.5 rounded-md transition-all ${inputType === 'file' ? 'bg-white shadow-sm text-green-600' : 'text-gray-400'}`} title="Subir"><Upload size={14} /></button>
                             </div>
                         </div>
 
-                        {/* OPCIÓN A: URL */}
                         {inputType === 'url' && (
                             <div onClick={() => urlInputRef.current?.focus()} className="border-2 border-dashed border-gray-200 rounded-xl p-6 flex flex-col items-center justify-center text-center hover:bg-gray-50 transition-colors group cursor-pointer relative">
                                 <div className="bg-green-50 p-3 rounded-full mb-2 group-hover:scale-110 transition-transform">
@@ -99,7 +101,6 @@ export function EditProductSheet({ product }: EditSheetProps) {
                             </div>
                         )}
 
-                        {/* OPCIÓN B: ARCHIVO */}
                         {inputType === 'file' && (
                             <div onClick={() => fileInputRef.current?.click()} className="border-2 border-dashed border-gray-200 rounded-xl p-6 flex flex-col items-center justify-center text-center hover:bg-gray-50 transition-colors group cursor-pointer relative overflow-hidden h-32">
                                 {preview && <NextImage src={preview} fill className="object-cover opacity-30 group-hover:opacity-20 transition-opacity" alt="Preview" />}
@@ -126,6 +127,36 @@ export function EditProductSheet({ product }: EditSheetProps) {
                             <option value="READY_MADE">Ready-to-wear</option>
                             <option value="SERVICE">Service</option>
                         </select>
+                    </div>
+
+                    {/* 👇 NUEVO: Grid con los selectores de Género y Tipo de Prenda */}
+                    <div className="grid grid-cols-2 gap-4">
+                        <div>
+                            <label className="block text-xs font-semibold text-gray-700 mb-1.5 uppercase tracking-wide">Género</label>
+                            <select
+                                name="gender"
+                                defaultValue={product.gender || ""}
+                                className="w-full px-4 py-2 border border-gray-200 rounded-lg text-sm bg-white outline-none focus:border-green-500"
+                            >
+                                <option value="">Sin especificar</option>
+                                {sortedGenders.map(g => (
+                                    <option key={g} value={g}>{formatLabel(g)}</option>
+                                ))}
+                            </select>
+                        </div>
+                        <div>
+                            <label className="block text-xs font-semibold text-gray-700 mb-1.5 uppercase tracking-wide">Tipo Prenda</label>
+                            <select
+                                name="clothingType"
+                                defaultValue={product.clothingType || ""}
+                                className="w-full px-4 py-2 border border-gray-200 rounded-lg text-sm bg-white outline-none focus:border-green-500"
+                            >
+                                <option value="">Sin especificar</option>
+                                {sortedClothingTypes.map(c => (
+                                    <option key={c} value={c}>{formatLabel(c)}</option>
+                                ))}
+                            </select>
+                        </div>
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
@@ -156,7 +187,6 @@ export function EditProductSheet({ product }: EditSheetProps) {
 
                 </form>
 
-                {/* --- MODAL DE CONFIRMACIÓN --- */}
                 {showModal && (
                     <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/20 backdrop-blur-[2px] animate-in fade-in duration-200">
                         <div className="bg-white p-6 rounded-xl shadow-2xl border border-gray-100 w-[90%] max-w-sm animate-in zoom-in-95 leading-tight">

@@ -35,8 +35,7 @@ async function generateSku(): Promise<string> {
     return `${prefix}${String(sequence).padStart(3, '0')}`;
 }
 
-// ─── 2. ESTADÍSTICAS GLOBALES (para las tarjetas del admin) ──────────────────
-// Siempre muestra el estado real del inventario, sin importar los filtros activos
+// ─── 2. ESTADÍSTICAS GLOBALES ─────────────────────────────────────────────────
 export async function getProductStats() {
     try {
         const allProducts = await db.product.findMany({
@@ -63,10 +62,7 @@ export async function getProducts(
     page: number = 1,
     minPrice?: number,
     maxPrice?: number,
-    sort?: string,
-    // 👇 NUEVOS PARÁMETROS AÑADIDOS
-    gender?: string,
-    clothingType?: string
+    sort?: string
 ): Promise<GetProductsResult> {
     try {
         const skip = (page - 1) * ITEMS_PER_PAGE;
@@ -96,15 +92,6 @@ export async function getProducts(
             });
         }
 
-        // 👇 NUEVA LÓGICA DE FILTRADO
-        if (gender) {
-            andConditions.push({ gender });
-        }
-
-        if (clothingType) {
-            andConditions.push({ clothingType });
-        }
-
         const whereClause: Prisma.ProductWhereInput =
             andConditions.length > 0 ? { AND: andConditions } : {};
 
@@ -118,9 +105,7 @@ export async function getProducts(
                 orderBy: orderByClause,
                 skip,
                 take: ITEMS_PER_PAGE,
-                include: {
-                    gallery: true
-                }
+                include: { gallery: true }
             }),
             db.product.count({ where: whereClause }),
         ]);
@@ -141,10 +126,7 @@ export async function getProductById(id: string) {
     try {
         return await db.product.findUnique({
             where: { id },
-            // 👇 AQUÍ AGREGAMOS LA GALERÍA PARA LA VISTA DE DETALLE
-            include: {
-                gallery: true
-            }
+            include: { gallery: true }
         });
     } catch (error) {
         console.error("Error al obtener producto por ID:", error);
@@ -161,10 +143,12 @@ export async function createProduct(formData: FormData) {
     let finalImageUrl = imageUrlText;
 
     if (imageFile && imageFile.size > 0) {
-        console.log("Archivo recibido para crear:", imageFile.name);
-        // TODO: Conectar Cloudinary aquí
         finalImageUrl = "https://placehold.co/600x400?text=Imagen+Subida";
     }
+
+    // 👇 Extraemos los nuevos campos (si vienen vacíos, mandamos null)
+    const gender = formData.get("gender") as string;
+    const clothingType = formData.get("clothingType") as string;
 
     await db.product.create({
         data: {
@@ -175,6 +159,8 @@ export async function createProduct(formData: FormData) {
             category: formData.get("category") as string,
             imageUrl: finalImageUrl || null,
             sku,
+            gender: gender || null,             // 👈 Guardamos el género
+            clothingType: clothingType || null, // 👈 Guardamos el tipo de prenda
         },
     });
 
@@ -195,6 +181,10 @@ export async function updateProduct(id: string, formData: FormData) {
         finalImageUrl = imageUrlText;
     }
 
+    // 👇 Extraemos los nuevos campos
+    const gender = formData.get("gender") as string;
+    const clothingType = formData.get("clothingType") as string;
+
     try {
         await db.product.update({
             where: { id },
@@ -205,6 +195,8 @@ export async function updateProduct(id: string, formData: FormData) {
                 stock: parseInt(formData.get("stock") as string),
                 category: formData.get("category") as string,
                 imageUrl: finalImageUrl,
+                gender: gender || null,             // 👈 Actualizamos el género
+                clothingType: clothingType || null, // 👈 Actualizamos el tipo de prenda
             },
         });
 

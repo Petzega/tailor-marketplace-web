@@ -19,4 +19,8 @@ export interface Product {
     sku: string;
     updatedAt: Date;
     gallery?: ProductImage[];
+
+    // 👇 NUEVO: Agregamos las categorías de filtros para que el Frontend las reconozca
+    gender?: string | null;
+    clothingType?: string | null;
 }
