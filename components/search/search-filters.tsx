@@ -3,7 +3,7 @@
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useState, useEffect, useId } from 'react';
 import { Search } from 'lucide-react';
-import { GENDERS, CLOTHING_TYPES } from '@/lib/constants';
+import { GENDERS, CLOTHING_TYPES, ERROR_MESSAGES } from '@/lib/constants';
 
 import {
     Select,
@@ -43,6 +43,7 @@ export function SearchFilters({
     const [localMin, setLocalMin] = useState(currentMin);
     const [localMax, setLocalMax] = useState(currentMax);
 
+    const [priceError, setPriceError] = useState("");
     const [localCategory, setLocalCategory] = useState(currentCategory);
 
     useEffect(() => {
@@ -95,6 +96,25 @@ export function SearchFilters({
     };
 
     const handlePriceSubmit = () => {
+        const minVal = localMin ? Number(localMin) : 0;
+        const maxVal = localMax ? Number(localMax) : Infinity;
+
+        if (minVal < 0 || maxVal < 0) {
+            setPriceError(ERROR_MESSAGES.FILTERS.NEGATIVE_PRICE);
+            return;
+        }
+
+        if (minVal > 50000 || maxVal > 50000) {
+            setPriceError(ERROR_MESSAGES.FILTERS.PRICE_TOO_HIGH);
+            return;
+        }
+
+        if (localMin && localMax && minVal > maxVal) {
+            setPriceError(ERROR_MESSAGES.FILTERS.MIN_GREATER_THAN_MAX);
+            return;
+        }
+
+        setPriceError("");
         router.push(`/search?${createQueryString({ min: localMin, max: localMax })}`);
         window.scrollTo({ top: 0, behavior: 'smooth' });
         onClose?.();
@@ -105,6 +125,7 @@ export function SearchFilters({
         setLocalMin('');
         setLocalMax('');
         setLocalCategory('');
+        setPriceError('');
         router.push('/search');
         window.scrollTo({ top: 0, behavior: 'smooth' });
         onClose?.();
@@ -112,9 +133,20 @@ export function SearchFilters({
 
     const hasActiveFilters = currentQuery || currentCategory || currentSort || currentMin || currentMax || currentGender || currentClothingType;
 
+    // Formateador inteligente para las etiquetas
     const formatLabel = (text: string) => {
+        if (text === 'NINO') return 'Niño';
+        if (text === 'NINA') return 'Niña';
         return text.replace('_', ' ').toLowerCase().replace(/\b\w/g, l => l.toUpperCase());
     };
+
+    // Ordenamiento alfabético en español dinámico
+    const sortedGenders = [...GENDERS].sort((a, b) =>
+        formatLabel(a).localeCompare(formatLabel(b), 'es')
+    );
+    const sortedClothingTypes = [...CLOTHING_TYPES].sort((a, b) =>
+        formatLabel(a).localeCompare(formatLabel(b), 'es')
+    );
 
     return (
         <div className="space-y-6 bg-white p-5 rounded-xl border border-gray-200 shadow-sm sticky top-24">
@@ -173,7 +205,7 @@ export function SearchFilters({
                             </SelectTrigger>
                             <SelectContent>
                                 <SelectItem value="all">Todos los géneros</SelectItem>
-                                {GENDERS.map((g) => (
+                                {sortedGenders.map((g) => (
                                     <SelectItem key={g} value={g}>{formatLabel(g)}</SelectItem>
                                 ))}
                             </SelectContent>
@@ -188,7 +220,7 @@ export function SearchFilters({
                             </SelectTrigger>
                             <SelectContent>
                                 <SelectItem value="all">Todas las prendas</SelectItem>
-                                {CLOTHING_TYPES.map((type) => (
+                                {sortedClothingTypes.map((type) => (
                                     <SelectItem key={type} value={type}>{formatLabel(type)}</SelectItem>
                                 ))}
                             </SelectContent>
@@ -217,14 +249,26 @@ export function SearchFilters({
 
             <div>
                 <h3 className="text-sm font-semibold text-gray-900 mb-3">Rango de precio (S/)</h3>
+
+                {priceError && (
+                    <p className="text-xs font-medium text-red-500 mb-2">{priceError}</p>
+                )}
+
                 <div className="flex items-center gap-2 mb-3">
                     <input
                         type="number"
                         min="0"
                         placeholder="Min"
                         value={localMin}
-                        onChange={(e) => setLocalMin(e.target.value)}
-                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-900 transition-colors [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                        onChange={(e) => {
+                            setLocalMin(e.target.value);
+                            setPriceError("");
+                        }}
+                        className={`w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 transition-colors ${
+                            priceError
+                                ? 'border-red-400 focus:ring-red-500 focus:border-red-500'
+                                : 'border-gray-300 focus:ring-gray-900'
+                        }`}
                     />
                     <span className="text-gray-400">-</span>
                     <input
@@ -232,8 +276,15 @@ export function SearchFilters({
                         min="0"
                         placeholder="Max"
                         value={localMax}
-                        onChange={(e) => setLocalMax(e.target.value)}
-                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-900 transition-colors [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                        onChange={(e) => {
+                            setLocalMax(e.target.value);
+                            setPriceError("");
+                        }}
+                        className={`w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 transition-colors ${
+                            priceError
+                                ? 'border-red-400 focus:ring-red-500 focus:border-red-500'
+                                : 'border-gray-300 focus:ring-gray-900'
+                        }`}
                     />
                 </div>
 
