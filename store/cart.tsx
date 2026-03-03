@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { SpotlightProduct } from '@/actions/search'; // Reutilizamos este tipo de dato
+import { SpotlightProduct } from '@/actions/search';
 
 interface CartItem extends SpotlightProduct {
     quantity: number;
@@ -11,7 +11,8 @@ interface CartStore {
     isOpen: boolean;
     openCart: () => void;
     closeCart: () => void;
-    addItem: (product: SpotlightProduct) => void;
+    // 👇 Modificado para aceptar una cantidad opcional
+    addItem: (product: SpotlightProduct, quantity?: number) => void;
     removeItem: (productId: string) => void;
     updateQuantity: (productId: string, quantity: number) => void;
     clearCart: () => void;
@@ -25,20 +26,18 @@ export const useCart = create<CartStore>()(
             openCart: () => set({ isOpen: true }),
             closeCart: () => set({ isOpen: false }),
 
-            // 👇 A CONTINUACIÓN LA FUNCIÓN CORREGIDA SIN ABRIR EL CARRITO
-            addItem: (product) => set((state) => {
+            // 👇 Ahora acepta "qty" y lo suma a lo que ya tenías
+            addItem: (product, qty = 1) => set((state) => {
                 const existingItem = state.items.find((item) => item.id === product.id);
                 if (existingItem) {
                     return {
                         items: state.items.map((item) =>
-                            item.id === product.id ? { ...item, quantity: item.quantity + 1 } : item
+                            item.id === product.id ? { ...item, quantity: item.quantity + qty } : item
                         )
-                        // Se eliminó isOpen: true
                     };
                 }
                 return {
-                    items: [...state.items, { ...product, quantity: 1 }]
-                    // Se eliminó isOpen: true
+                    items: [...state.items, { ...product, quantity: qty }]
                 };
             }),
 
@@ -55,7 +54,7 @@ export const useCart = create<CartStore>()(
             clearCart: () => set({ items: [] }),
         }),
         {
-            name: 'tailor-cart-storage', // Guarda el carrito en el navegador (Local Storage)
+            name: 'tailor-cart-storage',
         }
     )
 );
