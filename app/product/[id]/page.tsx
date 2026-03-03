@@ -96,10 +96,6 @@ export default async function ProductPage({ params }: ProductPageProps) {
                                 <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">
                                     {isService ? 'Servicio de Sastrería' : 'Prenda Lista para Usar'}
                                 </p>
-                                <div className="flex items-center gap-1 text-yellow-400">
-                                    <Star size={12} fill="currentColor" />
-                                    <span className="text-[11px] font-bold text-gray-600 ml-1">4.9</span>
-                                </div>
                             </div>
 
                             <h1 className="text-2xl sm:text-3xl font-black text-gray-900 tracking-tight leading-tight">
