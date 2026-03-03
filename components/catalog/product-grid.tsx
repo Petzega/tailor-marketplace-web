@@ -6,6 +6,7 @@ import { AutoCarousel } from "./auto-carousel";
 import { Calendar } from "lucide-react";
 import { Product } from "@/types";
 import { ProductCardGallery } from "./product-card-gallery";
+import { Badge } from "@/components/ui/badge";
 
 interface ProductGridProps {
     query?: string;
@@ -19,6 +20,14 @@ interface ProductGridProps {
     products?: Product[];
     layout?: "grid" | "carousel";
 }
+
+// Función auxiliar para formatear los textos de los badges
+const formatLabel = (text: string | null | undefined) => {
+    if (!text) return null;
+    if (text === 'NINO') return 'Niño';
+    if (text === 'NINA') return 'Niña';
+    return text.replace('_', ' ').toLowerCase().replace(/\b\w/g, l => l.toUpperCase());
+};
 
 export async function ProductGrid({
                                       query, category, minPrice, maxPrice, sort, page = 1, gender, clothingType,
@@ -58,9 +67,6 @@ export async function ProductGrid({
         const whatsappLink = `https://wa.me/51992431513?text=${whatsappMessage}`;
 
         const productWithGallery = product as any;
-
-        // 👇 MEJORA 1 APLICADA: Cortamos la galería SOLO si estamos en el carrusel (Home).
-        // En el catálogo (grilla normal), pasará todo el arreglo de fotos intacto.
         const productToDisplay = isCarousel ? { ...productWithGallery, gallery: [] } : productWithGallery;
 
         return (
@@ -69,6 +75,26 @@ export async function ProductGrid({
                 <ProductCardGallery product={productToDisplay} isOutOfStock={isOutOfStock} />
 
                 <div className="flex flex-col flex-1 mt-3">
+
+                    {/* 👇 AQUÍ MUDAMOS LOS BADGES: Ahora viven fuera de la imagen y le dan contexto al título */}
+                    <div className="flex flex-wrap gap-1.5 mb-2">
+                        {product.gender && (
+                            <Badge className="bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100 text-[9px] font-extrabold py-0 px-2 shadow-none uppercase">
+                                {formatLabel(product.gender)}
+                            </Badge>
+                        )}
+                        {product.clothingType && (
+                            <Badge className="bg-purple-50 text-purple-700 border border-purple-200 hover:bg-purple-100 text-[9px] font-bold py-0 px-2 shadow-none uppercase">
+                                {formatLabel(product.clothingType)}
+                            </Badge>
+                        )}
+                        {isService && (
+                            <Badge className="bg-green-50 text-green-700 border border-green-200 hover:bg-green-100 text-[9px] font-bold py-0 px-2 shadow-none uppercase">
+                                SERVICIO
+                            </Badge>
+                        )}
+                    </div>
+
                     <div className="flex flex-col mb-3">
                         <Link href={`/product/${product.id}`} className="group/link block">
                             <h3 className="text-[15px] font-bold text-gray-900 line-clamp-2 min-h-[2.8rem] group-hover/link:text-green-600 transition-colors" title={product.name}>

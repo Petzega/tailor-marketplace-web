@@ -5,14 +5,6 @@ import Image from "next/image";
 import Link from "next/link";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import type { Product } from "@/types";
-import { Badge } from "@/components/ui/badge";
-
-const formatLabel = (text: string | null | undefined) => {
-    if (!text) return null;
-    if (text === 'NINO') return 'Niño';
-    if (text === 'NINA') return 'Niña';
-    return text.replace('_', ' ').toLowerCase().replace(/\b\w/g, l => l.toUpperCase());
-};
 
 export function ProductCardGallery({ product, isOutOfStock }: { product: Product; isOutOfStock: boolean }) {
     const [currentIndex, setCurrentIndex] = useState(0);
@@ -32,14 +24,12 @@ export function ProductCardGallery({ product, isOutOfStock }: { product: Product
         setCurrentIndex((prev) => (prev === 0 ? images.length - 1 : prev - 1));
     };
 
-    const isService = product.category === 'SERVICE';
-
     return (
         <div className="relative aspect-square w-full overflow-hidden rounded-xl bg-gray-100 border border-gray-200 block group/gallery">
 
             <Link href={`/product/${product.id}`} className="block w-full h-full relative overflow-hidden">
 
-                {/* ETIQUETAS SUPERIORES */}
+                {/* ETIQUETAS DE ESTADO (Solo Nuevo o Agotado) */}
                 <div className="absolute top-2 left-2 z-30 flex gap-2">
                     {isOutOfStock ? (
                         <div className="bg-red-600 px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-white rounded-sm shadow-sm">
@@ -49,25 +39,6 @@ export function ProductCardGallery({ product, isOutOfStock }: { product: Product
                         <div className="bg-white px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-gray-900 rounded-sm shadow-sm">
                             NUEVO
                         </div>
-                    )}
-                </div>
-
-                {/* BADGES INFERIORES */}
-                <div className="absolute bottom-0 left-0 right-0 p-2.5 bg-gradient-to-t from-black/50 via-black/20 to-transparent z-30 flex gap-1.5 pointer-events-none h-1/4 items-end">
-                    {product.gender && (
-                        <Badge className="bg-white/95 text-blue-700 border-none text-[9px] font-extrabold py-0.5 px-2 shadow-sm uppercase">
-                            {formatLabel(product.gender)}
-                        </Badge>
-                    )}
-                    {product.clothingType && (
-                        <Badge className="bg-white/95 text-purple-700 border-none text-[9px] font-bold py-0.5 px-2 shadow-sm uppercase">
-                            {formatLabel(product.clothingType)}
-                        </Badge>
-                    )}
-                    {isService && (
-                        <Badge className="bg-green-500 text-white border-none text-[9px] font-bold py-0.5 px-2 shadow-sm uppercase">
-                            SERVICIO
-                        </Badge>
                     )}
                 </div>
 
@@ -91,7 +62,7 @@ export function ProductCardGallery({ product, isOutOfStock }: { product: Product
                 </div>
             </Link>
 
-            {/* CONTROLES DE LA GALERÍA (Flechas y Puntos) */}
+            {/* CONTROLES DE LA GALERÍA */}
             {hasMultiple && (
                 <>
                     <button
@@ -109,8 +80,8 @@ export function ProductCardGallery({ product, isOutOfStock }: { product: Product
                         <ChevronRight size={16} />
                     </button>
 
-                    {/* 👇 MEJORA 2 APLICADA: Subimos los puntitos (bottom-8) para que no toquen los badges */}
-                    <div className="absolute bottom-8 left-0 right-0 flex justify-center gap-1.5 z-40 pointer-events-none">
+                    {/* PUNTITOS EN LA PARTE INFERIOR AL CENTRO (Limpios sobre la foto) */}
+                    <div className="absolute bottom-3 left-0 right-0 flex justify-center gap-1.5 z-40 pointer-events-none">
                         {images.map((_, index) => (
                             <button
                                 key={index}

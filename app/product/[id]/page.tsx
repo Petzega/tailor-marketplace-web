@@ -12,8 +12,19 @@ interface ProductPageProps {
     params: Promise<{ id: string }>;
 }
 
+// Extendemos el tipo para incluir la galería, el género y el tipo de ropa
 type ProductWithGallery = SpotlightProduct & {
     gallery?: { url: string }[];
+    gender?: string | null;
+    clothingType?: string | null;
+};
+
+// Función auxiliar para formatear los textos de los badges
+const formatLabel = (text: string | null | undefined) => {
+    if (!text) return null;
+    if (text === 'NINO') return 'Niño';
+    if (text === 'NINA') return 'Niña';
+    return text.replace('_', ' ').toLowerCase().replace(/\b\w/g, l => l.toUpperCase());
 };
 
 export default async function ProductPage({ params }: ProductPageProps) {
@@ -70,15 +81,14 @@ export default async function ProductPage({ params }: ProductPageProps) {
             {/* CONTENEDOR PRINCIPAL */}
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-10">
 
-                {/* 👇 MAGIA AQUÍ: Contenedor max-w-5xl centrado para evitar el vacío a la derecha */}
                 <div className="max-w-5xl mx-auto flex flex-col md:flex-row gap-10 lg:gap-14 items-start relative">
 
-                    {/* COLUMNA IZQUIERDA (Exactamente la mitad del contenedor central) */}
+                    {/* COLUMNA IZQUIERDA (Galería 50%) */}
                     <div className="w-full md:w-1/2 shrink-0">
                         <ProductGallery images={allImages} isOutOfStock={isOutOfStock} isService={isService} />
                     </div>
 
-                    {/* COLUMNA DERECHA (La otra mitad, con los detalles) */}
+                    {/* COLUMNA DERECHA (Detalles 50%) */}
                     <div className="w-full md:w-1/2 flex flex-col gap-5 lg:sticky lg:top-24">
 
                         <div className="flex flex-col gap-2">
@@ -96,7 +106,26 @@ export default async function ProductPage({ params }: ProductPageProps) {
                                 {product.name}
                             </h1>
 
-                            <div className="mt-1 flex items-end gap-3">
+                            {/* 👇 AQUÍ ESTÁN LOS BADGES MOSTRANDO LAS CARACTERÍSTICAS TÉCNICAS */}
+                            <div className="flex flex-wrap gap-2 mt-1">
+                                {typedProduct.gender && (
+                                    <span className="bg-blue-50 text-blue-700 border border-blue-100 text-[10px] font-extrabold py-0.5 px-2.5 rounded-md uppercase">
+                                        {formatLabel(typedProduct.gender)}
+                                    </span>
+                                )}
+                                {typedProduct.clothingType && (
+                                    <span className="bg-purple-50 text-purple-700 border border-purple-100 text-[10px] font-bold py-0.5 px-2.5 rounded-md uppercase">
+                                        {formatLabel(typedProduct.clothingType)}
+                                    </span>
+                                )}
+                                {isService && (
+                                    <span className="bg-green-50 text-green-700 border border-green-100 text-[10px] font-bold py-0.5 px-2.5 rounded-md uppercase">
+                                        SERVICIO
+                                    </span>
+                                )}
+                            </div>
+
+                            <div className="mt-3 flex items-end gap-3">
                                 <p className="text-3xl font-black text-gray-900 tracking-tighter">
                                     S/ {product.price.toFixed(2)}
                                 </p>
@@ -145,7 +174,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
                             </div>
                         )}
 
-                        {/* ZONA DE ACCIÓN: Botón Contador + Botón WhatsApp alineados a lo ancho de su mitad */}
+                        {/* ZONA DE ACCIÓN: Botón Contador + Botón WhatsApp */}
                         <div className="pt-2">
                             {isOutOfStock ? (
                                 <button disabled className="w-full h-12 flex items-center justify-center gap-2 bg-gray-100 text-gray-400 font-bold rounded-lg text-sm cursor-not-allowed border border-gray-200">
@@ -202,7 +231,6 @@ export default async function ProductPage({ params }: ProductPageProps) {
                 </div>
 
                 {/* --- PRODUCTOS RELACIONADOS --- */}
-                {/* Esta sección sigue ocupando el ancho completo (max-w-7xl) para verse espectacular */}
                 <div className="mt-16 pt-10 border-t border-gray-100">
                     <div className="flex items-center justify-between mb-8">
                         <h2 className="text-2xl font-black text-gray-900 tracking-tight">
