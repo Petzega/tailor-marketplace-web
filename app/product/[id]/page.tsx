@@ -1,13 +1,13 @@
 import { getProductById } from "@/actions/products";
 import { notFound } from "next/navigation";
-import { ShieldCheck, Clock, Sparkles, Calendar } from "lucide-react";
+import { ShieldCheck, Clock, Sparkles, Calendar, Star, Truck, RefreshCw, ChevronRight } from "lucide-react";
 import { AddToCartButton } from "@/components/product/add-to-cart-button";
 import { SpotlightProduct } from "@/actions/search";
 import { BackButton } from "@/components/product/back-button";
 import { ProductGallery } from "@/components/product/product-gallery";
 import { ScrollToTop } from "@/components/product/scroll-to-top";
-// 1. Importar el componente Badge
-import { Badge } from "@/components/ui/badge";
+import Link from "next/link";
+import { ProductGrid } from "@/components/catalog/product-grid";
 
 interface ProductPageProps {
     params: Promise<{ id: string }>;
@@ -15,9 +15,6 @@ interface ProductPageProps {
 
 type ProductWithGallery = SpotlightProduct & {
     gallery?: { url: string }[];
-    // Aseguramos que TS reconozca los nuevos campos en la vista
-    gender?: string | null;
-    clothingType?: string | null;
 };
 
 export default async function ProductPage({ params }: ProductPageProps) {
@@ -30,14 +27,6 @@ export default async function ProductPage({ params }: ProductPageProps) {
 
     const isService = product.category === 'SERVICE';
     const isOutOfStock = product.stock === 0 && !isService;
-
-    // 2. Función para formatear las etiquetas (Ej: "ROPA_INTERIOR" -> "Ropa Interior")
-    const formatLabel = (text: string | null | undefined) => {
-        if (!text) return null;
-        if (text === 'NINO') return 'Niño';
-        if (text === 'NINA') return 'Niña';
-        return text.replace('_', ' ').toLowerCase().replace(/\b\w/g, l => l.toUpperCase());
-    };
 
     const cartProduct: SpotlightProduct = {
         id: product.id,
@@ -63,79 +52,101 @@ export default async function ProductPage({ params }: ProductPageProps) {
         <div className="min-h-screen bg-white">
             <ScrollToTop />
 
+            {/* --- 1. BREADCRUMBS PREMIUM --- */}
             <div className="border-b border-gray-100 bg-gray-50/50">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
-                    <BackButton />
-                    <span className="text-xs font-mono text-gray-500 bg-white px-3 py-1.5 rounded-md border border-gray-200 shadow-sm">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-xs font-medium text-gray-500">
+                        <Link href="/" className="hover:text-gray-900 transition-colors">Inicio</Link>
+                        <ChevronRight size={14} className="text-gray-400" />
+                        <Link href="/search" className="hover:text-gray-900 transition-colors">Catálogo</Link>
+                        <ChevronRight size={14} className="text-gray-400" />
+                        <span className="text-gray-900 truncate max-w-[120px] sm:max-w-[200px]">{product.name}</span>
+                    </div>
+                    <span className="text-xs font-mono text-gray-500 bg-white px-3 py-1.5 rounded-md border border-gray-200 shadow-sm hidden sm:block">
                         SKU: {product.sku}
                     </span>
                 </div>
             </div>
 
+            {/* --- CONTENIDO PRINCIPAL --- */}
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 lg:py-16">
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-16 items-start">
 
-                    <ProductGallery
-                        images={allImages}
-                        isOutOfStock={isOutOfStock}
-                        isService={isService}
-                    />
+                    {/* COLUMNA IZQUIERDA: Galería */}
+                    <ProductGallery images={allImages} isOutOfStock={isOutOfStock} isService={isService} />
 
+                    {/* COLUMNA DERECHA: Detalles del Producto */}
                     <div className="flex flex-col h-full">
 
-                        {/* 3. NUEVO: Contenedor de Badges sutiles antes del título */}
-                        <div className="flex flex-wrap gap-2 mb-4">
-                            <Badge variant="secondary" className="bg-gray-100 text-gray-700 hover:bg-gray-100 font-medium px-2.5 py-0.5 rounded-full border-none uppercase text-[10px] tracking-wider">
-                                {isService ? 'Servicio' : 'Producto'}
-                            </Badge>
-
-                            {typedProduct.gender && (
-                                <Badge variant="outline" className="border-blue-100 text-blue-700 bg-blue-50/30 font-medium px-2.5 py-0.5 rounded-full text-[10px] tracking-wider uppercase">
-                                    {formatLabel(typedProduct.gender)}
-                                </Badge>
-                            )}
-
-                            {typedProduct.clothingType && (
-                                <Badge variant="outline" className="border-purple-100 text-purple-700 bg-purple-50/30 font-medium px-2.5 py-0.5 rounded-full text-[10px] tracking-wider uppercase">
-                                    {formatLabel(typedProduct.clothingType)}
-                                </Badge>
-                            )}
-                        </div>
-
-                        <div className="mb-4">
-                            <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 tracking-tight mb-2 leading-tight">
+                        {/* Título y Reviews */}
+                        <div className="mb-6">
+                            <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">
+                                {isService ? 'Servicio de Sastrería' : 'Prenda Lista para Usar'}
+                            </p>
+                            <h1 className="text-3xl sm:text-4xl font-extrabold text-gray-900 tracking-tight mb-4 leading-tight">
                                 {product.name}
                             </h1>
-                            <p className="text-sm font-medium text-gray-400 uppercase tracking-widest">
-                                {isService ? 'Artesanía a Medida' : 'Prenda Lista para Entrega'}
-                            </p>
+
+                            {/* Estrellas Visuales */}
+                            <div className="flex items-center gap-2">
+                                <div className="flex text-yellow-400">
+                                    {[...Array(5)].map((_, i) => <Star key={i} size={16} fill="currentColor" />)}
+                                </div>
+                                <span className="text-sm font-medium text-gray-500 underline decoration-gray-300 cursor-pointer hover:text-gray-900 transition-colors">
+                                    (Ver reseñas)
+                                </span>
+                            </div>
                         </div>
 
-                        {/* Resto del código se mantiene igual... */}
                         <div className="mb-6 pb-6 border-b border-gray-100">
-                            <p className="text-3xl sm:text-4xl font-extrabold text-gray-900">
+                            <p className="text-4xl font-black text-gray-900 tracking-tight">
                                 S/ {product.price.toFixed(2)}
                             </p>
-                            {isService && <p className="text-sm text-gray-500 mt-2">Precio base. El costo final puede variar según los requerimientos de la prenda.</p>}
+                            {isService && <p className="text-sm text-gray-500 mt-2">Precio base. El costo final puede variar según los requerimientos.</p>}
                         </div>
+
+                        {/* 2. SELECTOR DE TALLAS (Visual) */}
+                        {!isService && (
+                            <div className="mb-8">
+                                <div className="flex items-center justify-between mb-3">
+                                    <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider">Talla</h3>
+                                    <button className="text-xs font-medium text-gray-500 underline hover:text-gray-900 transition-colors">Guía de tallas</button>
+                                </div>
+                                <div className="flex flex-wrap gap-3">
+                                    {['S', 'M', 'L', 'XL'].map((talla) => (
+                                        <button
+                                            key={talla}
+                                            className={`h-12 w-16 rounded-xl border text-sm font-bold transition-all ${
+                                                talla === 'M'
+                                                    ? 'border-gray-900 bg-gray-900 text-white shadow-md'
+                                                    : 'border-gray-200 text-gray-700 bg-white hover:border-gray-400 hover:bg-gray-50'
+                                            }`}
+                                        >
+                                            {talla}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
 
                         <div className="mb-8 text-gray-600 text-base leading-relaxed">
                             {product.description || 'Sin descripción detallada para este producto.'}
                         </div>
 
+                        {/* Estado del Stock con diseño Premium */}
                         {!isService && (
-                            <div className="mb-8 flex items-center gap-3">
-                                <div className={`h-3 w-3 rounded-full ${isOutOfStock ? 'bg-red-500' : 'bg-green-500 animate-pulse'}`} />
-                                <span className="text-sm font-medium text-gray-700">
-                                    {isOutOfStock ? 'Agotado temporalmente' : `${product.stock} unidades disponibles para envío`}
+                            <div className="mb-8 flex items-center gap-3 bg-gray-50 p-4 rounded-xl border border-gray-100">
+                                <div className={`h-2.5 w-2.5 rounded-full shadow-sm ${isOutOfStock ? 'bg-red-500' : 'bg-green-500 animate-pulse'}`} />
+                                <span className="text-sm font-bold text-gray-800">
+                                    {isOutOfStock ? 'Agotado temporalmente' : `¡Quedan ${product.stock} unidades en stock!`}
                                 </span>
                             </div>
                         )}
 
+                        {/* ZONA DE BOTONES DE ACCIÓN */}
                         <div className="mt-auto">
-                            {/* ... Lógica de botones se mantiene intacta ... */}
                             {isOutOfStock ? (
-                                <button disabled className="w-full h-14 flex items-center justify-center gap-2 bg-gray-50 text-gray-400 font-medium rounded-xl text-base cursor-not-allowed border border-gray-200">
+                                <button disabled className="w-full h-14 flex items-center justify-center gap-2 bg-gray-50 text-gray-400 font-bold rounded-xl text-base cursor-not-allowed border border-gray-200 shadow-sm">
                                     No disponible temporalmente
                                 </button>
                             ) : isService ? (
@@ -151,6 +162,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
                             ) : (
                                 <div className="grid grid-cols-[1fr_56px] gap-3 h-14">
                                     <AddToCartButton product={cartProduct} isOutOfStock={isOutOfStock} />
+
                                     <a
                                         href={whatsappLink}
                                         target="_blank"
@@ -166,19 +178,44 @@ export default async function ProductPage({ params }: ProductPageProps) {
                             )}
                         </div>
 
-                        <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 gap-4 pt-8 border-t border-gray-100">
-                            <div className="flex items-center gap-3 text-gray-700">
-                                <ShieldCheck className="text-green-500" size={24} />
-                                <span className="text-sm font-medium">Pagos 100% Seguros</span>
+                        {/* 3. INFO EXTRA (Garantías) */}
+                        <div className="mt-10 grid grid-cols-1 sm:grid-cols-2 gap-4 pt-8 border-t border-gray-100">
+                            <div className="flex items-start gap-3 p-4 rounded-xl bg-gray-50 border border-gray-100 transition-colors hover:bg-gray-100">
+                                <Truck className="text-gray-900 shrink-0 mt-0.5" size={20} />
+                                <div>
+                                    <h4 className="text-sm font-bold text-gray-900">Envíos a todo el Perú</h4>
+                                    <p className="text-xs text-gray-500 mt-1">24-48h en Lima, 3-5 días en provincias.</p>
+                                </div>
                             </div>
-                            <div className="flex items-center gap-3 text-gray-700">
-                                {isService ? <Sparkles className="text-[#25D366]" size={24} /> : <Clock className="text-blue-500" size={24} />}
-                                <span className="text-sm font-medium">{isService ? 'Atención Personalizada' : 'Envíos Rápidos'}</span>
+                            <div className="flex items-start gap-3 p-4 rounded-xl bg-gray-50 border border-gray-100 transition-colors hover:bg-gray-100">
+                                <RefreshCw className="text-gray-900 shrink-0 mt-0.5" size={20} />
+                                <div>
+                                    <h4 className="text-sm font-bold text-gray-900">Cambios fáciles</h4>
+                                    <p className="text-xs text-gray-500 mt-1">Hasta 7 días para devoluciones.</p>
+                                </div>
                             </div>
                         </div>
 
                     </div>
                 </div>
+
+                {/* --- 4. PRODUCTOS RELACIONADOS --- */}
+                <div className="mt-20 lg:mt-32 pt-16 border-t border-gray-200">
+                    <div className="flex items-center justify-between mb-8">
+                        <h2 className="text-2xl sm:text-3xl font-black text-gray-900 tracking-tight">
+                            También te podría gustar
+                        </h2>
+                        <Link href={`/search?category=${product.category}`} className="text-sm font-bold text-gray-500 hover:text-gray-900 hidden sm:flex items-center gap-1 transition-colors">
+                            Ver más <ChevronRight size={16} />
+                        </Link>
+                    </div>
+
+                    {/* Reutilizamos tu componente estrella. ¡Hará el fetch automático! */}
+                    <div className="w-full">
+                        <ProductGrid category={product.category} layout="carousel" />
+                    </div>
+                </div>
+
             </div>
         </div>
     );
