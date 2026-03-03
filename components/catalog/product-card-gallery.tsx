@@ -5,6 +5,15 @@ import Image from "next/image";
 import Link from "next/link";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import type { Product } from "@/types";
+import { Badge } from "@/components/ui/badge";
+
+// Función de formateo interna
+const formatLabel = (text: string | null | undefined) => {
+    if (!text) return null;
+    if (text === 'NINO') return 'Niño';
+    if (text === 'NINA') return 'Niña';
+    return text.replace('_', ' ').toLowerCase().replace(/\b\w/g, l => l.toUpperCase());
+};
 
 export function ProductCardGallery({ product, isOutOfStock }: { product: Product; isOutOfStock: boolean }) {
     const [currentIndex, setCurrentIndex] = useState(0);
@@ -24,34 +33,51 @@ export function ProductCardGallery({ product, isOutOfStock }: { product: Product
         setCurrentIndex((prev) => (prev === 0 ? images.length - 1 : prev - 1));
     };
 
+    const isService = product.category === 'SERVICE';
+
     return (
         <div className="relative aspect-square w-full overflow-hidden rounded-xl bg-gray-100 border border-gray-200 block group/gallery">
 
             <Link href={`/product/${product.id}`} className="block w-full h-full relative">
-                <div className="absolute top-2 left-2 z-30 bg-white px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-gray-900 rounded-sm shadow-sm">
-                    NUEVO
+                {/* Badge de "Nuevo" o "Agotado" en la parte superior */}
+                <div className="absolute top-2 left-2 z-30 flex gap-2">
+                    {isOutOfStock ? (
+                        <div className="bg-red-600 px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-white rounded-sm shadow-sm">
+                            Agotado
+                        </div>
+                    ) : (
+                        <div className="bg-white px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-gray-900 rounded-sm shadow-sm">
+                            Nuevo
+                        </div>
+                    )}
                 </div>
 
-                {/* 👇 EL ARREGLO ESTÁ AQUÍ: Renderizamos todas las imágenes apiladas y cambiamos su opacidad */}
-                {images.map((imgSrc, idx) => (
-                    <Image
-                        key={idx}
-                        src={imgSrc || "https://placehold.co/600x400?text=Sin+Imagen"}
-                        alt={`${product.name} - Vista ${idx + 1}`}
-                        fill
-                        priority={idx === 0}
-                        className={`object-cover object-center transition-opacity duration-700 ease-in-out group-hover:scale-105 active:scale-100 ${idx === currentIndex ? "opacity-100 z-20" : "opacity-0 z-10"
-                            } ${isOutOfStock ? 'grayscale opacity-50' : ''}`}
-                    />
-                ))}
+                {/* 👇 NUEVO: Badges en la parte INFERIOR de la imagen con degradado */}
+                <div className="absolute bottom-0 left-0 right-0 h-1/3 bg-gradient-to-t from-black/60 to-transparent z-30 pointer-events-none flex items-end p-3 gap-1.5">
+                    {product.gender && (
+                        <Badge className="bg-white/95 text-blue-700 hover:bg-white border-none text-[9px] font-bold px-2 py-0 h-5 shadow-sm uppercase">
+                            {formatLabel(product.gender)}
+                        </Badge>
+                    )}
+                    {product.clothingType && (
+                        <Badge className="bg-white/95 text-purple-700 hover:bg-white border-none text-[9px] font-bold px-2 py-0 h-5 shadow-sm uppercase">
+                            {formatLabel(product.clothingType)}
+                        </Badge>
+                    )}
+                    {isService && (
+                        <Badge className="bg-green-500 text-white hover:bg-green-600 border-none text-[9px] font-bold px-2 py-0 h-5 shadow-sm uppercase">
+                            Servicio
+                        </Badge>
+                    )}
+                </div>
 
-                {isOutOfStock && (
-                    <div className="absolute inset-0 z-30 flex items-center justify-center">
-                        <span className="bg-white px-3 py-1.5 text-xs font-bold uppercase tracking-wider text-gray-900 rounded-sm shadow-md">
-                            AGOTADO
-                        </span>
-                    </div>
-                )}
+                <Image
+                    src={images[currentIndex] as string}
+                    alt={product.name}
+                    fill
+                    className={`object-cover transition-transform duration-500 group-hover/gallery:scale-110 ${isOutOfStock ? "grayscale opacity-80" : ""}`}
+                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
+                />
             </Link>
 
             {hasMultiple && (
@@ -84,7 +110,7 @@ export function ProductCardGallery({ product, isOutOfStock }: { product: Product
                                 setCurrentIndex(index);
                             }}
                             className={`h-1.5 rounded-full shadow-sm transition-all duration-300 ${index === currentIndex ? "w-3 bg-white" : "w-1.5 bg-white/50 hover:bg-white/80"
-                                }`}
+                            }`}
                             aria-label={`Ver foto ${index + 1}`}
                         />
                     ))}
