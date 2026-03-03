@@ -58,12 +58,14 @@ export async function ProductGrid({
         const whatsappLink = `https://wa.me/51992431513?text=${whatsappMessage}`;
 
         const productWithGallery = product as any;
+
+        // 👇 MEJORA 1 APLICADA: Cortamos la galería SOLO si estamos en el carrusel (Home).
+        // En el catálogo (grilla normal), pasará todo el arreglo de fotos intacto.
         const productToDisplay = isCarousel ? { ...productWithGallery, gallery: [] } : productWithGallery;
 
         return (
             <div key={product.id} className={itemClasses} tabIndex={0}>
 
-                {/* 👇 SOLUCIÓN: Solo llamamos a la imagen. Ya no dibujamos Badges aquí. */}
                 <ProductCardGallery product={productToDisplay} isOutOfStock={isOutOfStock} />
 
                 <div className="flex flex-col flex-1 mt-3">

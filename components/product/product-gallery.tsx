@@ -14,7 +14,6 @@ export function ProductGallery({ images, isOutOfStock, isService }: ProductGalle
     const [currentIndex, setCurrentIndex] = useState(0);
     const hasMultiple = images.length > 1;
 
-    // Si por alguna razón el producto no tiene ni una sola foto
     if (images.length === 0) {
         return (
             <div className="relative aspect-square w-full max-w-xl mx-auto overflow-hidden rounded-2xl bg-gray-100 border border-gray-200 shadow-sm flex flex-col items-center justify-center text-gray-400">
@@ -24,7 +23,6 @@ export function ProductGallery({ images, isOutOfStock, isService }: ProductGalle
         );
     }
 
-    // Funciones para las flechas
     const handleNext = (e: React.MouseEvent) => {
         e.preventDefault();
         setCurrentIndex((prev) => (prev === images.length - 1 ? 0 : prev + 1));
@@ -38,35 +36,39 @@ export function ProductGallery({ images, isOutOfStock, isService }: ProductGalle
     return (
         <div className="w-full max-w-xl mx-auto flex flex-col gap-4">
 
-            {/* 1. IMAGEN PRINCIPAL GIGANTE CON TRANSICIÓN SUAVE */}
+            {/* 1. IMAGEN PRINCIPAL GIGANTE CON DESLIZAMIENTO */}
             <div className="relative aspect-square w-full overflow-hidden rounded-2xl bg-gray-100 border border-gray-200 shadow-sm group">
                 <div className="absolute top-4 left-4 z-30 bg-white px-3 py-1.5 text-xs font-bold uppercase tracking-wider text-gray-900 rounded-sm shadow-md">
                     NUEVO
                 </div>
 
-                {/* Apilamos todas las fotos y jugamos con la opacidad */}
-                {images.map((img, idx) => (
-                    <Image
-                        key={idx}
-                        src={img}
-                        alt={`Producto vista ${idx + 1}`}
-                        fill
-                        priority={idx === 0}
-                        className={`object-cover object-center transition-opacity duration-700 ease-in-out ${
-                            idx === currentIndex ? "opacity-100 z-20" : "opacity-0 z-10"
-                        } ${isOutOfStock ? 'opacity-50 grayscale' : ''}`}
-                    />
-                ))}
-
                 {isOutOfStock && (
-                    <div className="absolute inset-0 z-30 flex items-center justify-center">
-                        <span className="bg-white px-5 py-2.5 text-sm font-bold uppercase tracking-wider text-gray-900 rounded-sm shadow-xl">
+                    <div className="absolute inset-0 z-30 flex items-center justify-center pointer-events-none">
+                        <span className="bg-white/90 backdrop-blur-sm px-5 py-2.5 text-sm font-bold uppercase tracking-wider text-gray-900 rounded-sm shadow-xl">
                             AGOTADO
                         </span>
                     </div>
                 )}
 
-                {/* Flechas de navegación (Aparecen al pasar el mouse en PC) */}
+                {/* 👇 SOLUCIÓN 3: SLIDER HORIZONTAL SUAVIZADO */}
+                <div
+                    className="flex w-full h-full transition-transform duration-500 ease-out"
+                    style={{ transform: `translateX(-${currentIndex * 100}%)` }}
+                >
+                    {images.map((img, idx) => (
+                        <div key={idx} className="relative w-full h-full shrink-0">
+                            <Image
+                                src={img}
+                                alt={`Producto vista ${idx + 1}`}
+                                fill
+                                priority={idx === 0}
+                                className={`object-cover object-center ${isOutOfStock ? 'opacity-50 grayscale' : ''}`}
+                            />
+                        </div>
+                    ))}
+                </div>
+
+                {/* Flechas de navegación */}
                 {hasMultiple && (
                     <>
                         <button
