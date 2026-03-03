@@ -6,14 +6,18 @@ import { SpotlightProduct } from "@/actions/search";
 import { BackButton } from "@/components/product/back-button";
 import { ProductGallery } from "@/components/product/product-gallery";
 import { ScrollToTop } from "@/components/product/scroll-to-top";
+// 1. Importar el componente Badge
+import { Badge } from "@/components/ui/badge";
 
 interface ProductPageProps {
     params: Promise<{ id: string }>;
 }
 
-// Creamos un tipo seguro para que TypeScript no se queje de la galería
 type ProductWithGallery = SpotlightProduct & {
     gallery?: { url: string }[];
+    // Aseguramos que TS reconozca los nuevos campos en la vista
+    gender?: string | null;
+    clothingType?: string | null;
 };
 
 export default async function ProductPage({ params }: ProductPageProps) {
@@ -27,6 +31,14 @@ export default async function ProductPage({ params }: ProductPageProps) {
     const isService = product.category === 'SERVICE';
     const isOutOfStock = product.stock === 0 && !isService;
 
+    // 2. Función para formatear las etiquetas (Ej: "ROPA_INTERIOR" -> "Ropa Interior")
+    const formatLabel = (text: string | null | undefined) => {
+        if (!text) return null;
+        if (text === 'NINO') return 'Niño';
+        if (text === 'NINA') return 'Niña';
+        return text.replace('_', ' ').toLowerCase().replace(/\b\w/g, l => l.toUpperCase());
+    };
+
     const cartProduct: SpotlightProduct = {
         id: product.id,
         name: product.name,
@@ -38,11 +50,9 @@ export default async function ProductPage({ params }: ProductPageProps) {
         sku: product.sku || '',
     };
 
-    // Mensaje estandarizado de WhatsApp
     const whatsappMessage = encodeURIComponent(`Hola, me interesa el ${isService ? 'servicio' : 'producto'}: ${product.name} (SKU: ${product.sku}). ¿Podrían darme más información?`);
     const whatsappLink = `https://wa.me/51992431513?text=${whatsappMessage}`;
 
-    // Preparamos el array de imágenes usando el tipo seguro (sin "any")
     const typedProduct = product as unknown as ProductWithGallery;
     const allImages = [
         typedProduct.imageUrl,
@@ -51,11 +61,8 @@ export default async function ProductPage({ params }: ProductPageProps) {
 
     return (
         <div className="min-h-screen bg-white">
-
-            {/* 👈 2. Colocamos el componente aquí. Se encargará de llevar la vista hasta arriba siempre */}
             <ScrollToTop />
 
-            {/* --- BREADCRUMB / NAVEGACIÓN --- */}
             <div className="border-b border-gray-100 bg-gray-50/50">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
                     <BackButton />
@@ -65,31 +72,47 @@ export default async function ProductPage({ params }: ProductPageProps) {
                 </div>
             </div>
 
-            {/* --- CONTENIDO PRINCIPAL --- */}
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 lg:py-16">
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-16 items-start">
 
-                    {/* COLUMNA IZQUIERDA: Galería */}
                     <ProductGallery
                         images={allImages}
                         isOutOfStock={isOutOfStock}
                         isService={isService}
                     />
 
-                    {/* COLUMNA DERECHA: Detalles del Producto */}
                     <div className="flex flex-col h-full">
+
+                        {/* 3. NUEVO: Contenedor de Badges sutiles antes del título */}
+                        <div className="flex flex-wrap gap-2 mb-4">
+                            <Badge variant="secondary" className="bg-gray-100 text-gray-700 hover:bg-gray-100 font-medium px-2.5 py-0.5 rounded-full border-none uppercase text-[10px] tracking-wider">
+                                {isService ? 'Servicio' : 'Producto'}
+                            </Badge>
+
+                            {typedProduct.gender && (
+                                <Badge variant="outline" className="border-blue-100 text-blue-700 bg-blue-50/30 font-medium px-2.5 py-0.5 rounded-full text-[10px] tracking-wider uppercase">
+                                    {formatLabel(typedProduct.gender)}
+                                </Badge>
+                            )}
+
+                            {typedProduct.clothingType && (
+                                <Badge variant="outline" className="border-purple-100 text-purple-700 bg-purple-50/30 font-medium px-2.5 py-0.5 rounded-full text-[10px] tracking-wider uppercase">
+                                    {formatLabel(typedProduct.clothingType)}
+                                </Badge>
+                            )}
+                        </div>
 
                         <div className="mb-4">
                             <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 tracking-tight mb-2 leading-tight">
                                 {product.name}
                             </h1>
                             <p className="text-sm font-medium text-gray-400 uppercase tracking-widest">
-                                {isService ? 'Servicio de Sastrería' : 'Prenda Lista para Usar'}
+                                {isService ? 'Artesanía a Medida' : 'Prenda Lista para Entrega'}
                             </p>
                         </div>
 
+                        {/* Resto del código se mantiene igual... */}
                         <div className="mb-6 pb-6 border-b border-gray-100">
-                            {/* 👇 AQUÍ ESTÁ EL CAMBIO: Precio estandarizado y sólido, sin formatos partidos */}
                             <p className="text-3xl sm:text-4xl font-extrabold text-gray-900">
                                 S/ {product.price.toFixed(2)}
                             </p>
@@ -100,7 +123,6 @@ export default async function ProductPage({ params }: ProductPageProps) {
                             {product.description || 'Sin descripción detallada para este producto.'}
                         </div>
 
-                        {/* Estado del Stock (Solo para ropa) */}
                         {!isService && (
                             <div className="mb-8 flex items-center gap-3">
                                 <div className={`h-3 w-3 rounded-full ${isOutOfStock ? 'bg-red-500' : 'bg-green-500 animate-pulse'}`} />
@@ -110,8 +132,8 @@ export default async function ProductPage({ params }: ProductPageProps) {
                             </div>
                         )}
 
-                        {/* ZONA DE BOTONES DE ACCIÓN */}
                         <div className="mt-auto">
+                            {/* ... Lógica de botones se mantiene intacta ... */}
                             {isOutOfStock ? (
                                 <button disabled className="w-full h-14 flex items-center justify-center gap-2 bg-gray-50 text-gray-400 font-medium rounded-xl text-base cursor-not-allowed border border-gray-200">
                                     No disponible temporalmente
@@ -129,7 +151,6 @@ export default async function ProductPage({ params }: ProductPageProps) {
                             ) : (
                                 <div className="grid grid-cols-[1fr_56px] gap-3 h-14">
                                     <AddToCartButton product={cartProduct} isOutOfStock={isOutOfStock} />
-
                                     <a
                                         href={whatsappLink}
                                         target="_blank"
@@ -145,7 +166,6 @@ export default async function ProductPage({ params }: ProductPageProps) {
                             )}
                         </div>
 
-                        {/* Garantías / Trust Badges */}
                         <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 gap-4 pt-8 border-t border-gray-100">
                             <div className="flex items-center gap-3 text-gray-700">
                                 <ShieldCheck className="text-green-500" size={24} />
