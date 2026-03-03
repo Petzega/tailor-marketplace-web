@@ -1,9 +1,9 @@
 'use client';
 
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useCallback, useState, useEffect, useId } from 'react';
-import { Search } from 'lucide-react';
-import { GENDERS, CLOTHING_TYPES, ERROR_MESSAGES } from '@/lib/constants';
+import { useCallback, useState, useEffect } from 'react';
+import { Search, Filter, X, Trash2 } from 'lucide-react';
+import { GENDERS, CLOTHING_TYPES } from '@/lib/constants';
 
 import {
     Select,
@@ -30,283 +30,235 @@ const CATEGORIES = [
     { id: 'SERVICE', label: 'Servicios de Sastrería' },
 ];
 
+// Mapeo de IDs a etiquetas legibles
+const GENDER_LABELS: Record<string, string> = {
+    HOMBRE: 'Hombre',
+    MUJER: 'Mujer',
+    NINO: 'Niño',
+    NINA: 'Niña',
+    UNISEX: 'Unisex',
+};
+
+const CLOTHING_TYPE_LABELS: Record<string, string> = {
+    CAMISA: 'Camisa',
+    PANTALON: 'Pantalón',
+    SHORT: 'Short',
+    LENCERIA: 'Lencería',
+    ROPA_INTERIOR: 'Ropa Interior',
+    POLO: 'Polo',
+    ACCESORIOS: 'Accesorios',
+    VESTIDO: 'Vestido',
+};
+
+// Ordenamiento alfabético usando las etiquetas mapeadas
+const SORTED_GENDERS = [...GENDERS].sort((a, b) => {
+    const labelA = GENDER_LABELS[a] || a;
+    const labelB = GENDER_LABELS[b] || b;
+    return labelA.localeCompare(labelB);
+});
+
+const SORTED_CLOTHING_TYPES = [...CLOTHING_TYPES].sort((a, b) => {
+    const labelA = CLOTHING_TYPE_LABELS[a] || a;
+    const labelB = CLOTHING_TYPE_LABELS[b] || b;
+    return labelA.localeCompare(labelB);
+});
+
 export function SearchFilters({
-                                  currentQuery, currentCategory, currentSort, currentMin, currentMax,
-                                  currentGender = "", currentClothingType = "",
+                                  currentQuery,
+                                  currentCategory,
+                                  currentSort,
+                                  currentMin,
+                                  currentMax,
+                                  currentGender = "",
+                                  currentClothingType = "",
                                   onClose
                               }: SearchFiltersProps) {
     const router = useRouter();
     const searchParams = useSearchParams();
-    const uniqueId = useId();
 
     const [localQuery, setLocalQuery] = useState(currentQuery);
     const [localMin, setLocalMin] = useState(currentMin);
     const [localMax, setLocalMax] = useState(currentMax);
-
     const [priceError, setPriceError] = useState("");
-    const [localCategory, setLocalCategory] = useState(currentCategory);
 
     useEffect(() => {
-        setLocalCategory(currentCategory);
-    }, [currentCategory]);
+        setLocalQuery(currentQuery);
+    }, [currentQuery]);
 
     const createQueryString = useCallback(
-        (paramsToUpdate: Record<string, string | null>) => {
-            const params = new URLSearchParams(searchParams.toString());
+        (params: Record<string, string | null>) => {
+            const newSearchParams = new URLSearchParams(searchParams.toString());
 
-            Object.entries(paramsToUpdate).forEach(([name, value]) => {
-                if (value) {
-                    params.set(name, value);
+            Object.entries(params).forEach(([key, value]) => {
+                if (value === null || value === '' || value === 'ALL') {
+                    newSearchParams.delete(key);
                 } else {
-                    params.delete(name);
+                    newSearchParams.set(key, value);
                 }
             });
 
-            params.delete('page');
-            return params.toString();
+            newSearchParams.set('page', '1');
+            return newSearchParams.toString();
         },
         [searchParams]
     );
 
-    const handleCategoryChange = (categoryId: string) => {
-        setLocalCategory(categoryId);
-        router.push(`/search?${createQueryString({ category: categoryId })}`, { scroll: false });
+    // Aplica los selectores instantáneamente de fondo sin cerrar el modal
+    const handleFilterChange = (key: string, value: string) => {
+        router.push(`/search?${createQueryString({ [key]: value })}`, { scroll: false });
     };
 
-    const handleSortChange = (value: string) => {
-        const sortValue = value === "recent" ? "" : value;
-        router.push(`/search?${createQueryString({ sort: sortValue })}`, { scroll: false });
-    };
+    // Función unificada: Aplica los precios y cierra el modal (si estamos en móvil)
+    const handleApplyAndClose = (e?: React.FormEvent) => {
+        if (e) e.preventDefault();
+        const min = parseFloat(localMin);
+        const max = parseFloat(localMax);
 
-    const handleGenderChange = (value: string) => {
-        const genderValue = value === "all" ? "" : value;
-        router.push(`/search?${createQueryString({ gender: genderValue })}`, { scroll: false });
-    };
-
-    const handleClothingTypeChange = (value: string) => {
-        const typeValue = value === "all" ? "" : value;
-        router.push(`/search?${createQueryString({ type: typeValue })}`, { scroll: false });
-    };
-
-    const handleSearchSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
-        router.push(`/search?${createQueryString({ q: localQuery })}`);
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-        onClose?.();
-    };
-
-    const handlePriceSubmit = () => {
-        const minVal = localMin ? Number(localMin) : 0;
-        const maxVal = localMax ? Number(localMax) : Infinity;
-
-        if (minVal < 0 || maxVal < 0) {
-            setPriceError(ERROR_MESSAGES.FILTERS.NEGATIVE_PRICE);
-            return;
-        }
-
-        if (minVal > 50000 || maxVal > 50000) {
-            setPriceError(ERROR_MESSAGES.FILTERS.PRICE_TOO_HIGH);
-            return;
-        }
-
-        if (localMin && localMax && minVal > maxVal) {
-            setPriceError(ERROR_MESSAGES.FILTERS.MIN_GREATER_THAN_MAX);
+        if (localMin && localMax && min > max) {
+            setPriceError("El mínimo no puede ser mayor al máximo");
             return;
         }
 
         setPriceError("");
-        router.push(`/search?${createQueryString({ min: localMin, max: localMax })}`);
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-        onClose?.();
+        router.push(`/search?${createQueryString({ min: localMin, max: localMax })}`, { scroll: false });
+
+        if (onClose) onClose();
     };
 
     const clearFilters = () => {
-        setLocalQuery('');
-        setLocalMin('');
-        setLocalMax('');
-        setLocalCategory('');
-        setPriceError('');
+        setLocalQuery("");
+        setLocalMin("");
+        setLocalMax("");
+        setPriceError("");
         router.push('/search');
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-        onClose?.();
+        if (onClose) onClose();
     };
 
-    const hasActiveFilters = currentQuery || currentCategory || currentSort || currentMin || currentMax || currentGender || currentClothingType;
-
-    // Formateador inteligente para las etiquetas
-    const formatLabel = (text: string) => {
-        if (text === 'NINO') return 'Niño';
-        if (text === 'NINA') return 'Niña';
-        return text.replace('_', ' ').toLowerCase().replace(/\b\w/g, l => l.toUpperCase());
-    };
-
-    // Ordenamiento alfabético en español dinámico
-    const sortedGenders = [...GENDERS].sort((a, b) =>
-        formatLabel(a).localeCompare(formatLabel(b), 'es')
-    );
-    const sortedClothingTypes = [...CLOTHING_TYPES].sort((a, b) =>
-        formatLabel(a).localeCompare(formatLabel(b), 'es')
-    );
+    const hasActiveFilters = currentQuery || currentCategory || currentMin || currentMax || currentGender || currentClothingType;
 
     return (
-        <div className="space-y-6 bg-white p-5 rounded-xl border border-gray-200 shadow-sm sticky top-24">
-            <div>
-                <h3 className="text-sm font-semibold text-gray-900 mb-3">Buscar</h3>
-                <form onSubmit={handleSearchSubmit} className="relative">
+        <div className="flex flex-col gap-7 bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
+            <div className="flex items-center justify-between lg:hidden">
+                <h2 className="text-lg font-bold flex items-center gap-2">
+                    <Filter size={18} /> Filtros
+                </h2>
+                <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full">
+                    <X size={20} />
+                </button>
+            </div>
+
+            <div className="space-y-3">
+                <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider">Búsqueda rápida</h3>
+                <form onSubmit={(e) => { e.preventDefault(); handleFilterChange('q', localQuery); }} className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
                     <input
                         type="text"
+                        placeholder="Nombre, SKU..."
                         value={localQuery}
                         onChange={(e) => setLocalQuery(e.target.value)}
-                        placeholder="Ej. Basta, Entallado..."
-                        className="w-full pl-9 pr-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-gray-900 transition-colors"
+                        className="w-full pl-10 pr-4 py-2.5 text-sm bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-900 transition-all"
                     />
-                    <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
                 </form>
             </div>
 
-            <hr className="border-gray-100" />
-
-            <div>
-                <h3 className="text-sm font-semibold text-gray-900 mb-3">Categoría General</h3>
-                <div className="space-y-3">
-                    {CATEGORIES.map((cat) => (
-                        <div key={cat.id} className="flex items-center gap-3 group">
-                            <input
-                                type="radio"
-                                id={`${uniqueId}-category-${cat.id}`}
-                                name={`${uniqueId}-category`}
-                                value={cat.id}
-                                checked={localCategory === cat.id}
-                                onChange={() => handleCategoryChange(cat.id)}
-                                className="h-4 w-4 text-gray-900 border-gray-300 focus:ring-gray-900 cursor-pointer"
-                            />
-                            <label
-                                htmlFor={`${uniqueId}-category-${cat.id}`}
-                                className={`text-sm cursor-pointer transition-colors ${
-                                    localCategory === cat.id ? 'text-gray-900 font-bold' : 'text-gray-600 group-hover:text-gray-900'
-                                }`}
-                            >
-                                {cat.label}
-                            </label>
-                        </div>
-                    ))}
-                </div>
-            </div>
-
-            {localCategory !== 'SERVICE' && (
-                <>
-                    <hr className="border-gray-100" />
-
-                    <div>
-                        <h3 className="text-sm font-semibold text-gray-900 mb-3">Género</h3>
-                        <Select value={currentGender || "all"} onValueChange={handleGenderChange}>
-                            <SelectTrigger className="w-full bg-white border-gray-300 h-10 focus:ring-gray-900">
-                                <SelectValue placeholder="Todos los géneros" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="all">Todos los géneros</SelectItem>
-                                {sortedGenders.map((g) => (
-                                    <SelectItem key={g} value={g}>{formatLabel(g)}</SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                    </div>
-
-                    <div className="mt-4">
-                        <h3 className="text-sm font-semibold text-gray-900 mb-3">Tipo de Prenda</h3>
-                        <Select value={currentClothingType || "all"} onValueChange={handleClothingTypeChange}>
-                            <SelectTrigger className="w-full bg-white border-gray-300 h-10 focus:ring-gray-900">
-                                <SelectValue placeholder="Todas las prendas" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="all">Todas las prendas</SelectItem>
-                                {sortedClothingTypes.map((type) => (
-                                    <SelectItem key={type} value={type}>{formatLabel(type)}</SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                    </div>
-                </>
-            )}
-
-            <hr className="border-gray-100" />
-
-            <div>
-                <h3 className="text-sm font-semibold text-gray-900 mb-3">Ordenar por</h3>
-                <Select value={currentSort || "recent"} onValueChange={handleSortChange}>
-                    <SelectTrigger className="w-full bg-white border-gray-300 focus:ring-gray-900 h-10">
-                        <SelectValue placeholder="Más recientes" />
+            <div className="space-y-3">
+                <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider">Género</h3>
+                <Select value={currentGender || "ALL"} onValueChange={(val) => handleFilterChange('gender', val)}>
+                    <SelectTrigger className="w-full rounded-xl border-gray-200 bg-gray-50">
+                        <SelectValue placeholder="Cualquier género" />
                     </SelectTrigger>
                     <SelectContent>
-                        <SelectItem value="recent">Más recientes</SelectItem>
-                        <SelectItem value="price_asc">Precio: Menor a Mayor</SelectItem>
-                        <SelectItem value="price_desc">Precio: Mayor a Menor</SelectItem>
+                        <SelectItem value="ALL">Todos</SelectItem>
+                        {SORTED_GENDERS.map((g) => (
+                            <SelectItem key={g} value={g}>
+                                {GENDER_LABELS[g] ?? g}
+                            </SelectItem>
+                        ))}
                     </SelectContent>
                 </Select>
             </div>
 
-            <hr className="border-gray-100" />
+            <div className="space-y-3">
+                <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider">Prenda</h3>
+                <Select value={currentClothingType || "ALL"} onValueChange={(val) => handleFilterChange('clothingType', val)}>
+                    <SelectTrigger className="w-full rounded-xl border-gray-200 bg-gray-50">
+                        <SelectValue placeholder="Tipo de prenda" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="ALL">Todas</SelectItem>
+                        {SORTED_CLOTHING_TYPES.map((t) => (
+                            <SelectItem key={t} value={t}>
+                                {CLOTHING_TYPE_LABELS[t] ?? t}
+                            </SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
+            </div>
 
-            <div>
-                <h3 className="text-sm font-semibold text-gray-900 mb-3">Rango de precio (S/)</h3>
+            <div className="space-y-3">
+                <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider">Categoría</h3>
+                <div className="flex flex-wrap gap-2">
+                    {CATEGORIES.map((cat) => (
+                        <button
+                            key={cat.id}
+                            onClick={() => handleFilterChange('category', cat.id)}
+                            className={`px-4 py-2 rounded-xl text-xs font-medium transition-all border ${(currentCategory === cat.id || (!currentCategory && cat.id === ''))
+                                ? 'bg-gray-900 text-white border-gray-900 shadow-sm'
+                                : 'bg-white text-gray-600 border-gray-200 hover:border-gray-400'
+                            }`}
+                        >
+                            {cat.label}
+                        </button>
+                    ))}
+                </div>
+            </div>
 
-                {priceError && (
-                    <p className="text-xs font-medium text-red-500 mb-2">{priceError}</p>
-                )}
-
-                <div className="flex items-center gap-2 mb-3">
+            <div className="space-y-3">
+                <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider">Rango de precio</h3>
+                <div className="flex items-center gap-2">
                     <input
                         type="number"
-                        min="0"
                         placeholder="Min"
                         value={localMin}
-                        onChange={(e) => {
-                            setLocalMin(e.target.value);
-                            setPriceError("");
-                        }}
-                        className={`w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 transition-colors ${
-                            priceError
-                                ? 'border-red-400 focus:ring-red-500 focus:border-red-500'
-                                : 'border-gray-300 focus:ring-gray-900'
+                        onChange={(e) => setLocalMin(e.target.value)}
+                        className={`w-full px-3 py-2 text-sm bg-gray-50 border rounded-xl focus:outline-none focus:ring-1 transition-colors ${priceError ? 'border-red-400 focus:ring-red-500' : 'border-gray-200 focus:ring-gray-900'
                         }`}
                     />
-                    <span className="text-gray-400">-</span>
+                    <span className="text-gray-400">—</span>
                     <input
                         type="number"
-                        min="0"
                         placeholder="Max"
                         value={localMax}
-                        onChange={(e) => {
-                            setLocalMax(e.target.value);
-                            setPriceError("");
-                        }}
-                        className={`w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 transition-colors ${
-                            priceError
-                                ? 'border-red-400 focus:ring-red-500 focus:border-red-500'
-                                : 'border-gray-300 focus:ring-gray-900'
+                        onChange={(e) => setLocalMax(e.target.value)}
+                        className={`w-full px-3 py-2 text-sm bg-gray-50 border rounded-xl focus:outline-none focus:ring-1 transition-colors ${priceError ? 'border-red-400 focus:ring-red-500' : 'border-gray-200 focus:ring-gray-900'
                         }`}
                     />
                 </div>
-
-                <button
-                    onClick={handlePriceSubmit}
-                    className="w-full py-2.5 text-sm text-white bg-gray-900 rounded-lg hover:bg-gray-800 transition-colors font-medium shadow-sm active:scale-[0.98]"
-                >
-                    Aplicar precio
-                </button>
+                {priceError && <p className="text-[10px] text-red-500 font-medium px-1">{priceError}</p>}
             </div>
 
-            {hasActiveFilters && (
-                <>
-                    <hr className="border-gray-100" />
+            {/* 👇 ZONA INFERIOR UNIFICADA (Para Escritorio y Móvil) */}
+            <div className="pt-4 mt-2 border-t border-gray-100 flex flex-col gap-3">
+
+                {/* Botón principal unificado */}
+                <button
+                    onClick={() => handleApplyAndClose()}
+                    className="w-full py-3.5 text-sm text-white bg-gray-900 rounded-xl hover:bg-black transition-colors font-bold shadow-md active:scale-95"
+                >
+                    Ver resultados
+                </button>
+
+                {/* Botón de limpiar destacado */}
+                {hasActiveFilters && (
                     <button
                         onClick={clearFilters}
-                        className="w-full py-2 text-sm text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 hover:text-gray-900 transition-colors font-medium"
+                        className="w-full flex items-center justify-center gap-2 py-3.5 text-sm font-bold text-red-600 bg-red-50 hover:bg-red-100 rounded-xl transition-colors border border-red-100 shadow-sm active:scale-95"
                     >
-                        Limpiar filtros
+                        <Trash2 size={16} />
+                        Limpiar todos los filtros
                     </button>
-                </>
-            )}
+                )}
+            </div>
         </div>
     );
 }

@@ -7,7 +7,6 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import type { Product } from "@/types";
 import { Badge } from "@/components/ui/badge";
 
-// Función de formateo interna
 const formatLabel = (text: string | null | undefined) => {
     if (!text) return null;
     if (text === 'NINO') return 'Niño';
@@ -39,7 +38,6 @@ export function ProductCardGallery({ product, isOutOfStock }: { product: Product
         <div className="relative aspect-square w-full overflow-hidden rounded-xl bg-gray-100 border border-gray-200 block group/gallery">
 
             <Link href={`/product/${product.id}`} className="block w-full h-full relative">
-                {/* Badge de "Nuevo" o "Agotado" en la parte superior */}
                 <div className="absolute top-2 left-2 z-30 flex gap-2">
                     {isOutOfStock ? (
                         <div className="bg-red-600 px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-white rounded-sm shadow-sm">
@@ -52,7 +50,6 @@ export function ProductCardGallery({ product, isOutOfStock }: { product: Product
                     )}
                 </div>
 
-                {/* 👇 NUEVO: Badges en la parte INFERIOR de la imagen con degradado */}
                 <div className="absolute bottom-0 left-0 right-0 h-1/3 bg-gradient-to-t from-black/60 to-transparent z-30 pointer-events-none flex items-end p-3 gap-1.5">
                     {product.gender && (
                         <Badge className="bg-white/95 text-blue-700 hover:bg-white border-none text-[9px] font-bold px-2 py-0 h-5 shadow-sm uppercase">

@@ -14,12 +14,14 @@ interface ProductGridProps {
     maxPrice?: number;
     sort?: string;
     page?: number;
+    gender?: string;
+    clothingType?: string;
     products?: Product[];
     layout?: "grid" | "carousel";
 }
 
 export async function ProductGrid({
-                                      query, category, minPrice, maxPrice, sort, page = 1,
+                                      query, category, minPrice, maxPrice, sort, page = 1, gender, clothingType,
                                       products: passedProducts, layout = "grid"
                                   }: ProductGridProps) {
 
@@ -27,7 +29,7 @@ export async function ProductGrid({
     let totalPages = 0;
 
     if (!displayProducts) {
-        const data = await getProducts(query, category, page, minPrice, maxPrice, sort);
+        const data = await getProducts(query, category, page, minPrice, maxPrice, sort, gender, clothingType);
         displayProducts = data.products;
         totalPages = data.totalPages;
     }
@@ -60,21 +62,16 @@ export async function ProductGrid({
 
         return (
             <div key={product.id} className={itemClasses} tabIndex={0}>
-
-                {/* 1. MINI GALERÍA (Los badges ahora viven dentro de este componente) */}
                 <ProductCardGallery product={productToDisplay} isOutOfStock={isOutOfStock} />
 
-                {/* 2. INFORMACIÓN DEL PRODUCTO */}
                 <div className="flex flex-col flex-1 mt-4 px-1">
                     <div className="flex flex-col mb-3">
                         <Link href={`/product/${product.id}`} className="group/link block">
-                            {/* Título en una sola línea con puntos suspensivos */}
                             <h3 className="text-sm font-bold text-gray-900 truncate group-hover/link:text-green-600 transition-colors" title={product.name}>
                                 {product.name}
                             </h3>
                         </Link>
 
-                        {/* Descripción en una sola línea */}
                         <p className="mt-1 text-xs text-gray-500 truncate">
                             {product.description || "\u00A0"}
                         </p>

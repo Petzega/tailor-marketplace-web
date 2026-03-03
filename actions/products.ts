@@ -6,14 +6,12 @@ import { revalidatePath } from "next/cache";
 import { ITEMS_PER_PAGE } from "@/lib/constants";
 import { Prisma } from "@prisma/client";
 
-// ─── Tipos ────────────────────────────────────────────────────────────────────
 export type GetProductsResult = {
     products: Product[];
     total: number;
     totalPages: number;
 };
 
-// ─── 1. GENERADOR DE SKU ──────────────────────────────────────────────────────
 async function generateSku(): Promise<string> {
     const now = new Date();
     const year = now.getFullYear();
@@ -35,7 +33,6 @@ async function generateSku(): Promise<string> {
     return `${prefix}${String(sequence).padStart(3, '0')}`;
 }
 
-// ─── 2. ESTADÍSTICAS GLOBALES ─────────────────────────────────────────────────
 export async function getProductStats() {
     try {
         const allProducts = await db.product.findMany({
@@ -55,18 +52,18 @@ export async function getProductStats() {
     }
 }
 
-// ─── 3. OBTENER PRODUCTOS (Con búsqueda, filtros y paginación) ────────────────
 export async function getProducts(
     query?: string,
     category?: string,
     page: number = 1,
     minPrice?: number,
     maxPrice?: number,
-    sort?: string
+    sort?: string,
+    gender?: string,
+    clothingType?: string
 ): Promise<GetProductsResult> {
     try {
         const skip = (page - 1) * ITEMS_PER_PAGE;
-
         const andConditions: Prisma.ProductWhereInput[] = [];
 
         if (query) {
@@ -83,6 +80,14 @@ export async function getProducts(
             andConditions.push({ category });
         }
 
+        if (gender && gender !== 'ALL') {
+            andConditions.push({ gender });
+        }
+
+        if (clothingType && clothingType !== 'ALL') {
+            andConditions.push({ clothingType });
+        }
+
         if (minPrice !== undefined || maxPrice !== undefined) {
             andConditions.push({
                 price: {
@@ -92,8 +97,7 @@ export async function getProducts(
             });
         }
 
-        const whereClause: Prisma.ProductWhereInput =
-            andConditions.length > 0 ? { AND: andConditions } : {};
+        const whereClause: Prisma.ProductWhereInput = andConditions.length > 0 ? { AND: andConditions } : {};
 
         let orderByClause: Prisma.ProductOrderByWithRelationInput = { createdAt: 'desc' };
         if (sort === 'price_asc') orderByClause = { price: 'asc' };
@@ -121,7 +125,6 @@ export async function getProducts(
     }
 }
 
-// ─── 4. OBTENER PRODUCTO POR ID ───────────────────────────────────────────────
 export async function getProductById(id: string) {
     try {
         return await db.product.findUnique({
@@ -134,10 +137,8 @@ export async function getProductById(id: string) {
     }
 }
 
-// ─── 5. CREAR PRODUCTO ────────────────────────────────────────────────────────
 export async function createProduct(formData: FormData) {
     const sku = await generateSku();
-
     const imageUrlText = formData.get("imageUrl") as string;
     const imageFile = formData.get("imageFile") as File;
     let finalImageUrl = imageUrlText;
@@ -146,7 +147,6 @@ export async function createProduct(formData: FormData) {
         finalImageUrl = "https://placehold.co/600x400?text=Imagen+Subida";
     }
 
-    // 👇 Extraemos los nuevos campos (si vienen vacíos, mandamos null)
     const gender = formData.get("gender") as string;
     const clothingType = formData.get("clothingType") as string;
 
@@ -159,8 +159,8 @@ export async function createProduct(formData: FormData) {
             category: formData.get("category") as string,
             imageUrl: finalImageUrl || null,
             sku,
-            gender: gender || null,             // 👈 Guardamos el género
-            clothingType: clothingType || null, // 👈 Guardamos el tipo de prenda
+            gender: gender || null,
+            clothingType: clothingType || null,
         },
     });
 
@@ -169,7 +169,6 @@ export async function createProduct(formData: FormData) {
     return { success: true };
 }
 
-// ─── 6. ACTUALIZAR PRODUCTO ───────────────────────────────────────────────────
 export async function updateProduct(id: string, formData: FormData) {
     const imageUrlText = formData.get("imageUrl") as string;
     const imageFile = formData.get("imageFile") as File;
@@ -181,7 +180,6 @@ export async function updateProduct(id: string, formData: FormData) {
         finalImageUrl = imageUrlText;
     }
 
-    // 👇 Extraemos los nuevos campos
     const gender = formData.get("gender") as string;
     const clothingType = formData.get("clothingType") as string;
 
@@ -195,8 +193,8 @@ export async function updateProduct(id: string, formData: FormData) {
                 stock: parseInt(formData.get("stock") as string),
                 category: formData.get("category") as string,
                 imageUrl: finalImageUrl,
-                gender: gender || null,             // 👈 Actualizamos el género
-                clothingType: clothingType || null, // 👈 Actualizamos el tipo de prenda
+                gender: gender || null,
+                clothingType: clothingType || null,
             },
         });
 
@@ -209,7 +207,6 @@ export async function updateProduct(id: string, formData: FormData) {
     }
 }
 
-// ─── 7. ELIMINAR PRODUCTO ─────────────────────────────────────────────────────
 export async function deleteProduct(id: string) {
     try {
         await db.product.delete({ where: { id } });

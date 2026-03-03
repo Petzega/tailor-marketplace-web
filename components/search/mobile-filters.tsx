@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react';
 import { Filter, X } from 'lucide-react';
 import { SearchFilters } from './search-filters';
-import { useSearchParams } from 'next/navigation';
 
 interface MobileFiltersProps {
     currentQuery: string;
@@ -11,17 +10,12 @@ interface MobileFiltersProps {
     currentSort: string;
     currentMin: string;
     currentMax: string;
+    currentGender?: string;       // 👈 Agregados para typescript
+    currentClothingType?: string; // 👈 Agregados para typescript
 }
 
 export function MobileFilters(props: MobileFiltersProps) {
     const [isOpen, setIsOpen] = useState(false);
-    const searchParams = useSearchParams();
-
-    // Efecto mágico: Si la URL cambia (ej. el usuario aplicó un filtro), cerramos el panel automáticamente
-    useEffect(() => {
-        // eslint-disable-next-line react-hooks/set-state-in-effect
-        setIsOpen(false);
-    }, [searchParams]);
 
     // Prevenir el scroll del fondo cuando el modal está abierto
     useEffect(() => {
@@ -34,7 +28,7 @@ export function MobileFilters(props: MobileFiltersProps) {
         <>
             <button
                 onClick={() => setIsOpen(true)}
-                className="flex items-center justify-center gap-2 w-full px-4 py-2.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-xl hover:bg-gray-50 shadow-sm"
+                className="flex items-center justify-center gap-2 w-full px-4 py-2.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-xl hover:bg-gray-50 shadow-sm transition-colors"
             >
                 <Filter size={18} />
                 Filtrar Resultados
@@ -43,7 +37,9 @@ export function MobileFilters(props: MobileFiltersProps) {
             {/* Overlay oscuro y Panel lateral */}
             {isOpen && (
                 <div className="fixed inset-0 z-50 flex bg-gray-900/60 backdrop-blur-sm transition-opacity">
-                    <div className="w-full max-w-xs h-full bg-gray-50 overflow-y-auto ml-auto flex flex-col shadow-2xl animate-in slide-in-from-right duration-300">
+                    {/* 👇 MAGIA AQUÍ: mr-auto (pega a la izquierda) y slide-in-from-left */}
+                    <div className="w-full max-w-xs h-full bg-gray-50 overflow-y-auto mr-auto flex flex-col shadow-2xl animate-in slide-in-from-left duration-300">
+
                         {/* Cabecera del modal */}
                         <div className="flex items-center justify-between p-4 border-b border-gray-200 bg-white sticky top-0 z-10">
                             <h2 className="text-lg font-bold text-gray-900">Filtros</h2>
@@ -55,9 +51,13 @@ export function MobileFilters(props: MobileFiltersProps) {
                             </button>
                         </div>
 
-                        {/* Contenido (Tu componente SearchFilters original) */}
-                        <div className="p-4">
-                            <SearchFilters {...props} />
+                        {/* Contenido */}
+                        <div className="p-2">
+                            {/* 👇 FUNDAMENTAL: Pasamos onClose para que "Ver resultados" y "Limpiar filtros" puedan cerrar el modal */}
+                            <SearchFilters
+                                {...props}
+                                onClose={() => setIsOpen(false)}
+                            />
                         </div>
                     </div>
                 </div>
