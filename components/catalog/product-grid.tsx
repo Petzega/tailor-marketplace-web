@@ -6,7 +6,6 @@ import { AutoCarousel } from "./auto-carousel";
 import { Calendar } from "lucide-react";
 import { Product } from "@/types";
 import { ProductCardGallery } from "./product-card-gallery";
-import { Badge } from "@/components/ui/badge";
 
 interface ProductGridProps {
     query?: string;
@@ -20,13 +19,6 @@ interface ProductGridProps {
     products?: Product[];
     layout?: "grid" | "carousel";
 }
-
-const formatLabel = (text: string | null | undefined) => {
-    if (!text) return null;
-    if (text === 'NINO') return 'Niño';
-    if (text === 'NINA') return 'Niña';
-    return text.replace('_', ' ').toLowerCase().replace(/\b\w/g, l => l.toUpperCase());
-};
 
 export async function ProductGrid({
                                       query, category, minPrice, maxPrice, sort, page = 1, gender, clothingType,
@@ -71,37 +63,18 @@ export async function ProductGrid({
         return (
             <div key={product.id} className={itemClasses} tabIndex={0}>
 
-                <div className="relative overflow-hidden rounded-xl">
-                    <ProductCardGallery product={productToDisplay} isOutOfStock={isOutOfStock} />
-
-                    <div className="absolute bottom-0 left-0 right-0 p-2.5 bg-gradient-to-t from-black/50 via-black/20 to-transparent z-10 flex gap-1.5 pointer-events-none h-1/4 items-end">
-                        {product.gender && (
-                            <Badge className="bg-white/95 text-gray-900 border-none text-[9px] font-extrabold py-0.5 px-2 shadow-sm">
-                                {formatLabel(product.gender)}
-                            </Badge>
-                        )}
-                        {product.clothingType && (
-                            <Badge className="bg-white/95 text-gray-600 border-none text-[9px] font-bold py-0.5 px-2 shadow-sm">
-                                {formatLabel(product.clothingType)}
-                            </Badge>
-                        )}
-                        {isService && (
-                            <Badge className="bg-green-500 text-white border-none text-[9px] font-bold py-0.5 px-2 shadow-sm">
-                                SERVICIO
-                            </Badge>
-                        )}
-                    </div>
-                </div>
+                {/* 👇 SOLUCIÓN: Solo llamamos a la imagen. Ya no dibujamos Badges aquí. */}
+                <ProductCardGallery product={productToDisplay} isOutOfStock={isOutOfStock} />
 
                 <div className="flex flex-col flex-1 mt-3">
                     <div className="flex flex-col mb-3">
                         <Link href={`/product/${product.id}`} className="group/link block">
-                            <h3 className="text-[15px] font-bold text-gray-900 truncate group-hover/link:text-green-600 transition-colors" title={product.name}>
+                            <h3 className="text-[15px] font-bold text-gray-900 line-clamp-2 min-h-[2.8rem] group-hover/link:text-green-600 transition-colors" title={product.name}>
                                 {product.name}
                             </h3>
                         </Link>
 
-                        <p className="mt-1 text-xs text-gray-500 truncate">
+                        <p className="mt-1 text-xs text-gray-500 line-clamp-1 min-h-[1rem]">
                             {product.description || "\u00A0"}
                         </p>
                     </div>
@@ -140,9 +113,10 @@ export async function ProductGrid({
     return (
         <div className="flex flex-col w-full h-full">
             {isCarousel ? (
-                <AutoCarousel>{productCards}</AutoCarousel>
+                <AutoCarousel>
+                    {productCards}
+                </AutoCarousel>
             ) : (
-                // 👇 CAMBIO AQUÍ: Reducido al mínimo elegante para la grilla: gap-2 (8px)
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 items-stretch">
                     {productCards}
                 </div>

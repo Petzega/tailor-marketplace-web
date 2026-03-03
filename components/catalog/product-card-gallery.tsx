@@ -38,43 +38,51 @@ export function ProductCardGallery({ product, isOutOfStock }: { product: Product
         <div className="relative aspect-square w-full overflow-hidden rounded-xl bg-gray-100 border border-gray-200 block group/gallery">
 
             <Link href={`/product/${product.id}`} className="block w-full h-full relative">
+
                 <div className="absolute top-2 left-2 z-30 flex gap-2">
                     {isOutOfStock ? (
                         <div className="bg-red-600 px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-white rounded-sm shadow-sm">
-                            Agotado
+                            AGOTADO
                         </div>
                     ) : (
                         <div className="bg-white px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-gray-900 rounded-sm shadow-sm">
-                            Nuevo
+                            NUEVO
                         </div>
                     )}
                 </div>
 
-                <div className="absolute bottom-0 left-0 right-0 h-1/3 bg-gradient-to-t from-black/60 to-transparent z-30 pointer-events-none flex items-end p-3 gap-1.5">
+                {/* 👇 ETIQUETAS INFERIORES: ¡Colores restaurados (text-blue-700 y text-purple-700)! */}
+                <div className="absolute bottom-0 left-0 right-0 p-2.5 bg-gradient-to-t from-black/50 via-black/20 to-transparent z-30 flex gap-1.5 pointer-events-none h-1/4 items-end">
                     {product.gender && (
-                        <Badge className="bg-white/95 text-blue-700 hover:bg-white border-none text-[9px] font-bold px-2 py-0 h-5 shadow-sm uppercase">
+                        <Badge className="bg-white/95 text-blue-700 border-none text-[9px] font-extrabold py-0.5 px-2 shadow-sm uppercase">
                             {formatLabel(product.gender)}
                         </Badge>
                     )}
                     {product.clothingType && (
-                        <Badge className="bg-white/95 text-purple-700 hover:bg-white border-none text-[9px] font-bold px-2 py-0 h-5 shadow-sm uppercase">
+                        <Badge className="bg-white/95 text-purple-700 border-none text-[9px] font-bold py-0.5 px-2 shadow-sm uppercase">
                             {formatLabel(product.clothingType)}
                         </Badge>
                     )}
                     {isService && (
-                        <Badge className="bg-green-500 text-white hover:bg-green-600 border-none text-[9px] font-bold px-2 py-0 h-5 shadow-sm uppercase">
-                            Servicio
+                        <Badge className="bg-green-500 text-white border-none text-[9px] font-bold py-0.5 px-2 shadow-sm uppercase">
+                            SERVICIO
                         </Badge>
                     )}
                 </div>
 
-                <Image
-                    src={images[currentIndex] as string}
-                    alt={product.name}
-                    fill
-                    className={`object-cover transition-transform duration-500 group-hover/gallery:scale-110 ${isOutOfStock ? "grayscale opacity-80" : ""}`}
-                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
-                />
+                {images.map((imgSrc, idx) => (
+                    <Image
+                        key={idx}
+                        src={imgSrc || "https://placehold.co/600x400?text=Sin+Imagen"}
+                        alt={`${product.name} - Vista ${idx + 1}`}
+                        fill
+                        priority={idx === 0}
+                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
+                        className={`object-cover object-center transition-transform duration-700 ease-in-out group-hover/gallery:scale-105 ${
+                            idx === currentIndex ? "opacity-100 z-20" : "opacity-0 z-10"
+                        } ${isOutOfStock ? 'grayscale opacity-50' : ''}`}
+                    />
+                ))}
             </Link>
 
             {hasMultiple && (
@@ -93,25 +101,23 @@ export function ProductCardGallery({ product, isOutOfStock }: { product: Product
                     >
                         <ChevronRight size={16} />
                     </button>
-                </>
-            )}
 
-            {hasMultiple && (
-                <div className="absolute bottom-3 left-0 right-0 flex justify-center gap-1.5 z-40">
-                    {images.map((_, index) => (
-                        <button
-                            key={index}
-                            onClick={(e) => {
-                                e.preventDefault();
-                                e.stopPropagation();
-                                setCurrentIndex(index);
-                            }}
-                            className={`h-1.5 rounded-full shadow-sm transition-all duration-300 ${index === currentIndex ? "w-3 bg-white" : "w-1.5 bg-white/50 hover:bg-white/80"
-                            }`}
-                            aria-label={`Ver foto ${index + 1}`}
-                        />
-                    ))}
-                </div>
+                    <div className="absolute bottom-3 left-0 right-0 flex justify-center gap-1.5 z-40">
+                        {images.map((_, index) => (
+                            <button
+                                key={index}
+                                onClick={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    setCurrentIndex(index);
+                                }}
+                                className={`h-1.5 rounded-full shadow-sm transition-all duration-300 ${index === currentIndex ? "w-3 bg-white" : "w-1.5 bg-white/50 hover:bg-white/80"
+                                }`}
+                                aria-label={`Ver foto ${index + 1}`}
+                            />
+                        ))}
+                    </div>
+                </>
             )}
         </div>
     );
