@@ -7,19 +7,17 @@ import { SearchFilters } from "@/components/search/search-filters";
 import { MobileFilters } from "@/components/search/mobile-filters";
 import { ProductGridSkeleton } from "@/components/catalog/product-grid-skeleton";
 
-interface SearchParams {
-    q?: string;
-    category?: string;
-    min?: string;
-    max?: string;
-    sort?: string;
-    page?: string;
-    gender?: string;
-    clothingType?: string;
-}
-
 interface SearchPageProps {
-    searchParams: Promise<SearchParams>;
+    searchParams: Promise<{
+        q?: string;
+        category?: string;
+        min?: string;
+        max?: string;
+        sort?: string;
+        page?: string;
+        gender?: string;
+        clothingType?: string;
+    }>;
 }
 
 export default async function SearchPage({ searchParams }: SearchPageProps) {
@@ -48,16 +46,18 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
 
     return (
         <div className="min-h-screen bg-gray-50 flex flex-col">
-            <main className="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8">
-                <div className="flex flex-col mb-8 border-b border-gray-200 pb-6">
-                    <div className="flex items-center gap-4 mb-4">
-                        <Link
-                            href="/"
-                            className="p-2 hover:bg-white rounded-full transition-colors border border-transparent hover:border-gray-200 text-gray-500"
-                        >
-                            <ChevronLeft size={20} />
-                        </Link>
-                        <h1 className="text-2xl font-bold text-gray-900 tracking-tight">
+            <main className="flex-1 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-10 w-full">
+
+                <div className="mb-6">
+                    <Link href="/" className="inline-flex items-center text-sm font-medium text-gray-500 hover:text-green-600 transition-colors">
+                        <ChevronLeft size={16} className="mr-1" />
+                        Volver al inicio
+                    </Link>
+                </div>
+
+                <div className="flex flex-col lg:flex-row lg:items-baseline lg:justify-between border-b border-gray-200 pb-6 mb-8 gap-4">
+                    <div>
+                        <h1 className="text-3xl font-bold tracking-tight text-gray-900">
                             {query ? `Resultados para "${query}"` : "Catálogo Completo"}
                         </h1>
                         <p className="mt-2 text-sm text-gray-500">
@@ -70,8 +70,9 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
                     </div>
                 </div>
 
-                <div className="flex flex-col lg:flex-row gap-8">
-                    <aside className="hidden lg:block w-64 shrink-0">
+                {/* 👇 CAMBIO AQUÍ: Reducido al mínimo elegante: gap-2 (8px) */}
+                <div className="flex flex-col lg:flex-row gap-2">
+                    <aside className="hidden lg:block w-[260px] shrink-0">
                         <SearchFilters {...filterProps} />
                     </aside>
 
