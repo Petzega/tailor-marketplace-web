@@ -22,13 +22,14 @@ model Product {
 
   gender       String?
   clothingType String?
+  ageGroup     String? @default("ADULT") // 👈 NUEVO: Rango de edad (ADULT, KIDS, BABY)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   sku       String   @unique @default(cuid())
 
   gallery ProductImage[]
-  sizes   ProductSize[] // 👈 NUEVO: Relación con las tallas específicas
+  sizes   ProductSize[] // Relación con las tallas específicas
 }
 
 // 👇 NUEVA TABLA: Para manejar el stock independiente por talla

@@ -1,27 +1,43 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ShoppingCart, Check, Plus, Minus, Calendar } from "lucide-react";
 import { useCart } from "@/store/cart";
 import { SpotlightProduct } from "@/actions/search";
 
 interface ProductOptionsProps {
     product: SpotlightProduct;
+    sizes: { size: string; stock: number }[]; // 👈 Recibimos las tallas dinámicas
     description: string | null;
     isOutOfStock: boolean;
     isService: boolean;
     whatsappLink: string;
 }
 
-const SIZES = ['S', 'M', 'L', 'XL'];
-
-export function ProductOptions({ product, description, isOutOfStock, isService, whatsappLink }: ProductOptionsProps) {
+export function ProductOptions({ product, sizes, description, isOutOfStock, isService, whatsappLink }: ProductOptionsProps) {
     const addItem = useCart((state) => state.addItem);
     const [added, setAdded] = useState(false);
     const [quantity, setQuantity] = useState(1);
-    const [selectedSize, setSelectedSize] = useState<string>('M'); // Inicia en M por defecto
+
+    // 💡 LÓGICA INTELIGENTE: Busca la primera talla que tenga stock > 0 para seleccionarla por defecto
+    const firstAvailableSize = sizes.find(s => s.stock > 0)?.size || (sizes.length > 0 ? sizes[0].size : '');
+    const [selectedSize, setSelectedSize] = useState<string>(firstAvailableSize);
+
+    // 💡 Obtenemos el stock real de la talla que el usuario tiene seleccionada ahora mismo
+    const currentSizeData = sizes.find(s => s.size === selectedSize);
+    const currentStock = currentSizeData ? currentSizeData.stock : 0;
+    const isCurrentSizeOutOfStock = currentStock === 0;
+
+    // Si cambian de talla y la cantidad elegida es mayor al stock de la nueva talla, la reseteamos a 1
+    useEffect(() => {
+        if (quantity > currentStock && currentStock > 0) {
+            setQuantity(1);
+        }
+    }, [selectedSize, currentStock, quantity]);
 
     const handleAdd = () => {
+        if (isCurrentSizeOutOfStock) return;
+
         addItem(product, quantity, isService ? undefined : selectedSize);
         setAdded(true);
         setTimeout(() => setAdded(false), 2000);
@@ -31,28 +47,30 @@ export function ProductOptions({ product, description, isOutOfStock, isService, 
     return (
         <div className="flex flex-col gap-5">
             {/* 1. SELECTOR DE TALLAS */}
-            {!isService && (
+            {!isService && sizes.length > 0 && (
                 <div>
                     <div className="flex items-center justify-between mb-3">
                         <h3 className="text-xs font-bold text-gray-900 uppercase tracking-widest">Selecciona tu Talla</h3>
                         <button type="button" className="text-[11px] font-bold text-gray-500 underline underline-offset-2 hover:text-gray-900 transition-colors">Guía de medidas</button>
                     </div>
                     <div className="flex flex-wrap gap-2.5">
-                        {SIZES.map((talla) => {
-                            const isSelected = selectedSize === talla;
+                        {sizes.map((sizeObj) => {
+                            const isSelected = selectedSize === sizeObj.size;
+                            const isSizeAgotada = sizeObj.stock === 0;
+
                             return (
                                 <button
-                                    key={talla}
+                                    key={sizeObj.size}
                                     type="button"
-                                    onClick={() => setSelectedSize(talla)}
-                                    disabled={isOutOfStock} // 👈 Si no hay stock, se deshabilita todo
-                                    className={`h-10 w-12 rounded-md border text-xs font-bold transition-all disabled:opacity-40 disabled:bg-gray-100 disabled:cursor-not-allowed ${
-                                        isSelected && !isOutOfStock
+                                    onClick={() => setSelectedSize(sizeObj.size)}
+                                    disabled={isSizeAgotada} // 👈 Se deshabilita si ESTA talla no tiene stock
+                                    className={`h-10 px-4 rounded-md border text-xs font-bold transition-all disabled:opacity-40 disabled:bg-gray-100 disabled:cursor-not-allowed ${
+                                        isSelected && !isSizeAgotada
                                             ? 'border-gray-900 bg-gray-900 text-white shadow-md ring-2 ring-gray-900 ring-offset-2'
                                             : 'border-gray-200 text-gray-700 bg-white hover:border-gray-400 hover:bg-gray-50'
                                     }`}
                                 >
-                                    {talla}
+                                    {sizeObj.size}
                                 </button>
                             );
                         })}
@@ -68,19 +86,25 @@ export function ProductOptions({ product, description, isOutOfStock, isService, 
                 </p>
             </div>
 
-            {/* 3. STOCK INDICATOR */}
+            {/* 3. STOCK INDICATOR (Ahora basado en la talla) */}
             {!isService && (
                 <div className="flex items-center gap-2 bg-gray-50 py-2.5 px-3 rounded-md border border-gray-100 w-fit">
-                    <div className={`h-2 w-2 rounded-full ${isOutOfStock ? 'bg-red-500' : 'bg-green-500 animate-pulse'}`} />
+                    <div className={`h-2 w-2 rounded-full ${isCurrentSizeOutOfStock ? 'bg-red-500' : 'bg-green-500 animate-pulse'}`} />
                     <span className="text-[11px] font-bold uppercase tracking-wider text-gray-700">
-                        {isOutOfStock ? 'Agotado temporalmente' : `Solo quedan ${product.stock} unidades`}
+                        {/* 👇 Texto dinámico según el stock de la talla */}
+                        {isCurrentSizeOutOfStock
+                            ? 'Agotado en esta talla'
+                            : currentStock < 5
+                                ? `¡Últimas ${currentStock} unidades disponibles!`
+                                : `Quedan ${currentStock} unidades disponibles`
+                        }
                     </span>
                 </div>
             )}
 
-            {/* 4. BOTONES DE ACCIÓN (Cantidad + Agregar + WhatsApp) */}
+            {/* 4. BOTONES DE ACCIÓN */}
             <div className="pt-2">
-                {isOutOfStock ? (
+                {isOutOfStock || (!isService && isCurrentSizeOutOfStock) ? (
                     <button disabled className="w-full h-12 flex items-center justify-center gap-2 bg-gray-100 text-gray-400 font-bold rounded-lg text-sm cursor-not-allowed border border-gray-200">
                         Agotado
                     </button>
@@ -109,7 +133,8 @@ export function ProductOptions({ product, description, isOutOfStock, isService, 
                                 <span className="font-bold text-gray-900 text-sm">{quantity}</span>
                                 <button
                                     onClick={() => setQuantity(quantity + 1)}
-                                    className="w-8 h-8 flex items-center justify-center text-gray-500 hover:text-gray-900 hover:bg-gray-200 rounded-lg transition-all"
+                                    className="w-8 h-8 flex items-center justify-center text-gray-500 hover:text-gray-900 hover:bg-gray-200 rounded-lg transition-all disabled:opacity-30 disabled:hover:bg-transparent"
+                                    disabled={quantity >= currentStock} // 👈 Bloqueamos el "Plus" si llega al límite de la talla
                                 >
                                     <Plus size={16} />
                                 </button>

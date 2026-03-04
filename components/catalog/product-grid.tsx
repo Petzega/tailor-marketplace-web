@@ -60,8 +60,8 @@ export async function ProductGrid({
         : "group relative flex flex-col h-full transition-all duration-300 bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md hover:border-gray-200 p-3 active:scale-[0.98]";
 
     const productCards = displayProducts.map((product) => {
-        const isOutOfStock = product.stock === 0;
         const isService = product.category === 'SERVICE';
+        const isOutOfStock = product.stock === 0 && !isService; // 👈 SOLUCIÓN: Si es servicio, NUNCA está agotado
 
         const whatsappMessage = encodeURIComponent(`Hola, me interesa el ${isService ? 'servicio' : 'producto'}: ${product.name} (SKU: ${product.sku}). ¿Podrían darme más información?`);
         const whatsappLink = `https://wa.me/51992431513?text=${whatsappMessage}`;

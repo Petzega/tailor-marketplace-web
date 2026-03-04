@@ -78,9 +78,9 @@ export function ProductCarousel({ products }: ProductCarouselProps) {
                 className="flex gap-5 overflow-x-auto pb-4 pt-1 snap-x snap-mandatory [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
             >
                 {products.map((product) => {
-                    const isOutOfStock = product.stock === 0;
-                    const isLowStock = product.stock > 0 && product.stock < 5;
                     const isService = product.category === "SERVICE";
+                    const isOutOfStock = product.stock === 0 && !isService; // 👈 SOLUCIÓN AQUÍ TAMBIÉN
+                    const isLowStock = product.stock > 0 && product.stock < 5;
 
                     return (
                         <div

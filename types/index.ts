@@ -22,7 +22,7 @@ export interface Product {
     name: string;
     description: string | null;
     price: number;
-    stock: number; // Stock total sumado
+    stock: number;
     category: string;
     imageUrl: string | null;
     createdAt: Date;
@@ -30,9 +30,9 @@ export interface Product {
     updatedAt: Date;
 
     gallery?: ProductImage[];
-    sizes?: ProductSize[]; // 👇 NUEVO: Agregamos la relación de tallas
+    sizes?: ProductSize[];
 
-    // Categorías de filtros
     gender?: string | null;
     clothingType?: string | null;
+    ageGroup?: string | null; // 👈 NUEVO CAMPO AÑADIDO
 }

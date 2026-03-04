@@ -14,6 +14,7 @@ interface ProductPageProps {
 
 type ProductWithGallery = SpotlightProduct & {
     gallery?: { url: string }[];
+    sizes?: { size: string; stock: number }[]; // 👈 NUEVO: Le avisamos a TS que vienen tallas
     gender?: string | null;
     clothingType?: string | null;
 };
@@ -129,6 +130,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
                         {/* 👇 LA NUEVA ZONA INTERACTIVA */}
                         <ProductOptions
                             product={cartProduct}
+                            sizes={typedProduct.sizes || []} // 👈 NUEVO: Pasamos las tallas reales
                             description={product.description}
                             isOutOfStock={isOutOfStock}
                             isService={isService}
