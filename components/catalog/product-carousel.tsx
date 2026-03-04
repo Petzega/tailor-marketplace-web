@@ -4,6 +4,7 @@ import { useRef, useState, useEffect } from "react";
 import { ChevronLeft, ChevronRight, Calendar } from "lucide-react";
 import Image from "next/image";
 import { Product } from "@/types";
+import Link from "next/link";
 
 interface ProductCarouselProps {
     products: Product[];
@@ -157,10 +158,15 @@ export function ProductCarousel({ products }: ProductCarouselProps) {
                                     No disponible
                                 </button>
                             ) : (
-                                <button className="w-full flex items-center justify-center gap-2 rounded-md bg-green-600 hover:bg-green-700 transition-all duration-200 px-4 py-3 text-sm font-medium text-white shadow-md hover:shadow-lg active:scale-[0.98]">
-                                    {isService ? <Calendar size={18} /> : <WhatsAppIcon />}
-                                    {isService ? "Agendar Cita" : "Pedir por WhatsApp"}
-                                </button>
+                                <Link
+                                    href={`/product/${product.id}`}
+                                    className={`w-full flex items-center justify-center gap-2 rounded-md transition-all duration-200 px-4 py-3 text-sm font-medium text-white shadow-md hover:shadow-lg active:scale-[0.98] ${
+                                        isService ? "bg-[#25D366] hover:bg-[#20bd5a]" : "bg-gray-900 hover:bg-black"
+                                    }`}
+                                >
+                                    {isService ? <Calendar size={18} /> : null}
+                                    {isService ? "Ver Servicio" : "Seleccionar Talla"}
+                                </Link>
                             )}
                         </div>
                     );

@@ -109,7 +109,7 @@ export async function getProducts(
                 orderBy: orderByClause,
                 skip,
                 take: ITEMS_PER_PAGE,
-                include: { gallery: true }
+                include: { gallery: true, sizes: true }
             }),
             db.product.count({ where: whereClause }),
         ]);
@@ -129,7 +129,7 @@ export async function getProductById(id: string) {
     try {
         return await db.product.findUnique({
             where: { id },
-            include: { gallery: true }
+            include: { gallery: true, sizes: true }
         });
     } catch (error) {
         console.error("Error al obtener producto por ID:", error);
