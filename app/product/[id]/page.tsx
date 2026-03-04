@@ -17,6 +17,7 @@ type ProductWithGallery = SpotlightProduct & {
     sizes?: { size: string; stock: number }[]; // 👈 NUEVO: Le avisamos a TS que vienen tallas
     gender?: string | null;
     clothingType?: string | null;
+    ageGroup?: string | null; // 👈 Añadimos esto
 };
 
 const formatLabel = (text: string | null | undefined) => {
@@ -130,11 +131,12 @@ export default async function ProductPage({ params }: ProductPageProps) {
                         {/* 👇 LA NUEVA ZONA INTERACTIVA */}
                         <ProductOptions
                             product={cartProduct}
-                            sizes={typedProduct.sizes || []} // 👈 NUEVO: Pasamos las tallas reales
+                            sizes={typedProduct.sizes || []}
                             description={product.description}
                             isOutOfStock={isOutOfStock}
                             isService={isService}
                             whatsappLink={whatsappLink}
+                            ageGroup={typedProduct.ageGroup} // 👈 Le pasamos la edad (ADULT, KIDS o BABY)
                         />
 
                         {/* GARANTÍAS */}
