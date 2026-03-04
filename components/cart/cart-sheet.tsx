@@ -5,7 +5,8 @@ import Image from "next/image";
 import { X, Trash2, Plus, Minus, ShoppingBag, ShieldCheck, MessageCircle } from "lucide-react";
 
 export function CartSheet() {
-    const { items, isOpen, closeCart, removeItem, updateQuantity } = useCart();
+    // 👇 1. Importamos la función clearCart (opcional, pero útil si alguna vez quieres vaciar todo)
+    const { items, isOpen, closeCart, removeItem, updateQuantity, clearCart } = useCart();
 
     if (!isOpen) return null;
 
@@ -16,7 +17,9 @@ export function CartSheet() {
 
         items.forEach(item => {
             const subtotal = (item.price * item.quantity).toFixed(2);
-            message += `• ${item.quantity}x ${item.name} (SKU: ${item.sku}) - S/ ${subtotal}\n`;
+            // 👇 2. Añadimos la talla al mensaje de WhatsApp si el producto la tiene
+            const sizeText = item.size ? ` (Talla ${item.size})` : '';
+            message += `• ${item.quantity}x ${item.name}${sizeText} (SKU: ${item.sku}) - S/ ${subtotal}\n`;
         });
 
         message += `\n*Total estimado: S/ ${total.toFixed(2)}*\n\n`;
@@ -69,10 +72,10 @@ export function CartSheet() {
                             </button>
                         </div>
                     ) : (
-                        // 👇 CAMBIO AQUÍ: Reducimos la separación al mínimo elegante (space-y-2)
                         <div className="p-6 space-y-2">
                             {items.map((item) => (
-                                <div key={item.id} className="flex gap-4 bg-white p-3 rounded-2xl border border-gray-100 shadow-sm relative group">
+                                // Usamos el ID + el Size como key por si agregaron 2 tallas del mismo producto
+                                <div key={`${item.id}-${item.size || 'default'}`} className="flex gap-4 bg-white p-3 rounded-2xl border border-gray-100 shadow-sm relative group">
 
                                     <div className="h-24 w-24 bg-gray-100 rounded-xl overflow-hidden shrink-0 relative border border-gray-100">
                                         {item.imageUrl ? (
@@ -88,9 +91,18 @@ export function CartSheet() {
                                     <div className="flex-1 flex flex-col justify-between py-1">
                                         <div className="pr-6">
                                             <h3 className="text-sm font-bold text-gray-900 leading-tight line-clamp-2">{item.name}</h3>
-                                            <p className="text-xs font-medium text-gray-500 mt-1 uppercase tracking-wider">
-                                                {item.category === 'SERVICE' ? 'Servicio' : 'Producto'}
-                                            </p>
+
+                                            {/* 👇 3. Mostramos la Talla en la interfaz gráfica del carrito */}
+                                            <div className="flex items-center gap-2 mt-1">
+                                                <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                    {item.category === 'SERVICE' ? 'Servicio' : 'Producto'}
+                                                </p>
+                                                {item.size && (
+                                                    <span className="text-[10px] bg-gray-100 border border-gray-200 px-1.5 py-0.5 rounded-sm font-bold text-gray-700">
+                                                        Talla: {item.size}
+                                                    </span>
+                                                )}
+                                            </div>
                                         </div>
 
                                         <div className="flex items-end justify-between mt-3">
@@ -99,8 +111,9 @@ export function CartSheet() {
                                             </p>
 
                                             <div className="flex items-center gap-1 bg-gray-50 rounded-lg border border-gray-200 p-0.5 shadow-sm">
+                                                {/* 👇 4. Pasamos el item.size en los botones de cantidad y eliminar */}
                                                 <button
-                                                    onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                                                    onClick={() => updateQuantity(item.id, item.quantity - 1, item.size)}
                                                     className="w-7 h-7 flex items-center justify-center bg-white rounded-md text-gray-600 hover:text-gray-900 shadow-sm border border-gray-100 disabled:opacity-50 transition-all active:scale-95"
                                                     disabled={item.quantity <= 1}
                                                 >
@@ -110,7 +123,7 @@ export function CartSheet() {
                                                     {item.quantity}
                                                 </span>
                                                 <button
-                                                    onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                                                    onClick={() => updateQuantity(item.id, item.quantity + 1, item.size)}
                                                     className="w-7 h-7 flex items-center justify-center bg-white rounded-md text-gray-600 hover:text-gray-900 shadow-sm border border-gray-100 transition-all active:scale-95"
                                                 >
                                                     <Plus size={14} />
@@ -119,8 +132,9 @@ export function CartSheet() {
                                         </div>
                                     </div>
 
+                                    {/* Pasamos el item.size al botón de borrar */}
                                     <button
-                                        onClick={() => removeItem(item.id)}
+                                        onClick={() => removeItem(item.id, item.size)}
                                         className="absolute top-3 right-3 text-gray-300 hover:text-red-500 p-1.5 hover:bg-red-50 rounded-lg transition-colors"
                                         title="Eliminar producto"
                                     >
@@ -139,13 +153,23 @@ export function CartSheet() {
                             <span className="text-3xl font-black text-gray-900 tracking-tight">S/ {total.toFixed(2)}</span>
                         </div>
 
-                        <button
-                            onClick={handleWhatsAppCheckout}
-                            className="w-full bg-[#25D366] hover:bg-[#20BD5A] text-white py-4 rounded-xl font-bold text-base flex items-center justify-center gap-2 shadow-lg shadow-green-200 transition-all active:scale-[0.98]"
-                        >
-                            <MessageCircle size={22} className="fill-current" />
-                            Comprar por WhatsApp
-                        </button>
+                        <div className="flex flex-col gap-2">
+                            <button
+                                onClick={handleWhatsAppCheckout}
+                                className="w-full bg-[#25D366] hover:bg-[#20BD5A] text-white py-4 rounded-xl font-bold text-base flex items-center justify-center gap-2 shadow-lg shadow-green-200 transition-all active:scale-[0.98]"
+                            >
+                                <MessageCircle size={22} className="fill-current" />
+                                Comprar por WhatsApp
+                            </button>
+
+                            {/* Botón de limpiar por si los productos se te quedan pegados (Solo UI) */}
+                            <button
+                                onClick={clearCart}
+                                className="w-full text-xs font-bold text-gray-400 hover:text-red-500 py-2 transition-colors"
+                            >
+                                Vaciar carrito completo
+                            </button>
+                        </div>
 
                         <div className="mt-6 pt-5 border-t border-gray-100 flex flex-col items-center gap-4">
                             <div className="flex items-center gap-1.5 text-xs font-bold text-gray-400 uppercase tracking-widest">
@@ -154,21 +178,11 @@ export function CartSheet() {
                             </div>
 
                             <div className="flex flex-wrap justify-center gap-2 w-full">
-                                <div className="w-[60px] h-[28px] flex items-center justify-center bg-[#742284] text-white text-[10px] font-black rounded-[4px] shadow-sm tracking-wider">
-                                    YAPE
-                                </div>
-                                <div className="w-[60px] h-[28px] flex items-center justify-center bg-[#00D8C8] text-teal-950 text-[10px] font-black rounded-[4px] shadow-sm tracking-wider">
-                                    PLIN
-                                </div>
-                                <div className="w-[60px] h-[28px] flex items-center justify-center bg-[#FF7A00] text-white text-[10px] font-black rounded-[4px] shadow-sm tracking-wider">
-                                    BCP
-                                </div>
-                                <div className="w-[60px] h-[28px] flex items-center justify-center bg-[#009B3A] text-white text-[10px] font-black rounded-[4px] shadow-sm tracking-wider">
-                                    IBK
-                                </div>
-                                <div className="w-[60px] h-[28px] flex items-center justify-center bg-[#072146] text-white text-[10px] font-black rounded-[4px] shadow-sm tracking-wider">
-                                    BBVA
-                                </div>
+                                <div className="w-[60px] h-[28px] flex items-center justify-center bg-[#742284] text-white text-[10px] font-black rounded-[4px] shadow-sm tracking-wider">YAPE</div>
+                                <div className="w-[60px] h-[28px] flex items-center justify-center bg-[#00D8C8] text-teal-950 text-[10px] font-black rounded-[4px] shadow-sm tracking-wider">PLIN</div>
+                                <div className="w-[60px] h-[28px] flex items-center justify-center bg-[#FF7A00] text-white text-[10px] font-black rounded-[4px] shadow-sm tracking-wider">BCP</div>
+                                <div className="w-[60px] h-[28px] flex items-center justify-center bg-[#009B3A] text-white text-[10px] font-black rounded-[4px] shadow-sm tracking-wider">IBK</div>
+                                <div className="w-[60px] h-[28px] flex items-center justify-center bg-[#072146] text-white text-[10px] font-black rounded-[4px] shadow-sm tracking-wider">BBVA</div>
                             </div>
                         </div>
 

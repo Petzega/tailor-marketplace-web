@@ -9,29 +9,45 @@ datasource db {
 }
 
 model Product {
-  id          String   @id @default(cuid())
+  id          String  @id @default(cuid())
   name        String
   description String?
   price       Float
-  stock       Int      @default(0)
-  imageUrl    String?  // 👈 Esta se queda como la foto principal (Miniatura)
-  category    String   @default("READY_MADE")
 
-  // 👇 NUEVO: Categorías de Filtros Avanzados
-  gender       String?  // Ej: "HOMBRE", "MUJER", "NINO", "NINA", "UNISEX"
-  clothingType String?  // Ej: "CAMISA", "PANTALON", "VESTIDO", "ACCESORIOS", etc.
+  // 💡 Mantenemos este como "Stock Total" para no romper el catálogo actual
+  stock Int @default(0)
 
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  sku         String   @unique @default(cuid())
+  imageUrl String?
+  category String  @default("READY_MADE")
+
+  gender       String?
+  clothingType String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  sku       String   @unique @default(cuid())
 
   gallery ProductImage[]
+  sizes   ProductSize[] // 👈 NUEVO: Relación con las tallas específicas
+}
+
+// 👇 NUEVA TABLA: Para manejar el stock independiente por talla
+model ProductSize {
+  id    String @id @default(cuid())
+  size  String // Ej: "S", "M", "L", "XL", "32", "34"
+  stock Int    @default(0) // El stock real de ESTA talla
+
+  productId String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  // Esto evita que por error crees dos veces la talla "M" para el mismo producto
+  @@unique([productId, size])
 }
 
 model ProductImage {
   id        String   @id @default(cuid())
-  url       String   // La URL de la foto extra
-  productId String   // El ID del producto al que pertenece
+  url       String
+  productId String
   product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
 }
