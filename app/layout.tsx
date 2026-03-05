@@ -8,28 +8,28 @@ const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
     title: "Stitch & Style",
-    description: "Tailor Marketplace - Custom clothing and tailoring services",
+    description: "Marketplace de Sastrería - Ropa a medida y servicios de sastrería",
 };
 
 export default function RootLayout({
-                                       children,
-                                   }: Readonly<{
+    children,
+}: Readonly<{
     children: React.ReactNode;
 }>) {
     return (
-        <html lang="en">
-        <body className={inter.className}>
-        {/* Navegación superior global */}
-        <Navbar />
+        <html lang="es">
+            <body className={inter.className}>
+                {/* Navegación superior global */}
+                <Navbar />
 
-        {/* Contenido principal de cada página */}
-        <main>
-            {children}
-        </main>
+                {/* Contenido principal de cada página */}
+                <main>
+                    {children}
+                </main>
 
-        {/* 👇 El panel lateral del carrito, disponible globalmente */}
-        <CartSheet />
-        </body>
+                {/* 👇 El panel lateral del carrito, disponible globalmente */}
+                <CartSheet />
+            </body>
         </html>
     );
 }

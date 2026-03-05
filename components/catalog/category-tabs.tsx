@@ -34,7 +34,7 @@ export function CategoryTabs() {
                     : 'bg-white text-gray-600 border-gray-200 hover:border-green-500 hover:text-green-600'
                     }`}
             >
-                Ready-to-wear Products
+                Productos (Prêt-à-porter)
             </button>
 
             {/* Botón 2: Servicios (SERVICE) */}
@@ -45,7 +45,7 @@ export function CategoryTabs() {
                     : 'bg-white text-gray-600 border-gray-200 hover:border-green-500 hover:text-green-600'
                     }`}
             >
-                Sewing Services
+                Servicios de Sastrería
             </button>
 
             {/* Botón 3: Ver Todo (Para limpiar filtros) */}
@@ -56,7 +56,7 @@ export function CategoryTabs() {
                     : 'text-gray-400 hover:text-gray-600'
                     }`}
             >
-                View All
+                Ver Todo
             </button>
         </div>
     );

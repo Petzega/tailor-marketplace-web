@@ -17,9 +17,9 @@ const SERVICE_STYLES = [
 ];
 
 function getStockLabel(stock: number) {
-    if (stock === 0) return { label: 'Out of Stock', cls: 'text-red-500' };
-    if (stock < 5) return { label: 'Low Stock', cls: 'text-amber-500' };
-    return { label: 'In Stock', cls: 'text-green-600' };
+    if (stock === 0) return { label: 'Agotado', cls: 'text-red-500' };
+    if (stock < 5) return { label: 'Poco Stock', cls: 'text-amber-500' };
+    return { label: 'En Stock', cls: 'text-green-600' };
 }
 
 export function CommandSearch() {
@@ -174,7 +174,7 @@ export function CommandSearch() {
                 className="flex w-full items-center gap-2 px-3 py-2 text-sm text-gray-400 bg-white border border-gray-200 rounded-lg hover:border-gray-300 hover:text-gray-600 transition-all shadow-sm group min-w-[220px]"
             >
                 <Search size={15} />
-                <span className="flex-1 text-left">Search products...</span>
+                <span className="flex-1 text-left">Buscar productos...</span>
                 <kbd
                     ref={kbdRef}
                     className="hidden sm:inline-block text-[10px] border border-gray-200 px-1.5 py-0.5 rounded font-mono text-gray-300 group-hover:text-gray-400 transition-colors"
@@ -197,7 +197,7 @@ export function CommandSearch() {
                                 ref={inputRef}
                                 value={query}
                                 onChange={handleChange}
-                                placeholder="Search products or services..."
+                                placeholder="Buscar productos o servicios..."
                                 className="flex-1 text-base sm:text-sm text-gray-700 placeholder:text-gray-400 outline-none bg-transparent"
                             />
                             <div className="flex items-center gap-2 shrink-0">
@@ -222,7 +222,7 @@ export function CommandSearch() {
                                     <>
                                         {results.products.length > 0 && (
                                             <section>
-                                                <SectionHeader label="Products" />
+                                                <SectionHeader label="Productos" />
                                                 {results.products.map((product, i) => {
                                                     const { label, cls } = getStockLabel(product.stock);
                                                     const isActive = activeIndex === i;
@@ -241,7 +241,7 @@ export function CommandSearch() {
                                                                 </div>
                                                             }
                                                             title={product.name}
-                                                            subtitle={<><span className={cls}>{label}</span> • Thread &amp; Notions</>}
+                                                            subtitle={<><span className={cls}>{label}</span> • Producto</>}
                                                             right={
                                                                 <span className="text-sm font-semibold text-indigo-600">
                                                                     S/ {product.price.toFixed(2)}
@@ -256,7 +256,7 @@ export function CommandSearch() {
 
                                         {results.services.length > 0 && (
                                             <section>
-                                                <SectionHeader label="Services" />
+                                                <SectionHeader label="Servicios" />
                                                 {results.services.map((service, i) => {
                                                     const globalIdx = results.products.length + i;
                                                     const isActive = activeIndex === globalIdx;
@@ -274,10 +274,10 @@ export function CommandSearch() {
                                                                 </div>
                                                             }
                                                             title={service.name}
-                                                            subtitle={service.description ?? 'Tailoring service'}
+                                                            subtitle={service.description ?? 'Servicio de sastrería'}
                                                             right={
                                                                 <span className="text-sm font-medium text-gray-500">
-                                                                    from S/ {service.price.toFixed(2)}
+                                                                    desde S/ {service.price.toFixed(2)}
                                                                 </span>
                                                             }
                                                             showEnterHint={isActive}
@@ -293,9 +293,9 @@ export function CommandSearch() {
 
                         <div className="flex items-center justify-between px-4 py-3 sm:py-2.5 border-t border-gray-100 bg-gray-50/60 shrink-0 pb-safe">
                             <div className="hidden sm:flex items-center gap-3">
-                                <KbdHint keys={['↵']} label="to select" />
-                                <KbdHint keys={['↑', '↓']} label="to navigate" />
-                                <KbdHint keys={['esc']} label="to close" />
+                                <KbdHint keys={['↵']} label="para seleccionar" />
+                                <KbdHint keys={['↑', '↓']} label="para navegar" />
+                                <KbdHint keys={['esc']} label="para cerrar" />
                             </div>
 
                             <button onClick={closeModal} className="sm:hidden text-sm text-gray-500 font-medium px-2">
@@ -306,7 +306,7 @@ export function CommandSearch() {
                                 onClick={handleAdvancedSearch}
                                 className="flex items-center gap-1 text-sm sm:text-xs text-indigo-600 hover:text-indigo-700 font-bold sm:font-medium transition-colors cursor-pointer"
                             >
-                                Advanced Search <ArrowRight size={14} className="sm:w-3 sm:h-3" />
+                                Búsqueda Avanzada <ArrowRight size={14} className="sm:w-3 sm:h-3" />
                             </button>
                         </div>
 
@@ -380,7 +380,7 @@ function LoadingState() {
     return (
         <div className="py-10 flex flex-col items-center gap-2">
             <div className="h-5 w-5 border-2 border-indigo-400 border-t-transparent rounded-full animate-spin" />
-            <span className="text-xs text-gray-400">Searching...</span>
+            <span className="text-xs text-gray-400">Buscando...</span>
         </div>
     );
 }
@@ -388,7 +388,7 @@ function LoadingState() {
 function EmptyState({ query }: { query: string }) {
     return (
         <div className="py-10 text-center">
-            <p className="text-sm text-gray-500">No results for</p>
+            <p className="text-sm text-gray-500">No hay resultados para</p>
             <p className="text-sm font-medium text-gray-700 mt-0.5">&quot;{query}&quot;</p>
         </div>
     );

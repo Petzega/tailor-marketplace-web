@@ -15,18 +15,18 @@ export function Hero() {
                     {/* Badge superior */}
                     <div className="inline-flex items-center gap-2 rounded-full bg-green-50 px-3 py-1 text-sm font-medium text-green-700 ring-1 ring-inset ring-green-600/20 mb-8">
                         <Scissors size={14} />
-                        <span>Crafting elegance since 2024</span>
+                        <span>Creando elegancia desde 2024</span>
                     </div>
 
                     {/* Título Principal */}
                     <h1 className="text-4xl font-extrabold tracking-tight text-gray-900 sm:text-5xl lg:text-6xl">
-                        <span className="block">Custom Tailoring &</span>
-                        <span className="block text-green-600 mt-2">Premium Fashion</span>
+                        <span className="block">Sastrería a Medida &</span>
+                        <span className="block text-green-600 mt-2">Moda Premium</span>
                     </h1>
 
                     {/* Subtítulo */}
                     <p className="mx-auto mt-6 max-w-xl text-lg text-gray-600 leading-relaxed">
-                        Discover our exclusive collection of ready-made garments and personalized alteration services for the perfect fit.
+                        Descubre nuestra colección exclusiva de prendas listas para usar y servicios de alteración personalizados para un ajuste perfecto.
                     </p>
 
                     {/* Botones de Acción */}
@@ -35,14 +35,14 @@ export function Hero() {
                             href="/search"
                             className="flex w-full sm:w-auto items-center justify-center gap-2 rounded-full bg-green-600 px-8 py-3.5 text-sm font-bold text-white shadow-sm hover:bg-green-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600 transition-all hover:scale-105 active:scale-95"
                         >
-                            Explore Catalog
+                            Explorar Catálogo
                             <ArrowRight size={16} />
                         </Link>
                         <Link
                             href="#services"
                             className="text-sm font-semibold leading-6 text-gray-900 hover:text-green-600 transition-colors py-3.5"
                         >
-                            View Services <span aria-hidden="true">→</span>
+                            Ver Servicios <span aria-hidden="true">→</span>
                         </Link>
                     </div>
                 </div>
