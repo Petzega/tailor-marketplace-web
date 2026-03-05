@@ -12,13 +12,29 @@ export type GetProductsResult = {
     totalPages: number;
 };
 
-async function generateSku(): Promise<string> {
-    const now = new Date();
-    const year = now.getFullYear();
-    const month = String(now.getMonth() + 1).padStart(2, '0');
-    const day = String(now.getDate()).padStart(2, '0');
-    const prefix = `${year}${month}${day}`;
+// 👇 1. GENERADOR DE SKU MULTI-CATEGORÍA
+async function generateSku(category: string): Promise<string> {
+    // Definimos el prefijo con lógica escalable
+    let typePrefix = 'PRD'; // 👈 Por defecto será PRD (Producto General)
 
+    if (category === 'SERVICE') {
+        typePrefix = 'SRV'; // Servicios de costura
+    } else if (category === 'READY_MADE') {
+        typePrefix = 'CLT'; // Ropa y prendas
+    }
+
+    // Ajustar a hora de Perú (UTC-5) para que el cambio de día sea exacto a la medianoche local
+    const now = new Date(new Date().getTime() - 5 * 60 * 60 * 1000);
+
+    // Extraer año (2 dígitos), mes y día
+    const yy = String(now.getUTCFullYear()).slice(-2);
+    const mm = String(now.getUTCMonth() + 1).padStart(2, '0');
+    const dd = String(now.getUTCDate()).padStart(2, '0');
+
+    // Armar la base, ej: "CLT-260305", "SRV-260305" o "PRD-260305"
+    const prefix = `${typePrefix}-${yy}${mm}${dd}`;
+
+    // Buscar el último producto de HOY con ESE prefijo específico
     const lastProduct = await db.product.findFirst({
         where: { sku: { startsWith: prefix } },
         orderBy: { sku: 'desc' },
@@ -26,10 +42,12 @@ async function generateSku(): Promise<string> {
 
     let sequence = 1;
     if (lastProduct) {
+        // Extraer los últimos 3 dígitos numéricos y sumar 1
         const lastSequence = parseInt(lastProduct.sku.slice(-3), 10);
         if (!isNaN(lastSequence)) sequence = lastSequence + 1;
     }
 
+    // Retornar formato final, ej: "PRD-260305001"
     return `${prefix}${String(sequence).padStart(3, '0')}`;
 }
 
@@ -138,7 +156,12 @@ export async function getProductById(id: string) {
 }
 
 export async function createProduct(formData: FormData) {
-    const sku = await generateSku();
+    // 👇 2. Extraemos la categoría PRIMERO
+    const category = formData.get("category") as string;
+
+    // 👇 3. Generamos el SKU pasándole la categoría
+    const sku = await generateSku(category);
+
     const imageUrlText = formData.get("imageUrl") as string;
     const imageFile = formData.get("imageFile") as File;
     let finalImageUrl = imageUrlText;
@@ -156,7 +179,7 @@ export async function createProduct(formData: FormData) {
             description: formData.get("description") as string,
             price: parseFloat(formData.get("price") as string),
             stock: parseInt(formData.get("stock") as string),
-            category: formData.get("category") as string,
+            category: category, // Usamos la variable que ya extrajimos
             imageUrl: finalImageUrl || null,
             sku,
             gender: gender || null,
