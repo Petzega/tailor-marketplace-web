@@ -129,13 +129,13 @@ export function CartSheet() {
                         </div>
 
                         <div className="flex flex-col gap-2">
-                            {/* 👇 Enlace hacia el Checkout limpio y directo */}
+                            {/* 👇 Ícono corregido: se eliminó la clase 'fill-current' que lo rompía */}
                             <Link
                                 href="/checkout"
                                 onClick={closeCart}
                                 className="w-full bg-gray-900 hover:bg-black text-white py-4 rounded-xl font-bold text-base flex items-center justify-center gap-2 shadow-lg transition-all active:scale-[0.98]"
                             >
-                                <ShoppingBag size={20} className="fill-current" />
+                                <ShoppingBag size={20} />
                                 Proceder al Pago
                             </Link>
 
@@ -159,7 +159,6 @@ export function CartSheet() {
                                 <div className="w-[60px] h-[28px] flex items-center justify-center bg-[#FF7A00] text-white text-[10px] font-black rounded-[4px] shadow-sm tracking-wider">BCP</div>
                                 <div className="w-[60px] h-[28px] flex items-center justify-center bg-[#009B3A] text-white text-[10px] font-black rounded-[4px] shadow-sm tracking-wider">IBK</div>
                                 <div className="w-[60px] h-[28px] flex items-center justify-center bg-[#072146] text-white text-[10px] font-black rounded-[4px] shadow-sm tracking-wider">BBVA</div>
-                                {/* 👇 Aquí agregamos EFECTIVO en el grid de bancos */}
                                 <div className="w-[60px] h-[28px] flex items-center justify-center bg-emerald-600 text-white text-[9px] font-black rounded-[4px] shadow-sm tracking-wide">EFECTIVO</div>
                             </div>
                         </div>
