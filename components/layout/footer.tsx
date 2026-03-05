@@ -3,14 +3,15 @@ import { Facebook, Instagram, Laptop, ArrowRight, Store } from "lucide-react";
 
 export function Footer() {
     return (
-        <footer className="bg-white border-t border-gray-100 pt-16 pb-8 relative overflow-hidden">
+        <footer className="bg-white border-t border-gray-100 pt-10 lg:pt-16 pb-8 relative overflow-hidden">
             {/* Decoración sutil superior para enmarcar el footer */}
             <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-7xl h-px bg-gradient-to-r from-transparent via-gray-200 to-transparent" />
 
             <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-6 lg:gap-8 mb-16">
+                {/* Reducimos el gap y el margen inferior en móvil (gap-10 mb-10), pero lo mantenemos grande en escritorio (lg:gap-8 lg:mb-16) */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-10 lg:gap-8 mb-10 lg:mb-16">
 
-                    {/* Columna 1: Marca y Quiénes Somos (Ocupa 4 columnas) */}
+                    {/* Columna 1: Marca y Quiénes Somos */}
                     <div className="lg:col-span-4 lg:pr-6">
                         <div className="flex items-center gap-2 mb-6">
                             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-green-600 text-white font-bold shadow-sm">
@@ -34,8 +35,9 @@ export function Footer() {
                         </div>
                     </div>
 
-                    {/* Columna 2: Explorar y Legal (Ocupa 2 columnas) */}
-                    <div className="lg:col-span-2 flex flex-col gap-8">
+                    {/* Columna 2: Explorar y Legal */}
+                    {/* 👇 AQUÍ ESTÁ EL FIX: Usamos "grid grid-cols-2" en móvil para que estén lado a lado, y "lg:flex lg:flex-col" en escritorio */}
+                    <div className="lg:col-span-2 grid grid-cols-2 lg:flex lg:flex-col gap-6 lg:gap-8">
                         <div>
                             <h3 className="font-bold text-gray-900 mb-4">Explorar</h3>
                             <ul className="space-y-3.5">
@@ -68,11 +70,9 @@ export function Footer() {
                         </div>
                     </div>
 
-                    {/* Columna 3: Promoción - Vende con nosotros (Ocupa 3 columnas) */}
+                    {/* Columna 3: Promoción - Vende con nosotros */}
                     <div className="lg:col-span-3">
-                        {/* Subimos a bg-green-100 y border-green-200 */}
                         <div className="bg-green-100 rounded-2xl p-6 border border-green-200 h-full flex flex-col justify-between relative overflow-hidden group transition-all hover:border-green-300">
-                            {/* Círculo más notable: bg-green-200 */}
                             <div className="absolute -right-6 -top-6 bg-green-200 w-24 h-24 rounded-full group-hover:scale-110 transition-transform duration-500" />
 
                             <div className="relative z-10 mb-6">
@@ -96,11 +96,9 @@ export function Footer() {
                         </div>
                     </div>
 
-                    {/* Columna 4: Promoción - Desarrollo Web (Ocupa 3 columnas) */}
+                    {/* Columna 4: Promoción - Desarrollo Web */}
                     <div className="lg:col-span-3">
-                        {/* Subimos a bg-gray-100 y border-gray-200 */}
                         <div className="bg-gray-100 rounded-2xl p-6 border border-gray-200 relative overflow-hidden group h-full flex flex-col justify-between transition-all hover:border-gray-300">
-                            {/* Círculo más notable: bg-gray-200 */}
                             <div className="absolute -right-6 -top-6 bg-gray-200 w-24 h-24 rounded-full group-hover:scale-110 transition-transform duration-500" />
 
                             <div className="relative z-10 mb-6">
@@ -127,11 +125,11 @@ export function Footer() {
                 </div>
 
                 {/* Zona inferior de créditos */}
-                <div className="border-t border-gray-100 pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
+                <div className="border-t border-gray-100 pt-8 flex flex-col md:flex-row justify-between items-center gap-4 text-center md:text-left">
                     <p className="text-sm text-gray-500 font-medium">
                         &copy; {new Date().getFullYear()} Stitch & Style. Todos los derechos reservados.
                     </p>
-                    <p className="text-sm text-gray-400 flex items-center gap-1.5">
+                    <p className="text-sm text-gray-400 flex items-center justify-center md:justify-end gap-1.5">
                         Diseñado con <span className="text-red-500 text-lg animate-pulse">♥</span> en Iquitos - Perú
                     </p>
                 </div>
