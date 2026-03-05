@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Facebook, Instagram, Twitter } from "lucide-react";
+import { Facebook, Instagram } from "lucide-react";
 
 export function Footer() {
     return (
@@ -45,7 +45,6 @@ export function Footer() {
                                 </Link>
                             </li>
                             <li>
-                                {/* Reemplaza los ceros con tu número */}
                                 <a href="https://wa.me/51992431513" target="_blank" rel="noopener noreferrer" className="text-sm text-gray-500 hover:text-green-600 transition-colors">
                                     Contacto Directo
                                 </a>
@@ -58,8 +57,9 @@ export function Footer() {
                         <h3 className="font-semibold text-gray-900 mb-4">Legal</h3>
                         <ul className="space-y-3">
                             <li>
-                                <Link href="#" className="text-sm text-gray-500 hover:text-gray-900 transition-colors">
-                                    Términos de Servicio
+                                {/* 👇 AQUÍ PUSIMOS EL ENLACE A TU NUEVA PÁGINA */}
+                                <Link href="/terms" className="text-sm text-gray-500 hover:text-gray-900 transition-colors">
+                                    Términos y Condiciones
                                 </Link>
                             </li>
                             <li>

@@ -6,8 +6,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { ArrowLeft, MessageCircle, AlertCircle, Store, Truck } from "lucide-react";
 import { Footer } from "@/components/layout/footer";
-// 👇 1. Importamos nuestra nueva función utilitaria
 import { generateWhatsAppTicket } from "@/lib/whatsapp";
+import { TermsModal } from "@/components/checkout/terms-modal";
 
 const WHATSAPP_NUMBER = "51992431513";
 const DELIVERY_COST = 10.00;
@@ -25,36 +25,33 @@ export default function CheckoutPage() {
     const { items, clearCart } = useCart();
 
     const [customerData, setCustomerData] = useState({
-        name: "",
-        phone: "",
-        address: "",
-        reference: "",
+        name: "", phone: "", address: "", reference: "",
     });
 
     const [paymentMethod, setPaymentMethod] = useState(PAYMENT_METHODS[0].label);
     const [deliveryMethod, setDeliveryMethod] = useState<"STORE" | "DELIVERY">("STORE");
 
+    const [showTermsModal, setShowTermsModal] = useState(false);
+    const [termsAccepted, setTermsAccepted] = useState(false);
+
     const subtotal = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
     const finalTotal = deliveryMethod === "DELIVERY" ? subtotal + DELIVERY_COST : subtotal;
+
+    const handleAcceptTerms = () => {
+        setTermsAccepted(true);
+        setShowTermsModal(false);
+    };
 
     const handleWhatsAppCheckout = (e: React.FormEvent) => {
         e.preventDefault();
 
         if (items.length === 0) return;
 
-        // 👇 2. Llamamos a la función limpia para generar el texto
         const encodedMessage = generateWhatsAppTicket({
-            customerData,
-            items,
-            deliveryMethod,
-            paymentMethod,
-            subtotal,
-            deliveryCost: DELIVERY_COST,
-            finalTotal
+            customerData, items, deliveryMethod, paymentMethod, subtotal, deliveryCost: DELIVERY_COST, finalTotal
         });
 
         const whatsappUrl = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodedMessage}`;
-
         window.open(whatsappUrl, '_blank');
         clearCart();
     };
@@ -235,12 +232,7 @@ export default function CheckoutPage() {
                                     <li key={`${item.id}-${item.size}`} className="py-4 flex gap-4">
                                         <div className="h-16 w-16 shrink-0 overflow-hidden rounded-md border border-gray-100 bg-gray-50 relative">
                                             {item.imageUrl ? (
-                                                <Image
-                                                    src={item.imageUrl}
-                                                    alt={item.name}
-                                                    fill
-                                                    className="object-cover"
-                                                />
+                                                <Image src={item.imageUrl} alt={item.name} fill className="object-cover" />
                                             ) : (
                                                 <div className="flex h-full w-full items-center justify-center text-[10px] text-gray-400">Sin foto</div>
                                             )}
@@ -275,13 +267,51 @@ export default function CheckoutPage() {
                                 </div>
                             </div>
 
+                            {/* 👇 CHECKBOX ESTRATÉGICO SECUESTRADO */}
+                            <div className="border-t border-gray-100 pt-5 mt-5 mb-4">
+                                <label className="flex items-start gap-3 cursor-pointer group">
+                                    <div className="relative flex items-center pt-0.5">
+                                        <input
+                                            type="checkbox"
+                                            required
+                                            form="checkout-form"
+                                            checked={termsAccepted}
+                                            onChange={(e) => {
+                                                if (e.target.checked) {
+                                                    // Si intenta marcarlo, NO LO HACEMOS, le lanzamos el modal
+                                                    setShowTermsModal(true);
+                                                } else {
+                                                    // Si ya estaba marcado y lo quiere quitar, lo dejamos
+                                                    setTermsAccepted(false);
+                                                }
+                                            }}
+                                            className="peer h-4 w-4 cursor-pointer appearance-none rounded border-2 border-gray-300 checked:border-green-600 checked:bg-green-600 transition-all"
+                                        />
+                                        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-white opacity-0 peer-checked:opacity-100 pointer-events-none">
+                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
+                                                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"></path>
+                                            </svg>
+                                        </div>
+                                    </div>
+                                    <span className="text-xs text-gray-600 leading-tight">
+                                        He leído y acepto los <span onClick={(e) => { e.preventDefault(); setShowTermsModal(true); }} className="text-gray-900 font-bold underline underline-offset-2 hover:text-green-600 transition-colors">Términos y Condiciones</span> y la política de devoluciones.
+                                    </span>
+                                </label>
+                            </div>
+
+                            {/* 👇 BOTÓN VERDE BLOQUEADO INTELIGENTEMENTE */}
                             <button
                                 type="submit"
                                 form="checkout-form"
-                                className="mt-8 w-full flex items-center justify-center gap-2 rounded-xl bg-[#25D366] hover:bg-[#20bd5a] px-6 py-4 text-base font-bold text-white shadow-lg shadow-green-200 transition-all active:scale-[0.98]"
+                                disabled={!termsAccepted}
+                                className={`w-full flex items-center justify-center gap-2 rounded-xl px-6 py-4 text-base font-bold shadow-lg transition-all active:scale-[0.98] ${
+                                    termsAccepted
+                                        ? "bg-[#25D366] hover:bg-[#20bd5a] text-white shadow-green-200"
+                                        : "bg-gray-200 text-gray-400 cursor-not-allowed shadow-none"
+                                }`}
                             >
                                 <MessageCircle size={20} />
-                                Hacer Pedido por WhatsApp
+                                {termsAccepted ? "Hacer Pedido por WhatsApp" : "Acepta los términos para continuar"}
                             </button>
 
                             <p className="mt-4 text-xs text-center text-gray-500">
@@ -292,6 +322,11 @@ export default function CheckoutPage() {
 
                 </div>
             </div>
+
+            <TermsModal
+                isOpen={showTermsModal}
+                onAccept={handleAcceptTerms}
+            />
 
             <Footer />
         </main>
