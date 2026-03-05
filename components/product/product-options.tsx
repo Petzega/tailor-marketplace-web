@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { createPortal } from "react-dom";
-import { ShoppingCart, Check, Plus, Minus, Calendar, X } from "lucide-react";
+import { useState } from "react";
+import { SizeGuideModal } from "./size-guide-modal";
+import { ShoppingCart, Check, Plus, Minus, Calendar } from "lucide-react";
 import { useCart } from "@/store/cart";
 import { SpotlightProduct } from "@/actions/search";
 
@@ -18,24 +18,20 @@ interface ProductOptionsProps {
 
 // 1. FUNCIÓN INTELIGENTE PARA ORDENAR TALLAS
 const sortSizes = (sizesArray: { size: string; stock: number }[]) => {
-    // Mapa de prioridad para letras de adulto
     const orderMap: Record<string, number> = { 'UNICA': 0, 'XS': 1, 'S': 2, 'M': 3, 'L': 4, 'XL': 5, 'XXL': 6 };
 
     return [...sizesArray].sort((a, b) => {
-        // A. Si ambas son letras conocidas (S, M, L), usa el mapa
         if (a.size in orderMap && b.size in orderMap) {
             return orderMap[a.size] - orderMap[b.size];
         }
 
-        // B. Extraemos los números para compararlos matemáticamente (Ej: '10' vs '4' o '0-3M' vs '3-6M')
         const numA = parseInt(a.size.replace(/\D/g, ''));
         const numB = parseInt(b.size.replace(/\D/g, ''));
 
         if (!isNaN(numA) && !isNaN(numB)) {
-            return numA - numB; // Ahora 4 irá antes que 10
+            return numA - numB;
         }
 
-        // C. Por defecto ordenamiento alfabético
         return a.size.localeCompare(b.size);
     });
 };
@@ -44,128 +40,50 @@ export function ProductOptions({ product, sizes, description, isOutOfStock, isSe
     const addItem = useCart((state) => state.addItem);
     const [added, setAdded] = useState(false);
     const [quantity, setQuantity] = useState(1);
-    const [showSizeGuide, setShowSizeGuide] = useState(false);
-    const [mounted, setMounted] = useState(false);
 
-    // Aplicamos el ordenamiento a las tallas recibidas de la base de datos
+    const [showSizeGuide, setShowSizeGuide] = useState(false);
+
     const sortedSizes = sortSizes(sizes);
 
-    useEffect(() => {
-        setMounted(true);
-        if (showSizeGuide) {
-            document.body.style.overflow = 'hidden';
-        } else {
-            document.body.style.overflow = 'unset';
-        }
-        return () => { document.body.style.overflow = 'unset'; };
-    }, [showSizeGuide]);
-
-    // Usamos sortedSizes en lugar de sizes para la lógica
     const firstAvailableSize = sortedSizes.find(s => s.stock > 0)?.size || (sortedSizes.length > 0 ? sortedSizes[0].size : '');
     const [selectedSize, setSelectedSize] = useState<string>(firstAvailableSize);
 
     const currentSizeData = sortedSizes.find(s => s.size === selectedSize);
-    const currentStock = currentSizeData ? currentSizeData.stock : 0;
-    const isCurrentSizeOutOfStock = currentStock === 0;
 
-    useEffect(() => {
-        if (quantity > currentStock && currentStock > 0) {
+    // 👇 CORRECCIÓN: Si es servicio, el stock es "infinito" (99) para que los botones de cantidad funcionen
+    const currentStock = isService ? 99 : (currentSizeData ? currentSizeData.stock : 0);
+    const isCurrentSizeOutOfStock = !isService && currentStock === 0;
+
+    // 💡 REMOVIDO: useEffect para setQuantity(1) que causaba el error react-hooks/set-state-in-effect.
+    // La validación ahora se hace al cambiar la talla (handleSizeChange) y al presionar "+" (handleAdd/setQuantity).
+
+    const handleSizeChange = (newSize: string) => {
+        setSelectedSize(newSize);
+        // Si el stock de la nueva talla seleccionada es menor a la cantidad actual, reseteamos a 1
+        const newSizeData = sortedSizes.find(s => s.size === newSize);
+        const newStock = isService ? 99 : (newSizeData ? newSizeData.stock : 0);
+
+        if (!isService && quantity > newStock && newStock > 0) {
             setQuantity(1);
         }
-    }, [selectedSize, currentStock, quantity]);
+    };
 
+    // 👇 CORRECCIÓN LÍNEA 64: Permitimos agregar servicios ignorando el stock de tallas
     const handleAdd = () => {
-        if (isCurrentSizeOutOfStock) return;
+        if (!isService && isCurrentSizeOutOfStock) return;
 
-        addItem(product, quantity, isService ? undefined : selectedSize);
+        // Llamadas de addItem directas y aisladas para que cualquier linter/IDE entienda perfecto los tipos
+        if (isService) {
+            addItem(product, quantity, undefined);
+        } else if (selectedSize) {
+            addItem(product, quantity, selectedSize);
+        } else {
+            addItem(product, quantity, undefined);
+        }
+
         setAdded(true);
         setTimeout(() => setAdded(false), 2000);
         setQuantity(1);
-    };
-
-    const renderSizeTable = () => {
-        if (ageGroup === 'KIDS') {
-            return (
-                <table className="w-full text-sm text-left">
-                    <thead className="bg-gray-50 text-gray-900 font-bold uppercase text-[11px] tracking-wider">
-                    <tr>
-                        <th className="px-4 py-3 border-b border-gray-200">Talla</th>
-                        <th className="px-4 py-3 border-b border-gray-200">Edad Aprox.</th>
-                        <th className="px-4 py-3 border-b border-gray-200">Estatura (cm)</th>
-                    </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-100 text-gray-600">
-                    {['4', '6', '8', '10', '12'].map((talla, idx) => (
-                        <tr key={talla} className="hover:bg-gray-50 transition-colors">
-                            <td className="px-4 py-3 font-bold text-gray-900">{talla}</td>
-                            <td className="px-4 py-3">{3 + (idx * 2)} - {4 + (idx * 2)} años</td>
-                            <td className="px-4 py-3">{98 + (idx * 12)} - {104 + (idx * 12)}</td>
-                        </tr>
-                    ))}
-                    </tbody>
-                </table>
-            );
-        }
-
-        if (ageGroup === 'BABY') {
-            return (
-                <table className="w-full text-sm text-left">
-                    <thead className="bg-gray-50 text-gray-900 font-bold uppercase text-[11px] tracking-wider">
-                    <tr>
-                        <th className="px-4 py-3 border-b border-gray-200">Talla</th>
-                        <th className="px-4 py-3 border-b border-gray-200">Meses</th>
-                        <th className="px-4 py-3 border-b border-gray-200">Estatura (cm)</th>
-                        <th className="px-4 py-3 border-b border-gray-200">Peso (kg)</th>
-                    </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-100 text-gray-600">
-                    <tr className="hover:bg-gray-50 transition-colors">
-                        <td className="px-4 py-3 font-bold text-gray-900">0-3M</td>
-                        <td className="px-4 py-3">0 - 3</td><td className="px-4 py-3">50 - 62</td><td className="px-4 py-3">3 - 6</td>
-                    </tr>
-                    <tr className="hover:bg-gray-50 transition-colors">
-                        <td className="px-4 py-3 font-bold text-gray-900">3-6M</td>
-                        <td className="px-4 py-3">3 - 6</td><td className="px-4 py-3">62 - 68</td><td className="px-4 py-3">6 - 8</td>
-                    </tr>
-                    <tr className="hover:bg-gray-50 transition-colors">
-                        <td className="px-4 py-3 font-bold text-gray-900">6-12M</td>
-                        <td className="px-4 py-3">6 - 12</td><td className="px-4 py-3">68 - 74</td><td className="px-4 py-3">8 - 10</td>
-                    </tr>
-                    </tbody>
-                </table>
-            );
-        }
-
-        return (
-            <table className="w-full text-sm text-left">
-                <thead className="bg-gray-50 text-gray-900 font-bold uppercase text-[11px] tracking-wider">
-                <tr>
-                    <th className="px-4 py-3 border-b border-gray-200">Talla</th>
-                    <th className="px-4 py-3 border-b border-gray-200">Pecho</th>
-                    <th className="px-4 py-3 border-b border-gray-200">Cintura</th>
-                    <th className="px-4 py-3 border-b border-gray-200">Cadera</th>
-                </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100 text-gray-600">
-                <tr className="hover:bg-gray-50 transition-colors">
-                    <td className="px-4 py-3 font-bold text-gray-900">S (Small)</td>
-                    <td className="px-4 py-3">86 - 90</td><td className="px-4 py-3">68 - 72</td><td className="px-4 py-3">94 - 98</td>
-                </tr>
-                <tr className="hover:bg-gray-50 transition-colors">
-                    <td className="px-4 py-3 font-bold text-gray-900">M (Medium)</td>
-                    <td className="px-4 py-3">90 - 94</td><td className="px-4 py-3">72 - 76</td><td className="px-4 py-3">98 - 102</td>
-                </tr>
-                <tr className="hover:bg-gray-50 transition-colors">
-                    <td className="px-4 py-3 font-bold text-gray-900">L (Large)</td>
-                    <td className="px-4 py-3">94 - 100</td><td className="px-4 py-3">76 - 82</td><td className="px-4 py-3">102 - 108</td>
-                </tr>
-                <tr className="hover:bg-gray-50 transition-colors">
-                    <td className="px-4 py-3 font-bold text-gray-900">XL (X-Large)</td>
-                    <td className="px-4 py-3">100 - 106</td><td className="px-4 py-3">82 - 88</td><td className="px-4 py-3">108 - 114</td>
-                </tr>
-                </tbody>
-            </table>
-        );
     };
 
     return (
@@ -192,13 +110,12 @@ export function ProductOptions({ product, sizes, description, isOutOfStock, isSe
                                 <button
                                     key={sizeObj.size}
                                     type="button"
-                                    onClick={() => setSelectedSize(sizeObj.size)}
+                                    onClick={() => handleSizeChange(sizeObj.size)}
                                     disabled={isSizeAgotada}
-                                    className={`h-10 px-4 rounded-md border text-xs font-bold transition-all disabled:opacity-40 disabled:bg-gray-100 disabled:cursor-not-allowed ${
-                                        isSelected && !isSizeAgotada
-                                            ? 'border-gray-900 bg-gray-900 text-white shadow-md ring-2 ring-gray-900 ring-offset-2'
-                                            : 'border-gray-200 text-gray-700 bg-white hover:border-gray-400 hover:bg-gray-50'
-                                    }`}
+                                    className={`h-10 px-4 rounded-md border text-xs font-bold transition-all disabled:opacity-40 disabled:bg-gray-100 disabled:cursor-not-allowed ${isSelected && !isSizeAgotada
+                                        ? 'border-gray-900 bg-gray-900 text-white shadow-md ring-2 ring-gray-900 ring-offset-2'
+                                        : 'border-gray-200 text-gray-700 bg-white hover:border-gray-400 hover:bg-gray-50'
+                                        }`}
                                 >
                                     {sizeObj.size}
                                 </button>
@@ -293,46 +210,12 @@ export function ProductOptions({ product, sizes, description, isOutOfStock, isSe
                 )}
             </div>
 
-            {/* 5. PORTAL DEL MODAL */}
-            {mounted && showSizeGuide && createPortal(
-                <div
-                    className="fixed inset-0 z-[1000] flex items-center justify-center sm:p-4 bg-white sm:bg-gray-900/60 sm:backdrop-blur-sm animate-in fade-in duration-200"
-                    onClick={() => setShowSizeGuide(false)}
-                >
-                    <div
-                        className="bg-white w-full h-full sm:h-auto sm:rounded-2xl sm:max-w-lg sm:shadow-2xl overflow-hidden flex flex-col sm:max-h-[90vh] animate-in sm:zoom-in-95 duration-200"
-                        onClick={(e) => e.stopPropagation()}
-                    >
-                        <div className="flex items-center justify-between p-5 border-b border-gray-100 mt-safe">
-                            <h2 className="text-lg font-black text-gray-900 tracking-tight">GUÍA DE MEDIDAS</h2>
-                            <button
-                                onClick={() => setShowSizeGuide(false)}
-                                className="p-2 bg-gray-50 text-gray-500 hover:text-gray-900 hover:bg-gray-100 rounded-full transition-colors"
-                            >
-                                <X size={20} />
-                            </button>
-                        </div>
-
-                        <div className="p-5 overflow-y-auto flex-1">
-                            <p className="text-sm text-gray-600 mb-6 leading-relaxed">
-                                Utiliza esta tabla para encontrar tu talla ideal. Las medidas mostradas corresponden al contorno de tu cuerpo, no a las prendas.
-                            </p>
-
-                            <div className="overflow-x-auto rounded-xl border border-gray-200 shadow-inner">
-                                {renderSizeTable()}
-                            </div>
-
-                            <div className="mt-6 bg-blue-50/50 p-4 rounded-xl border border-blue-100 mb-10 sm:mb-0">
-                                <h4 className="text-[11px] font-bold text-blue-900 uppercase tracking-widest mb-1.5">¿Dudas con tu talla?</h4>
-                                <p className="text-xs text-blue-800/80 leading-relaxed">
-                                    Si tus medidas están entre dos tallas, te recomendamos elegir la talla más grande para un ajuste más holgado, o la más pequeña para un ajuste más ceñido.
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-                </div>,
-                document.body
-            )}
+            {/* 5. MODAL LIMPIO Y EXTERNO */}
+            <SizeGuideModal
+                isOpen={showSizeGuide}
+                onClose={() => setShowSizeGuide(false)}
+                ageGroup={ageGroup}
+            />
         </div>
     );
 }
