@@ -134,6 +134,26 @@ export function SearchFilters({
         if (onClose) onClose();
     };
 
+    // --- LÓGICA DE VALIDACIÓN AÑADIDA AQUÍ ---
+
+    // 1. Validar si el rango de precios tiene un error lógico
+    const minVal = parseFloat(localMin);
+    const maxVal = parseFloat(localMax);
+    const isPriceInvalid = localMin !== "" && localMax !== "" && minVal > maxVal;
+
+    // 2. Validar si el usuario ha ingresado o seleccionado al menos un filtro
+    const hasAnyInput =
+        localQuery.trim() !== "" ||
+        localMin !== "" ||
+        localMax !== "" ||
+        currentCategory !== "" ||
+        (currentGender && currentGender !== "ALL") ||
+        (currentClothingType && currentClothingType !== "ALL");
+
+    // 3. El botón se bloquea si no hay inputs o si el precio es inválido
+    const isButtonDisabled = !hasAnyInput || isPriceInvalid;
+
+    // Mantenemos la variable original para el botón de limpiar
     const hasActiveFilters = currentQuery || currentCategory || currentMin || currentMax || currentGender || currentClothingType;
 
     return (
@@ -221,7 +241,7 @@ export function SearchFilters({
                         placeholder="Min"
                         value={localMin}
                         onChange={(e) => setLocalMin(e.target.value)}
-                        className={`w-full px-3 py-2 text-sm bg-gray-50 border rounded-xl focus:outline-none focus:ring-1 transition-colors ${priceError ? 'border-red-400 focus:ring-red-500' : 'border-gray-200 focus:ring-gray-900'
+                        className={`w-full px-3 py-2.5 text-sm bg-gray-50 border rounded-xl focus:outline-none focus:ring-2 transition-all [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${priceError ? 'border-red-400 focus:ring-red-500' : 'border-gray-200 focus:ring-gray-900'
                         }`}
                     />
                     <span className="text-gray-400">—</span>
@@ -230,7 +250,7 @@ export function SearchFilters({
                         placeholder="Max"
                         value={localMax}
                         onChange={(e) => setLocalMax(e.target.value)}
-                        className={`w-full px-3 py-2 text-sm bg-gray-50 border rounded-xl focus:outline-none focus:ring-1 transition-colors ${priceError ? 'border-red-400 focus:ring-red-500' : 'border-gray-200 focus:ring-gray-900'
+                        className={`w-full px-3 py-2.5 text-sm bg-gray-50 border rounded-xl focus:outline-none focus:ring-2 transition-all [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${priceError ? 'border-red-400 focus:ring-red-500' : 'border-gray-200 focus:ring-gray-900'
                         }`}
                     />
                 </div>
@@ -240,12 +260,19 @@ export function SearchFilters({
             {/* 👇 ZONA INFERIOR UNIFICADA (Para Escritorio y Móvil) */}
             <div className="pt-4 mt-2 border-t border-gray-100 flex flex-col gap-3">
 
-                {/* Botón principal unificado */}
+                {/* Botón principal unificado con validación */}
                 <button
                     onClick={() => handleApplyAndClose()}
-                    className="w-full py-3.5 text-sm text-white bg-gray-900 rounded-xl hover:bg-black transition-colors font-bold shadow-md active:scale-95"
+                    disabled={isButtonDisabled}
+                    className="w-full py-3.5 text-sm rounded-xl font-bold transition-all shadow-md
+                               enabled:bg-gray-900 enabled:text-white enabled:hover:bg-black enabled:active:scale-95
+                               disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed disabled:shadow-none border disabled:border-gray-200"
                 >
-                    Ver resultados
+                    {isPriceInvalid
+                        ? "Precio mínimo mayor al máximo"
+                        : !hasAnyInput
+                            ? "Ingresa un filtro"
+                            : "Ver resultados"}
                 </button>
 
                 {/* Botón de limpiar destacado */}

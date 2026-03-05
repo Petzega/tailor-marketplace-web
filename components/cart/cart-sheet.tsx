@@ -43,12 +43,13 @@ export function CartSheet() {
                             <p className="text-sm text-gray-500 mb-8 max-w-[250px]">
                                 ¡Parece que aún no has agregado nada! Descubre nuestros últimos ingresos.
                             </p>
-                            <button
+                            <Link
+                                href="/search"
                                 onClick={closeCart}
                                 className="bg-gray-900 text-white px-8 py-3.5 rounded-xl font-bold text-sm hover:bg-black transition-all shadow-md active:scale-95"
                             >
                                 Empezar a explorar
-                            </button>
+                            </Link>
                         </div>
                     ) : (
                         <div className="p-6 space-y-2">
