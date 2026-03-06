@@ -4,20 +4,16 @@ import { useState, useEffect } from 'react';
 import Link from "next/link";
 import { ArrowRight, ShoppingBag, Scissors, MapPin } from "lucide-react";
 
-// Array de imágenes que rotarán en el fondo
 const BACKGROUNDS = [
     {
-        // Imagen 2: Ciudad de Iquitos (La foto que elegiste de Pexels)
         url: "https://images.pexels.com/photos/20609598/pexels-photo-20609598.jpeg?auto=compress&cs=tinysrgb&w=1920&q=80",
         alt: "Vista de la ciudad de Iquitos"
     },
     {
-        // Imagen 1: Moda y frescura (Estilo de vida)
         url: "https://images.unsplash.com/photo-1441984904996-e0b6ba687e04?q=80&w=2070&auto=format&fit=crop",
         alt: "Moda y estilo en Iquitos"
     },
     {
-        // Imagen 3: Ropa en percheros (Variedad de Marketplace)
         url: "https://images.unsplash.com/photo-1567401893414-76b7b1e5a7a5?q=80&w=2070&auto=format&fit=crop",
         alt: "Catálogo de prendas locales"
     }
@@ -26,7 +22,6 @@ const BACKGROUNDS = [
 export function Hero() {
     const [currentBg, setCurrentBg] = useState(0);
 
-    // Efecto para cambiar la imagen cada 5 segundos
     useEffect(() => {
         const timer = setInterval(() => {
             setCurrentBg((prev) => (prev + 1) % BACKGROUNDS.length);
@@ -37,7 +32,6 @@ export function Hero() {
     return (
         <section className="relative min-h-[80vh] flex items-center overflow-hidden bg-gray-900">
 
-            {/* --- FONDO DINÁMICO (SLIDER) --- */}
             {BACKGROUNDS.map((bg, index) => (
                 <div
                     key={index}
@@ -53,31 +47,26 @@ export function Hero() {
                 </div>
             ))}
 
-            {/* Capa oscura (Overlay) para asegurar que el texto blanco siempre se lea perfecto */}
             <div className="absolute inset-0 bg-gradient-to-r from-gray-900/90 via-gray-900/60 to-transparent z-10" />
 
-            {/* --- CONTENIDO DE TEXTO --- */}
             <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 relative z-20 w-full pt-12 pb-20">
                 <div className="max-w-3xl animate-fade-in-up">
 
-                    {/* Badge de Localidad */}
                     <div className="inline-flex items-center gap-2 bg-green-500/20 text-green-300 px-4 py-2 rounded-full font-medium text-sm mb-6 border border-green-400/30 backdrop-blur-sm">
                         <MapPin size={16} />
                         <span>Talento 100% de Iquitos, Loreto</span>
                     </div>
 
-                    {/* Titular Principal del Marketplace */}
+                    {/* 👇 TITULAR ACTUALIZADO */}
                     <h1 className="text-4xl sm:text-5xl lg:text-7xl font-black text-white tracking-tight mb-6 leading-[1.1]">
-                        El Mercado de la <br />
-                        <span className="text-green-400">Moda Loretana</span>
+                        Viste a tu medida con <br />
+                        <span className="text-green-400">AME</span>
                     </h1>
 
-                    {/* Descripción */}
                     <p className="text-lg md:text-xl text-gray-200 mb-10 leading-relaxed max-w-2xl">
                         Conectamos a las mejores marcas locales y sastres expertos contigo. Descubre prendas únicas listas para usar o diseña tu ropa a tu medida en un solo lugar.
                     </p>
 
-                    {/* Botones de Acción Claras */}
                     <div className="flex flex-col sm:flex-row gap-4">
                         <Link
                             href="/search?category=READY_MADE"
@@ -97,7 +86,6 @@ export function Hero() {
                         </Link>
                     </div>
 
-                    {/* Indicadores del Slider (Puntitos) */}
                     <div className="flex items-center gap-2 mt-16">
                         {BACKGROUNDS.map((_, index) => (
                             <button
