@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link";
-import Image from "next/image"; // 👈 Importamos Image
+import Image from "next/image";
 import { ShoppingBag, User } from "lucide-react";
 import { CommandSearch } from "@/components/search/command-search";
 import { useCart } from "@/store/cart";
@@ -13,14 +13,14 @@ export function Navbar() {
         <nav className="sticky top-0 z-50 w-full border-b border-gray-100 bg-white shadow-sm">
             <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
 
-                {/* 👇 Logo Actualizado, Más Grande y Más Abajo */}
+                {/* 👇 FIX: Se eliminó el "mt-3" para que el logo quede perfectamente centrado en la barra */}
                 <Link href="/" className="flex items-center gap-2 shrink-0 group">
                     <Image
                         src="/logo.png"
                         alt="Logo Araceli Moda y Estilos"
                         width={160}
                         height={55}
-                        className="object-contain transition-transform group-hover:scale-105 mt-3"
+                        className="object-contain transition-transform group-hover:scale-105"
                         priority
                     />
                 </Link>

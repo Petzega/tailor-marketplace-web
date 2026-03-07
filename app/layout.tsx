@@ -7,8 +7,8 @@ import { CartSheet } from "@/components/cart/cart-sheet"; // 👈 Importamos el 
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-    title: "Araceli Moda y Estilos",
-    description: "Marketplace de Sastrería - Ropa a medida y servicios de sastrería",
+    title: "AME | Araceli Moda y Estilos",
+    description: "Marketplace de moda y servicios de sastrería",
 };
 
 export default function RootLayout({

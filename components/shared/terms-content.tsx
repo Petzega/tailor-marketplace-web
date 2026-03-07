@@ -7,7 +7,8 @@ export function TermsContent() {
             <section>
                 <h3 className="text-xl font-bold text-gray-900 mb-4">1. Generalidades</h3>
                 <p className="mb-4">
-                    Bienvenido a Stitch & Style. Al realizar un pedido a través de nuestro sitio web y confirmarlo vía WhatsApp, usted acepta estar sujeto a los siguientes términos y condiciones.
+                    {/* 👇 Actualizado a AME */}
+                    Bienvenido a AME. Al realizar un pedido a través de nuestro sitio web y confirmarlo vía WhatsApp, usted acepta estar sujeto a los siguientes términos y condiciones.
                 </p>
             </section>
 
@@ -60,7 +61,8 @@ export function TermsContent() {
             <section>
                 <h3 className="text-xl font-bold text-gray-900 mb-4">5. Cambios y Devoluciones</h3>
                 <p className="mb-4">
-                    <strong>Para prendas de catálogo (Ready-to-wear):</strong> En Stitch & Style <strong>no realizamos devoluciones de dinero</strong>. Únicamente se aceptan solicitudes de cambio de talla o modelo dentro de los primeros <strong>7 días calendario</strong> posteriores a la recepción de su pedido.
+                    {/* 👇 Actualizado a AME */}
+                    <strong>Para prendas de catálogo (Ready-to-wear):</strong> En AME <strong>no realizamos devoluciones de dinero</strong>. Únicamente se aceptan solicitudes de cambio de talla o modelo dentro de los primeros <strong>7 días calendario</strong> posteriores a la recepción de su pedido.
                 </p>
 
                 <p className="mb-4">

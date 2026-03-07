@@ -7,7 +7,8 @@ export function PrivacyContent() {
             <section>
                 <h3 className="text-xl font-bold text-gray-900 mb-4">1. Generalidades</h3>
                 <p className="mb-4">
-                    En <strong>Stitch & Style</strong>, valoramos y respetamos tu privacidad. Esta Política de Privacidad explica cómo recopilamos, utilizamos, protegemos y compartimos tu información personal cuando visitas nuestro sitio web y utilizas nuestros servicios. Al navegar por nuestro catálogo y comunicarte con nosotros vía WhatsApp, aceptas las prácticas descritas en este documento.
+                    {/* 👇 Actualizado a AME: Araceli Moda y Estilos */}
+                    En <strong>AME: Araceli Moda y Estilos</strong>, valoramos y respetamos tu privacidad. Esta Política de Privacidad explica cómo recopilamos, utilizamos, protegemos y compartimos tu información personal cuando visitas nuestro sitio web y utilizas nuestros servicios. Al navegar por nuestro catálogo y comunicarte con nosotros vía WhatsApp, aceptas las prácticas descritas en este documento.
                 </p>
             </section>
 
@@ -41,7 +42,8 @@ export function PrivacyContent() {
                 <h3 className="text-xl font-bold text-gray-900 mb-4">4. Protección de Datos Financieros</h3>
                 <div className="bg-blue-50 p-5 sm:p-6 rounded-2xl border border-blue-100 text-blue-800 my-6 shadow-sm">
                     <p>
-                        Para garantizar tu máxima seguridad, <strong>Stitch & Style no solicita, procesa ni almacena datos de tarjetas de crédito o débito a través de este sitio web</strong>. Todos los pagos se realizan de manera externa mediante transferencias bancarias (BCP, Interbank, BBVA), billeteras digitales (Yape, Plin) o pago en efectivo contra entrega.
+                        {/* 👇 Actualizado a AME */}
+                        Para garantizar tu máxima seguridad, <strong>AME no solicita, procesa ni almacena datos de tarjetas de crédito o débito a través de este sitio web</strong>. Todos los pagos se realizan de manera externa mediante transferencias bancarias (BCP, Interbank, BBVA), billeteras digitales (Yape, Plin) o pago en efectivo contra entrega.
                     </p>
                 </div>
             </section>

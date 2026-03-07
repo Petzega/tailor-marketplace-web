@@ -28,15 +28,14 @@ export interface WhatsAppMessageData {
 export function generateWhatsAppTicket(data: WhatsAppMessageData): string {
     const { customerData, items, deliveryMethod, paymentMethod, subtotal, deliveryCost, finalTotal } = data;
 
-    let message = `*🛒 NUEVO PEDIDO - STITCH & STYLE*\n\n`;
+    let message = `*🛒 NUEVO PEDIDO - AME: Araceli Moda y Estilos*\n\n`;
 
     message += `*👤 Datos del Cliente:*\n`;
     message += `Nombre: ${customerData.name}\n`;
     message += `Celular: ${customerData.phone}\n`;
     message += `Entrega: ${deliveryMethod === "DELIVERY" ? "Envío a Domicilio" : "Retiro en Tienda"}\n`;
 
-    if (deliveryMethod === "DELIVERY") {
-        message += `Dirección: ${customerData.address}\n`;
+    if (deliveryMethod === "DELIVERY") {        message += `Dirección: ${customerData.address}\n`;
         if (customerData.reference) message += `Referencia: ${customerData.reference}\n`;
     }
 

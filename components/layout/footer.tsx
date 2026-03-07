@@ -1,5 +1,5 @@
 import Link from "next/link";
-import Image from "next/image"; // 👈 Importamos Image
+import Image from "next/image";
 import { Facebook, Instagram, Laptop, ArrowRight, Store } from "lucide-react";
 
 export function Footer() {
@@ -11,17 +11,22 @@ export function Footer() {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-10 lg:gap-8 mb-10 lg:mb-16">
 
                     <div className="lg:col-span-4 lg:pr-6">
-                        <div className="flex items-center gap-2 mb-6">
-                            {/* 👇 LOGO ACTUALIZADO */}
+
+                        {/* 👇 Logo más grande para reducir el espacio en blanco */}
+                        <Link href="/" className="flex items-center shrink-0 group">
                             <Image
                                 src="/logo.png"
-                                alt="Logo AME"
-                                width={140}
-                                height={48}
-                                className="object-contain"
+                                alt="Logo Araceli Moda y Estilos"
+                                width={185} // 👈 Aumentamos el ancho (antes 160)
+                                height={60} // 👈 Aumentamos el alto (antes 55). 60px llena casi toda la barra de 64px.
+                                className="object-contain transition-transform group-hover:scale-105"
+                                priority
                             />
-                        </div>
-                        <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider mb-3">Quiénes Somos</h3>
+                        </Link>
+
+                        <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider mb-3">
+                            Quiénes Somos
+                        </h3>
                         <p className="text-gray-500 text-sm leading-relaxed mb-6">
                             Nacimos en Iquitos con la visión de redefinir la moda local. Más que ropa, creamos confianza a través de prendas listas para usar y un servicio de sastrería a medida con la más alta calidad y atención al detalle.
                         </p>
@@ -84,7 +89,6 @@ export function Footer() {
                                     Si tienes una marca o confeccionas prendas, exhibe tus productos aquí y llega a más clientes.
                                 </p>
                             </div>
-                            {/* 👇 URL ACTUALIZADA */}
                             <a
                                 href="https://wa.me/51992431513?text=Hola,%20me%20gustaría%20recibir%20información%20para%20vender%20mis%20productos%20en%20AME"
                                 target="_blank"
@@ -110,7 +114,6 @@ export function Footer() {
                                     Diseñamos y desarrollamos tiendas online modernas y rápidas para hacer crecer tus ventas.
                                 </p>
                             </div>
-                            {/* 👇 URL ACTUALIZADA */}
                             <a
                                 href="https://wa.me/51992431513?text=Hola,%20me%20gustó%20la%20página%20de%20AME%20y%20quisiera%20cotizar%20una%20web%20para%20mi%20negocio"
                                 target="_blank"
@@ -126,7 +129,6 @@ export function Footer() {
 
                 <div className="border-t border-gray-100 pt-8 flex flex-col md:flex-row justify-between items-center gap-4 text-center md:text-left">
                     <p className="text-sm text-gray-500 font-medium">
-                        {/* 👇 COPYRIGHT ACTUALIZADO */}
                         &copy; {new Date().getFullYear()} AME: Araceli Moda y Estilos. Todos los derechos reservados.
                     </p>
                     <p className="text-sm text-gray-400 flex items-center justify-center md:justify-end gap-1.5">
