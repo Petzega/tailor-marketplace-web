@@ -13,12 +13,12 @@ export function Footer() {
                     <div className="lg:col-span-4 lg:pr-6">
 
                         {/* 👇 Logo más grande para reducir el espacio en blanco */}
-                        <Link href="/" className="flex items-center shrink-0 group">
+                        <Link href="/" className="flex items-center shrink-0 group mb-4">
                             <Image
                                 src="/logo.png"
                                 alt="Logo Araceli Moda y Estilos"
-                                width={185} // 👈 Aumentamos el ancho (antes 160)
-                                height={60} // 👈 Aumentamos el alto (antes 55). 60px llena casi toda la barra de 64px.
+                                width={185}
+                                height={60}
                                 className="object-contain transition-transform group-hover:scale-105"
                                 priority
                             />
@@ -30,15 +30,29 @@ export function Footer() {
                         <p className="text-gray-500 text-sm leading-relaxed mb-6">
                             Nacimos en Iquitos con la visión de redefinir la moda local. Más que ropa, creamos confianza a través de prendas listas para usar y un servicio de sastrería a medida con la más alta calidad y atención al detalle.
                         </p>
-                        <div className="flex gap-3">
-                            <a href="#" className="p-2.5 bg-gray-50 border border-gray-200 rounded-full text-gray-500 hover:text-green-600 hover:border-green-200 hover:bg-green-50 transition-all shadow-sm">
-                                <span className="sr-only">Instagram</span>
-                                <Instagram size={18} />
-                            </a>
-                            <a href="#" className="p-2.5 bg-gray-50 border border-gray-200 rounded-full text-gray-500 hover:text-green-600 hover:border-green-200 hover:bg-green-50 transition-all shadow-sm">
-                                <span className="sr-only">Facebook</span>
-                                <Facebook size={18} />
-                            </a>
+
+                        {/* 👇 Redes Sociales con Badge "Próximamente" (Llamativo y a la izquierda) */}
+                        <div className="flex flex-col gap-2">
+                            <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">
+                                Nuestras Redes
+                            </span>
+                            <div className="flex items-center gap-3 relative">
+                                {/* 👇 Badge movido a la izquierda y con nuevo color */}
+                                <span className="bg-amber-100 text-amber-700 text-[10px] font-black px-2 py-1 rounded-md border border-amber-200 tracking-wide shadow-sm">
+                                    PRÓXIMAMENTE
+                                </span>
+
+                                <div className="flex gap-3 opacity-50">
+                                    <div className="p-2.5 bg-gray-50 border border-gray-200 rounded-full text-gray-400 cursor-not-allowed shadow-sm">
+                                        <span className="sr-only">Instagram</span>
+                                        <Instagram size={18} />
+                                    </div>
+                                    <div className="p-2.5 bg-gray-50 border border-gray-200 rounded-full text-gray-400 cursor-not-allowed shadow-sm">
+                                        <span className="sr-only">Facebook</span>
+                                        <Facebook size={18} />
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
