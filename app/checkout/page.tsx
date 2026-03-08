@@ -4,10 +4,11 @@ import { useCart } from "@/store/cart";
 import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowLeft, MessageCircle, AlertCircle, Store, Truck } from "lucide-react";
+import { ArrowLeft, MessageCircle, AlertCircle, Store, Truck, Loader2 } from "lucide-react";
 import { Footer } from "@/components/layout/footer";
 import { generateWhatsAppTicket } from "@/lib/whatsapp";
 import { TermsModal } from "@/components/checkout/terms-modal";
+import { createOrder } from "@/actions/orders"; // 👈 Importamos el Server Action
 
 const WHATSAPP_NUMBER = "51992431513";
 const DELIVERY_COST = 10.00;
@@ -34,6 +35,9 @@ export default function CheckoutPage() {
     const [showTermsModal, setShowTermsModal] = useState(false);
     const [termsAccepted, setTermsAccepted] = useState(false);
 
+    // 👇 Nuevo estado para controlar la carga
+    const [isProcessing, setIsProcessing] = useState(false);
+
     const subtotal = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
     const finalTotal = deliveryMethod === "DELIVERY" ? subtotal + DELIVERY_COST : subtotal;
 
@@ -42,18 +46,52 @@ export default function CheckoutPage() {
         setShowTermsModal(false);
     };
 
-    const handleWhatsAppCheckout = (e: React.FormEvent) => {
+    // 👇 Función principal actualizada
+    const handleWhatsAppCheckout = async (e: React.FormEvent) => {
         e.preventDefault();
 
         if (items.length === 0) return;
 
-        const encodedMessage = generateWhatsAppTicket({
-            customerData, items, deliveryMethod, paymentMethod, subtotal, deliveryCost: DELIVERY_COST, finalTotal
-        });
+        setIsProcessing(true); // Bloqueamos el botón mientras se guarda
 
-        const whatsappUrl = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodedMessage}`;
-        window.open(whatsappUrl, '_blank');
-        clearCart();
+        try {
+            // 1. Guardamos la orden en la Base de Datos usando el Server Action
+            const response = await createOrder({
+                customerData,
+                items,
+                deliveryMethod,
+                paymentMethod,
+                subtotal,
+                deliveryCost: deliveryMethod === "DELIVERY" ? DELIVERY_COST : 0,
+                finalTotal
+            });
+
+            if (!response.success) {
+                alert("Hubo un problema al registrar tu orden. Inténtalo nuevamente.");
+                setIsProcessing(false);
+                return;
+            }
+
+            // 2. Generamos el texto del ticket actual
+            const encodedMessage = generateWhatsAppTicket({
+                customerData, items, deliveryMethod, paymentMethod, subtotal, deliveryCost: DELIVERY_COST, finalTotal
+            });
+
+            // 3. Le inyectamos el Código de Orden al inicio
+            const orderPrefix = encodeURIComponent(`¡Hola AME! Quiero confirmar mi pedido *#${response.orderId}*.\n\n`);
+
+            // 4. Armamos la URL y abrimos WhatsApp
+            const whatsappUrl = `https://wa.me/${WHATSAPP_NUMBER}?text=${orderPrefix}${encodedMessage}`;
+            window.open(whatsappUrl, '_blank');
+
+            // 5. Vaciamos el carrito local
+            clearCart();
+        } catch (error) {
+            console.error("Error al procesar el checkout:", error);
+            alert("Error de conexión al procesar el pedido. Revisa tu internet y vuelve a intentar.");
+        } finally {
+            setIsProcessing(false); // Desbloqueamos por si el cliente regresa a la ventana
+        }
     };
 
     if (items.length === 0) {
@@ -278,14 +316,13 @@ export default function CheckoutPage() {
                                             checked={termsAccepted}
                                             onChange={(e) => {
                                                 if (e.target.checked) {
-                                                    // Si intenta marcarlo, NO LO HACEMOS, le lanzamos el modal
                                                     setShowTermsModal(true);
                                                 } else {
-                                                    // Si ya estaba marcado y lo quiere quitar, lo dejamos
                                                     setTermsAccepted(false);
                                                 }
                                             }}
                                             className="peer h-4 w-4 cursor-pointer appearance-none rounded border-2 border-gray-300 checked:border-green-600 checked:bg-green-600 transition-all"
+                                            disabled={isProcessing}
                                         />
                                         <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-white opacity-0 peer-checked:opacity-100 pointer-events-none">
                                             <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
@@ -299,19 +336,28 @@ export default function CheckoutPage() {
                                 </label>
                             </div>
 
-                            {/* 👇 BOTÓN VERDE BLOQUEADO INTELIGENTEMENTE */}
+                            {/* 👇 BOTÓN VERDE ACTUALIZADO CON ESTADO DE CARGA */}
                             <button
                                 type="submit"
                                 form="checkout-form"
-                                disabled={!termsAccepted}
+                                disabled={!termsAccepted || isProcessing}
                                 className={`w-full flex items-center justify-center gap-2 rounded-xl px-6 py-4 text-base font-bold shadow-lg transition-all active:scale-[0.98] ${
-                                    termsAccepted
+                                    termsAccepted && !isProcessing
                                         ? "bg-[#25D366] hover:bg-[#20bd5a] text-white shadow-green-200"
                                         : "bg-gray-200 text-gray-400 cursor-not-allowed shadow-none"
                                 }`}
                             >
-                                <MessageCircle size={20} />
-                                {termsAccepted ? "Hacer Pedido por WhatsApp" : "Acepta los términos para continuar"}
+                                {isProcessing ? (
+                                    <>
+                                        <Loader2 className="animate-spin" size={20} />
+                                        Generando tu orden...
+                                    </>
+                                ) : (
+                                    <>
+                                        <MessageCircle size={20} />
+                                        {termsAccepted ? "Hacer Pedido por WhatsApp" : "Acepta los términos para continuar"}
+                                    </>
+                                )}
                             </button>
 
                             <p className="mt-4 text-xs text-center text-gray-500">

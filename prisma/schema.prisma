@@ -30,6 +30,8 @@ model Product {
 
   gallery ProductImage[]
   sizes   ProductSize[] // Relación con las tallas específicas
+
+  orderItems OrderItem[]
 }
 
 // 👇 NUEVA TABLA: Para manejar el stock independiente por talla
@@ -51,4 +53,58 @@ model ProductImage {
   productId String
   product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
+}
+
+// ==========================================
+// 📦 SISTEMA DE ÓRDENES Y VENTAS
+// ==========================================
+
+enum OrderStatus {
+  PENDING
+  IN_PROCESS
+  DELIVERED_STORE
+  DELIVERED_DELIVERY
+  CANCELLED
+}
+
+model Order {
+  id            String      @id @default(cuid())
+  shortId       String      @unique // Código visible para el cliente: "ORD-12345"
+  token         String      @unique // Token de seguridad para el Enlace Mágico
+
+  // Datos del Cliente
+  customerName      String
+  customerPhone     String
+  customerAddress   String?   // Opcional porque puede ser recojo en tienda
+  customerReference String?   // Opcional
+
+  // Detalles del Envío y Pago
+  deliveryMethod    String    // Ej: "STORE" o "DELIVERY"
+  paymentMethod     String    // Ej: "Yape", "Plin", "Efectivo"
+
+  // Totales
+  subtotal          Float
+  deliveryCost      Float     @default(0)
+  total             Float
+  status            OrderStatus @default(PENDING)
+
+  items             OrderItem[] // Los productos de esta orden
+
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+}
+
+model OrderItem {
+  id        String  @id @default(cuid())
+
+  orderId   String
+  order     Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  // Relación opcional con el producto del catálogo (puede ser null si el producto fue eliminado)
+  productId String?
+  product   Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+
+  quantity  Int
+  price     Float   // Congelamos el precio al momento de la compra
+  size      String? // Guardamos qué talla eligió
 }
