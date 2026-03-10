@@ -43,3 +43,6 @@ next-env.d.ts
 # IDE
 .idea/workspace.xml
 .idea/
+
+# n8n
+ame-bot/n8n_data/
