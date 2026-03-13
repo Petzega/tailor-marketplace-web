@@ -1,0 +1,72 @@
+{
+  "name": "ame-workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "whatsapp",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        96,
+        48
+      ],
+      "id": "b4c09f0a-67e6-4910-b916-56b551e1ce56",
+      "name": "Webhook",
+      "webhookId": "28c8e546-a328-432c-9801-a757b7ff8aee"
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "phoneNumberId": "=1004630199405725",
+        "recipientPhoneNumber": "={{ $json.body.entry[0].changes[0].value.messages[0].from }}",
+        "textBody": "Hola, gracias por contactar a AME: Araceli Moda y Estilos. ¿En qué puedo ayudarte?",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1.1,
+      "position": [
+        304,
+        48
+      ],
+      "id": "569add42-7b9d-4b4d-8e8c-1bef1633a4cd",
+      "name": "Send message",
+      "webhookId": "471cda1b-c11f-4f60-a153-7e653b456518",
+      "credentials": {
+        "whatsAppApi": {
+          "id": "lJYfY0b9cAQFDX3D",
+          "name": "WhatsApp account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Send message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "2aa79db8-1856-4e08-97a0-afefc9276fd9",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "a62514452862176a8ddd3ca84677971cab71795d49cb29a86bd784c9f3c46fa3"
+  },
+  "id": "iORwyRH6D1BIB8Vy",
+  "tags": []
+}
