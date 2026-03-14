@@ -47,3 +47,12 @@ npx prisma db seed
 
 # 4. Levantar el servidor
 npm run dev
+
+# 5. levantar ngrok
+ngrok http 5678
+
+# 6. levantar docker
+cd (a la carpeta donde esta el docker-compose.yml)
+docker compose up -d
+docker compose down || docker compose down -v <- elimina todo el docker
+docker volume rm ame-bot_ame_dbc <- elimina carpetas del volume

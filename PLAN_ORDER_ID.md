@@ -69,3 +69,10 @@ Orquestación del flujo de comunicación entre WhatsApp y la base de datos de la
     * **Filtro (Regex):** Identificar cadenas que coincidan con `#ORD-[A-Z0-9]+`.
     * **Acción 1 (Update):** Al confirmar o entregar un pedido, enviar un HTTP `POST` al Webhook de la Fase 4 para actualizar la web.
     * **Acción 2 (Notificación):** Enviar mensaje automático al cliente con su Enlace Mágico: *"Tu pedido avanza. Síguelo aquí: https://ame-store.com/pedido/ORD-12345?token=abc-123"*.
+
+### Token meta:
+EAAXr73hKrXcBQ3sQOp37ndwml4FmPeU4H30RB9f6p9h1ZCrrwtWfO9cLZAZAO9ekAJ32LaXZAZCkeeWPuPxnQ8t3ZC9QLRznUxwZAzENSiKYQOjzw7EN6Rv03OPcZA2mOZCaKo9foxba1w5pNId77b8IteHonLF6LvfDzRzPXgwGkXo2cFt1JYUZCKrNQAM41N34mtFvFzYa6Pa8BkxZAMOs6H4XevFxkqdnsKVjEIXIDe6HtqT5YOYxGD4T3ZCSrz86sUzPelrYADZBTUaHTlNYW7ayQ0OJb
+### Identificador de número de teléfono: 
+1004630199405725
+### Identificador de la cuenta de WhatsApp Business:
+1553824412360512
