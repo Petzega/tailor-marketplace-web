@@ -1,0 +1,209 @@
+{
+  "name": "ame-workflow-final-qa",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "whatsapp",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -688,
+        336
+      ],
+      "id": "bdb2550f-a7a5-4b3d-b41c-493cb465e98a",
+      "name": "Webhook",
+      "webhookId": "1268ef1e-285f-4e32-af54-0385bbf1e689"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.body.entry[0].changes[0].value.messages[0].text.body }}",
+                    "rightValue": "catal[oó]go",
+                    "operator": {
+                      "type": "string",
+                      "operation": "regex"
+                    },
+                    "id": "f7769ccd-f7b3-4ba0-920b-e463c0076fd7"
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.body.entry[0].changes[0].value.messages[0].text.body }}",
+                    "rightValue": "direcci[oó]n",
+                    "operator": {
+                      "type": "string",
+                      "operation": "regex"
+                    },
+                    "id": "9cd3828e-aed3-42d9-bfb5-734221c5963d"
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra",
+          "ignoreCase": true
+        }
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        -416,
+        320
+      ],
+      "id": "540adbfb-b610-49ed-b4ac-71657dba1bc7",
+      "name": "Switch"
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "phoneNumberId": "=1004630199405725",
+        "recipientPhoneNumber": "={{ $json.body.entry[0].changes[0].value.messages[0].from }}",
+        "textBody": "=¡Hola! ✨ Bienvenido a *AME: Araceli Moda y Estilos*. \n\nPuedes ver nuestro catálogo aquí: https://tu-catalogo-ame.com",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1.1,
+      "position": [
+        -112,
+        112
+      ],
+      "id": "a2a51058-b30d-4b7a-a755-b66a2a11a7b6",
+      "name": "Respuesta Catálogo",
+      "webhookId": "9aa744b2-0813-4f46-9153-f3bea40cf6d5",
+      "credentials": {
+        "whatsAppApi": {
+          "id": "lJYfY0b9cAQFDX3D",
+          "name": "WhatsApp account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "phoneNumberId": "=1004630199405725",
+        "recipientPhoneNumber": "={{ $json.body.entry[0].changes[0].value.messages[0].from }}",
+        "textBody": "=📍 *Ubicación AME*\n\nEstamos en Lima, Perú. Atendemos de 9 AM a 7 PM.",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1.1,
+      "position": [
+        -112,
+        320
+      ],
+      "id": "c7740737-95e7-4a0c-ab44-84f9c0d39ebb",
+      "name": "Respuesta Dirección",
+      "webhookId": "ac707cc2-e9d8-443b-83e1-8a60ecb41b03",
+      "credentials": {
+        "whatsAppApi": {
+          "id": "lJYfY0b9cAQFDX3D",
+          "name": "WhatsApp account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "phoneNumberId": "=1004630199405725",
+        "recipientPhoneNumber": "={{ $json.body.entry[0].changes[0].value.messages[0].from }}",
+        "textBody": "=Hola {{ $json.body.entry[0].changes[0].value.contacts[0].profile.name }}, gracias por escribir a *AME*. 😊 ¿En qué puedo ayudarte?",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1.1,
+      "position": [
+        -112,
+        512
+      ],
+      "id": "7443530d-d9ca-4aa0-b97b-77fb6320649b",
+      "name": "Respuesta General",
+      "webhookId": "5a045fbe-a745-4872-84d6-4c3346972e7a",
+      "credentials": {
+        "whatsAppApi": {
+          "id": "lJYfY0b9cAQFDX3D",
+          "name": "WhatsApp account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch": {
+      "main": [
+        [
+          {
+            "node": "Respuesta Catálogo",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respuesta Dirección",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respuesta General",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "a4299dc7-671b-4bac-affa-602d73e3d825",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "a62514452862176a8ddd3ca84677971cab71795d49cb29a86bd784c9f3c46fa3"
+  },
+  "id": "udLu5di7ADlinMri",
+  "tags": []
+}
