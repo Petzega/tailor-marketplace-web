@@ -19,7 +19,7 @@ export async function GET(
         // Buscamos el último pedido asociado a ese documento
         const order = await db.order.findFirst({
             where: { customerDocument: documento },
-            orderBy: { createdAt: 'desc' } // 👈 CRÍTICO: Trae la compra más reciente
+            orderBy: { createdAt: 'desc' }
         });
 
         if (!order) {
