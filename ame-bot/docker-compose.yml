@@ -18,11 +18,7 @@ services:
     ports:
       - 5678:5678
     environment:
-      - N8N_HOST=localhost
-      - N8N_PORT=5678
-      - N8N_PROTOCOL=http
-      - NODE_ENV=production
-      - WEBHOOK_URL=http://localhost:5678/
+      - WEBHOOK_URL=https://epeiric-nova-poetastric.ngrok-free.dev
       - GENERIC_TIMEZONE=America/Lima
     volumes:
       - n8n_data:/home/node/.n8n

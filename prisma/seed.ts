@@ -12,7 +12,7 @@ const getPastDate = (daysAgo: number) => {
 async function main() {
     console.log('🧹 Limpiando la base de datos...');
 
-    // 👇 NUEVO: Limpiamos las órdenes primero para evitar errores de relación
+    // Limpiamos las órdenes primero para evitar errores de relación
     await prisma.orderItem.deleteMany();
     await prisma.order.deleteMany();
 
@@ -234,12 +234,13 @@ async function main() {
         const product1 = dbProducts[0];
         const product2 = dbProducts[1];
 
-        // Orden 1: Pendiente y Delivery
+        // Orden 1: Pendiente y Delivery (Probando con DNI de 8 dígitos)
         await prisma.order.create({
             data: {
                 shortId: 'ORD-260307001',
                 token: 'token-magico-123',
                 customerName: 'María García',
+                customerDocument: '74125896',     // DNI de prueba
                 customerPhone: '999888777',
                 customerAddress: 'Av. Las Flores 456, Surco',
                 customerReference: 'Frente al parque',
@@ -258,12 +259,13 @@ async function main() {
             }
         });
 
-        // Orden 2: En Proceso y Retiro en tienda
+        // Orden 2: En Proceso y Retiro en tienda (Probando con RUC de 11 dígitos)
         await prisma.order.create({
             data: {
                 shortId: 'ORD-260307002',
                 token: 'token-magico-456',
                 customerName: 'Juan Pérez',
+                customerDocument: '10741258961',  // RUC de prueba
                 customerPhone: '911222333',
                 deliveryMethod: 'STORE',
                 paymentMethod: 'Efectivo',
