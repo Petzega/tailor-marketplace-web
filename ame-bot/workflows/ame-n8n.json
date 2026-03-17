@@ -1,0 +1,78 @@
+{
+  "name": "ame-n8n",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "bfa58811-530b-45c4-bdd6-eac53f432424",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://host.docker.internal:3000/api/webhooks/orders",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBearerAuth",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "orderId",
+              "value": "ORD-260307002"
+            },
+            {
+              "name": "newStatus",
+              "value": "CANCELLED"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        208,
+        0
+      ],
+      "id": "d6730ba4-5771-4576-b027-5009883fae47",
+      "name": "HTTP Request",
+      "credentials": {
+        "httpBearerAuth": {
+          "id": "cL6WkrvYM11pCllP",
+          "name": "Bearer Auth account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "25bf83c4-a86e-4613-a1aa-47c7d4fc7f22",
+  "meta": {
+    "instanceId": "f25f07feb80ea687329489b562b04bbd43c644fb13608299150c324e690ea081"
+  },
+  "id": "EmJei6Ly2e72hpCB",
+  "tags": []
+}
