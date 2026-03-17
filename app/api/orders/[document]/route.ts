@@ -11,14 +11,15 @@ const statusTraduccion: Record<string, string> = {
 
 export async function GET(
     request: Request,
-    { params }: { params: { documento: string } }
+    // CORRECCIÓN: Usamos 'document' para que coincida con la carpeta [document]
+    { params }: { params: { document: string } }
 ) {
     try {
-        const { documento } = params;
+        const { document } = params;
 
         // Buscamos el último pedido asociado a ese documento
         const order = await db.order.findFirst({
-            where: { customerDocument: documento },
+            where: { customerDocument: document },
             orderBy: { createdAt: 'desc' }
         });
 
