@@ -1,3 +1,5 @@
+version: '3.8'
+
 services:
   postgres:
     image: postgres:15
@@ -11,6 +13,47 @@ services:
     volumes:
       - ame_db:/var/lib/postgresql/data
     restart: always
+    networks:
+      - ame_network
+
+  redis:
+    image: redis:alpine
+    container_name: ame-redis
+    command: redis-server --appendonly yes
+    restart: always
+    volumes:
+      - ame_redis:/data
+    networks:
+      - ame_network
+
+  evolution-api:
+    image: atendai/evolution-api:latest
+    container_name: ame-evolution
+    ports:
+      - 8080:8080
+    environment:
+      - SERVER_URL=http://localhost:8080
+      - AUTHENTICATION_API_KEY=tu_api_key_secreta_aqui # Cambia esto por una contraseña segura
+      - DATABASE_PROVIDER=postgresql
+      - DATABASE_CONNECTION_URI=postgresql://postgres:ame-secreto@postgres:5432/evolution?schema=public
+      - REDIS_URI=redis://redis:6379
+    depends_on:
+      - postgres
+      - redis
+    restart: always
+    networks:
+      - ame_network
+
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ame-ollama
+    ports:
+      - 11434:11434
+    volumes:
+      - ollama_data:/root/.ollama
+    restart: always
+    networks:
+      - ame_network
 
   n8n:
     image: docker.n8n.io/n8nio/n8n
@@ -20,10 +63,23 @@ services:
     environment:
       - WEBHOOK_URL=https://epeiric-nova-poetastric.ngrok-free.dev
       - GENERIC_TIMEZONE=America/Lima
+      # Variables para que n8n confíe en las peticiones locales
+      - N8N_HOST=0.0.0.0
+      - N8N_PORT=5678
     volumes:
       - n8n_data:/home/node/.n8n
+    depends_on:
+      - postgres
     restart: always
+    networks:
+      - ame_network
 
 volumes:
   ame_db:
+  ame_redis:
   n8n_data:
+  ollama_data:
+
+networks:
+  ame_network:
+    driver: bridge

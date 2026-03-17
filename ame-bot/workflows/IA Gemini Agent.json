@@ -1,0 +1,328 @@
+{
+  "name": "IA Gemini Agent",
+  "nodes": [
+    {
+      "parameters": {
+        "updates": [
+          "messages"
+        ],
+        "options": {}
+      },
+      "type": "n8n-nodes-base.whatsAppTrigger",
+      "typeVersion": 1,
+      "position": [
+        -224,
+        -16
+      ],
+      "id": "f6b60067-b15c-487a-9a2d-c531982084c9",
+      "name": "WhatsApp Trigger",
+      "webhookId": "58469c13-217c-4ab3-ba6b-2d249dab890b",
+      "credentials": {
+        "whatsAppTriggerApi": {
+          "id": "AyIpqS2PtVYv0slK",
+          "name": "WhatsApp OAuth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "COMPORTAMIENTO OBLIGATORIO:\n\nEres un asistente directo y conciso.\n\nNo añadas notas, suposiciones, explicaciones no solicitadas ni consejos adicionales al final de tus mensajes.\n\nSolo pregunta por el número de documento de forma directa. No justifiques por qué lo necesitas.\n\nSi no tienes datos reales de una herramienta, no intentes inventarlos ni adivinarlos.",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        280,
+        184
+      ],
+      "id": "f6855c35-c96a-432a-ba8e-35c2a15fa40a",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $json.messages[0].from }}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        352,
+        408
+      ],
+      "id": "9e963817-133f-4e01-9328-c8967fbeb1a3",
+      "name": "Simple Memory"
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "phoneNumberId": "=1004630199405725",
+        "recipientPhoneNumber": "+51992431513",
+        "textBody": "={{ $json.output }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1.1,
+      "position": [
+        688,
+        184
+      ],
+      "id": "60061cff-badc-4ad3-9550-b3cb84f72cd3",
+      "name": "Send message",
+      "webhookId": "98b3434c-2a66-4426-a3f1-a0ef24edbbc1",
+      "credentials": {
+        "whatsAppApi": {
+          "id": "lJYfY0b9cAQFDX3D",
+          "name": "WhatsApp account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "description": "Usa esta herramienta para consultar órdenes. REGLA ESTRICTA: NUNCA ejecutes esta herramienta sin antes tener el número de documento del usuario. Si el usuario pide ver sus órdenes pero no proporciona su número de documento, debes responder preguntándole cuál es su número de documento. NO inventes números. Solo ejecuta la herramienta cuando el usuario te haya dado explícitamente su documento",
+        "workflowId": {
+          "__rl": true,
+          "value": "HLzJS7alUt96i4Ao",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/HLzJS7alUt96i4Ao",
+          "cachedResultName": "Get orders by document"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        480,
+        408
+      ],
+      "id": "d9162d20-88d4-4f56-a10c-7089b8f50d61",
+      "name": "ConsultarOrden",
+      "notesInFlow": false
+    },
+    {
+      "parameters": {
+        "model": "llama3.1:latest",
+        "options": {
+          "keepAlive": "15m"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOllama",
+      "typeVersion": 1,
+      "position": [
+        224,
+        408
+      ],
+      "id": "d33c901a-0219-4778-b2ad-07754df3c277",
+      "name": "Ollama Chat Model",
+      "credentials": {
+        "ollamaApi": {
+          "id": "UJQqs4YlUaouZrdN",
+          "name": "Ollama account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "efcb67ba-36b9-4ade-b276-ce7f8c65377c",
+              "leftValue": "=={{ $json.messages[0].text.body.toLowerCase() }}",
+              "rightValue": "reiniciar",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        0,
+        -16
+      ],
+      "id": "c9a553f8-6f82-465a-b8f9-b1e7f83c4028",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "mode": "delete",
+        "deleteMode": "all"
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryManager",
+      "typeVersion": 1.1,
+      "position": [
+        280,
+        -320
+      ],
+      "id": "4d4fbf2a-e0b2-4993-88a2-cd53c94f1135",
+      "name": "Chat Memory Manager"
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "=={{ $json.messages[0].from }}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        352,
+        -96
+      ],
+      "id": "eb03c35f-375a-47b2-aeef-66abc7a6e0ca",
+      "name": "Simple Memory1"
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "phoneNumberId": "=1004630199405725",
+        "recipientPhoneNumber": "+51992431513",
+        "textBody": "Se ha reiniciado nuestra conversación. ¿En qué te puedo ayudar ahora?",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1.1,
+      "position": [
+        688,
+        -216
+      ],
+      "id": "fd63fb58-5bec-4eab-88f7-ffa608a95f58",
+      "name": "Send message1",
+      "webhookId": "cf1b3b47-3f99-4e79-b7cd-13284ef266e7",
+      "credentials": {
+        "whatsAppApi": {
+          "id": "lJYfY0b9cAQFDX3D",
+          "name": "WhatsApp account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "WhatsApp Trigger": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Send message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ConsultarOrden": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ollama Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Chat Memory Manager",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory1": {
+      "ai_memory": [
+        [
+          {
+            "node": "Chat Memory Manager",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Chat Memory Manager": {
+      "main": [
+        [
+          {
+            "node": "Send message1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "68c37b7e-523a-4037-b75a-2b221393e1cc",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "a62514452862176a8ddd3ca84677971cab71795d49cb29a86bd784c9f3c46fa3"
+  },
+  "id": "PUisszwXyXMX8ntw",
+  "tags": []
+}

@@ -1,0 +1,86 @@
+{
+  "name": "Get orders by document",
+  "nodes": [
+    {
+      "parameters": {
+        "url": "=http://host.docker.internal:3000/api/orders/{{ $json.input }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        224,
+        0
+      ],
+      "id": "448faf52-4c54-48bb-b28a-1fb7beb28cfc",
+      "name": "Sub-flujo Consultar Orden",
+      "alwaysOutputData": false
+    },
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "502d127f-ec97-4092-be63-dc17d8b68403",
+      "name": "When Executed by Another Workflow",
+      "alwaysOutputData": false,
+      "executeOnce": false
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Suponiendo que la respuesta del API está en $json\nconst respuesta = $json;\n\n// Determinar la lista de órdenes (ajusta según la estructura real)\nlet ordenes = [];\nlet cliente = \"desconocido\";\n\nif (Array.isArray(respuesta)) {\n  // Si es un array directamente\n  ordenes = respuesta;\n  cliente = respuesta[0]?.cliente || \"desconocido\";\n} else if (respuesta.orders && Array.isArray(respuesta.orders)) {\n  // Si tiene una propiedad \"orders\"\n  ordenes = respuesta.orders;\n  cliente = respuesta.cliente || \"desconocido\";\n} else if (respuesta.estado) {\n  // Si es una sola orden (como en la sub-ejecución 179)\n  ordenes = [respuesta];\n  cliente = respuesta.nombre_cliente || \"desconocido\";\n} else {\n  // Si no se reconoce, devolver un mensaje de error\n  return { mensaje: \"No se pudo interpretar la respuesta del servicio.\" };\n}\n\nconst cantidad = ordenes.length;\n\n// Construir el mensaje base\nlet mensaje = `El documento ${$json.input} tiene ${cantidad} órdenes`;\n\nif (cantidad === 0) {\n  mensaje = `No se encontraron órdenes para el documento ${$json.input}.`;\n} else if (cantidad === 1) {\n  const estado = ordenes[0].estado || \"estado desconocido\";\n  mensaje += `, la cual se encuentra en \"${estado}\".`;\n} else {\n  // Para múltiples órdenes, podrías listar los estados o solo mencionar la cantidad\n  // Por ejemplo, listar los estados separados por comas\n  const estados = ordenes.map(o => o.estado || \"desconocido\").join(\", \");\n  mensaje += `. Los estados son: ${estados}.`;\n  // O simplemente: mensaje += \".\";\n}\n\n// Devolver el mensaje como salida del nodo\nreturn { mensaje };"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        432,
+        0
+      ],
+      "id": "9c4bf9f9-405b-49b6-be88-c7971ad3760e",
+      "name": "Code in JavaScript"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Sub-flujo Consultar Orden",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sub-flujo Consultar Orden": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "144ea99c-3f8b-4e71-851f-699cb959b375",
+  "meta": {
+    "instanceId": "a62514452862176a8ddd3ca84677971cab71795d49cb29a86bd784c9f3c46fa3"
+  },
+  "id": "HLzJS7alUt96i4Ao",
+  "tags": []
+}

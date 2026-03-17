@@ -281,6 +281,29 @@ async function main() {
                 }
             }
         });
+
+        // Orden 3: En Proceso y Retiro en tienda (Probando con RUC de 11 dígitos)
+        await prisma.order.create({
+            data: {
+                shortId: 'ORD-260317001',
+                token: 'token-magico-789',
+                customerName: 'Juan Pérez',
+                customerDocument: '10741258961',  // RUC de prueba
+                customerPhone: '911222333',
+                deliveryMethod: 'STORE',
+                paymentMethod: 'Yape',
+                subtotal: product2.price * 2,
+                deliveryCost: 0,
+                total: product2.price * 2,
+                status: 'CANCELLED',
+                createdAt: getPastDate(0), // Hoy
+                items: {
+                    create: [
+                        { productId: product2.id, quantity: 2, price: product2.price, size: 'S' }
+                    ]
+                }
+            }
+        });
     }
 
     console.log(`✅ ¡Base de datos poblada con éxito! (${productsData.length} productos y 2 órdenes creadas)`);
