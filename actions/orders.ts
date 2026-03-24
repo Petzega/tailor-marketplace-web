@@ -12,6 +12,7 @@ interface OrderItem {
 interface CreateOrderData {
     customerData: {
         name: string;
+        document: string;
         phone: string;
         address?: string;
         reference?: string;
@@ -72,6 +73,7 @@ export async function createOrder(data: CreateOrderData) {
             data: {
                 shortId,
                 token,
+                customerDocument: data.customerData.document,
                 customerName: data.customerData.name,
                 customerPhone: data.customerData.phone,
                 customerAddress: data.customerData.address || null,

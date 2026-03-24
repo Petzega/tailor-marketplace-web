@@ -26,7 +26,7 @@ export default function CheckoutPage() {
     const { items, clearCart } = useCart();
 
     const [customerData, setCustomerData] = useState({
-        name: "", phone: "", address: "", reference: "",
+        name: "", document: "", phone: "", address: "", reference: "",
     });
 
     const [paymentMethod, setPaymentMethod] = useState(PAYMENT_METHODS[0].label);
@@ -140,7 +140,7 @@ export default function CheckoutPage() {
                             <form id="checkout-form" onSubmit={handleWhatsAppCheckout} className="space-y-6">
 
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                                    <div>
+                                    <div className="sm:col-span-2">
                                         <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">Nombre Completo *</label>
                                         <input
                                             type="text"
@@ -150,6 +150,18 @@ export default function CheckoutPage() {
                                             placeholder="Ej. Juan Pérez"
                                             value={customerData.name}
                                             onChange={(e) => setCustomerData({ ...customerData, name: e.target.value })}
+                                        />
+                                    </div>
+                                    <div>
+                                        <label htmlFor="document" className="block text-sm font-medium text-gray-700 mb-1">Documento (DNI/CE/RUC) *</label>
+                                        <input
+                                            type="text"
+                                            id="document"
+                                            required
+                                            className="w-full rounded-lg border-gray-300 border p-3 text-gray-900 shadow-sm focus:border-green-500 focus:ring-green-500 outline-none transition-all"
+                                            placeholder="Ej. 74125896"
+                                            value={customerData.document}
+                                            onChange={(e) => setCustomerData({ ...customerData, document: e.target.value })}
                                         />
                                     </div>
                                     <div>
