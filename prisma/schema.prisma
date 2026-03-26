@@ -28,13 +28,11 @@ model Product {
   updatedAt DateTime @updatedAt
   sku       String   @unique @default(cuid())
 
-  gallery ProductImage[]
-  sizes   ProductSize[] // Relación con las tallas específicas
-
-  orderItems OrderItem[]
+  gallery    ProductImage[]
+  sizes      ProductSize[]
+  orderItems OrderItem[] // Relación inversa para saber en qué órdenes está este producto
 }
 
-// 👇 NUEVA TABLA: Para manejar el stock independiente por talla
 model ProductSize {
   id    String @id @default(cuid())
   size  String // Ej: "S", "M", "L", "XL", "32", "34"
@@ -55,57 +53,49 @@ model ProductImage {
   createdAt DateTime @default(now())
 }
 
-// ==========================================
-// 📦 SISTEMA DE ÓRDENES Y VENTAS
-// ==========================================
-
-enum OrderStatus {
-  PENDING
-  IN_PROCESS
-  DELIVERED_STORE
-  DELIVERED_DELIVERY
-  CANCELLED
-}
+// 👇 NUEVOS MODELOS PARA GESTIÓN DE ÓRDENES Y N8N
 
 model Order {
-  id      String @id @default(cuid())
-  shortId String @unique // Código visible para el cliente: "ORD-12345"
-  token   String @unique // Token de seguridad para el Enlace Mágico
+  id               String   @id @default(cuid()) // Número de orden base (ej: clr5a1...)
+  status           String   @default("PENDING")  // PENDING, IN_PROGRESS, CANCELLED, COMPLETED
+  validationCode   String   @unique              // Código secreto de 6 letras/números para el agente n8n
 
   // Datos del Cliente
-  customerName      String
-  customerDocument  String
-  customerPhone     String
-  customerAddress   String? // Opcional porque puede ser recojo en tienda
-  customerReference String? // Opcional
+  customerName     String
+  customerPhone    String
+  customerDocType  String   @default("DNI")      // "DNI", "RUC", "CE", "PASAPORTE"
+  customerDocument String                        // El número ingresado por el usuario
 
-  // Detalles del Envío y Pago
-  deliveryMethod String // Ej: "STORE" o "DELIVERY"
-  paymentMethod  String // Ej: "Yape", "Plin", "Efectivo"
+  // Datos Logísticos
+  deliveryMethod   String                        // "STORE", "DELIVERY"
+  address          String?                       // Opcional si es "STORE"
+  reference        String?
 
-  // Totales
-  subtotal     Float
-  deliveryCost Float       @default(0)
-  total        Float
-  status       OrderStatus @default(PENDING)
+  // Finanzas
+  paymentMethod    String                        // YAPE, PLIN, TRANSFERENCIA, EFECTIVO
+  subtotal         Float
+  deliveryCost     Float    @default(0)
+  total            Float
 
-  items OrderItem[] // Los productos de esta orden
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  items            OrderItem[]                   // Los productos que componen esta orden
 }
 
 model OrderItem {
-  id String @id @default(cuid())
+  id          String   @id @default(cuid())
 
-  orderId String
-  order   Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  // Guardamos un snapshot del precio en el momento de la compra
+  // Si el precio del producto cambia a futuro, esto no altera la orden histórica.
+  price       Float
+  quantity    Int      @default(1)
+  size        String?  // Ej: "S", "M" (Puede ser null si el producto no tiene tallas)
 
-  // Relación opcional con el producto del catálogo (puede ser null si el producto fue eliminado)
-  productId String?
-  product   Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+  // Relaciones
+  orderId     String
+  order       Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
 
-  quantity Int
-  price    Float // Congelamos el precio al momento de la compra
-  size     String? // Guardamos qué talla eligió
+  productId   String
+  product     Product  @relation(fields: [productId], references: [id])
 }

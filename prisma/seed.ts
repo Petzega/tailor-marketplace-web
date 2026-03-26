@@ -234,16 +234,17 @@ async function main() {
         const product1 = dbProducts[0];
         const product2 = dbProducts[1];
 
-        // Orden 1: Pendiente y Delivery (Probando con DNI de 8 dígitos)
+        // Orden 1: Pendiente y Delivery (Probando con DNI)
         await prisma.order.create({
             data: {
-                shortId: 'ORD-260307001',
-                token: 'token-magico-123',
+                id: 'ORD-260307001',             // Usamos 'id' en lugar de 'shortId'
+                validationCode: 'token-magico-123', // Cambiado de 'token' a 'validationCode'
                 customerName: 'María García',
-                customerDocument: '74125896',     // DNI de prueba
+                customerDocType: 'DNI',          // NUEVO CAMPO REQUERIDO
+                customerDocument: '74125896',
                 customerPhone: '999888777',
-                customerAddress: 'Av. Las Flores 456, Surco',
-                customerReference: 'Frente al parque',
+                address: 'Av. Las Flores 456, Surco', // Cambiado de 'customerAddress'
+                reference: 'Frente al parque',        // Cambiado de 'customerReference'
                 deliveryMethod: 'DELIVERY',
                 paymentMethod: 'Yape',
                 subtotal: product1.price,
@@ -259,20 +260,21 @@ async function main() {
             }
         });
 
-        // Orden 2: En Proceso y Retiro en tienda (Probando con RUC de 11 dígitos)
+        // Orden 2: En Proceso y Retiro en tienda (Probando con RUC)
         await prisma.order.create({
             data: {
-                shortId: 'ORD-260307002',
-                token: 'token-magico-456',
+                id: 'ORD-260307002',
+                validationCode: 'token-magico-456',
                 customerName: 'Juan Pérez',
-                customerDocument: '10741258961',  // RUC de prueba
+                customerDocType: 'RUC',          // NUEVO CAMPO REQUERIDO
+                customerDocument: '10741258961',
                 customerPhone: '911222333',
                 deliveryMethod: 'STORE',
                 paymentMethod: 'Efectivo',
                 subtotal: product2.price * 2,
                 deliveryCost: 0,
                 total: product2.price * 2,
-                status: 'IN_PROCESS',
+                status: 'IN_PROGRESS',           // Cambiado de 'IN_PROCESS' a 'IN_PROGRESS'
                 createdAt: getPastDate(0), // Hoy
                 items: {
                     create: [
@@ -282,13 +284,14 @@ async function main() {
             }
         });
 
-        // Orden 3: En Proceso y Retiro en tienda (Probando con RUC de 11 dígitos)
+        // Orden 3: Cancelada (Probando con CE)
         await prisma.order.create({
             data: {
-                shortId: 'ORD-260317001',
-                token: 'token-magico-789',
-                customerName: 'Juan Pérez',
-                customerDocument: '10741258961',  // RUC de prueba
+                id: 'ORD-260317001',
+                validationCode: 'token-magico-789',
+                customerName: 'Anna Smith',
+                customerDocType: 'CE',           // NUEVO CAMPO REQUERIDO
+                customerDocument: '001122334',
                 customerPhone: '911222333',
                 deliveryMethod: 'STORE',
                 paymentMethod: 'Yape',
@@ -306,7 +309,7 @@ async function main() {
         });
     }
 
-    console.log(`✅ ¡Base de datos poblada con éxito! (${productsData.length} productos y 2 órdenes creadas)`);
+    console.log(`✅ ¡Base de datos poblada con éxito! (${productsData.length} productos y 3 órdenes creadas)`);
 }
 
 main()
