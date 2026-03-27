@@ -40,12 +40,12 @@ export async function createOrder(data: CreateOrderData) {
         // 2. Buscamos la última orden creada el día de HOY
         const lastOrder = await db.order.findFirst({
             where: {
-                shortId: {
+                id: {
                     startsWith: `ORD-${datePrefix}`
                 }
             },
             orderBy: {
-                shortId: 'desc' // Ordenamos de mayor a menor para obtener el último número
+                id: 'desc' // Ordenamos de mayor a menor para obtener el último número
             }
         });
 
@@ -53,7 +53,7 @@ export async function createOrder(data: CreateOrderData) {
         let sequence = 1;
         if (lastOrder) {
             // Si ya hay ventas hoy, extraemos los últimos 3 dígitos y le sumamos 1
-            const lastSequence = parseInt(lastOrder.shortId.slice(-3));
+            const lastSequence = parseInt(lastOrder.id.slice(-3));
             if (!isNaN(lastSequence)) {
                 sequence = lastSequence + 1;
             }
@@ -71,13 +71,13 @@ export async function createOrder(data: CreateOrderData) {
         // Guardamos todo en la base de datos
         const order = await db.order.create({
             data: {
-                shortId,
-                token,
+                id: shortId,
+                validationCode: token,
                 customerDocument: data.customerData.document,
                 customerName: data.customerData.name,
                 customerPhone: data.customerData.phone,
-                customerAddress: data.customerData.address || null,
-                customerReference: data.customerData.reference || null,
+                address: data.customerData.address || null,
+                reference: data.customerData.reference || null,
                 deliveryMethod: data.deliveryMethod,
                 paymentMethod: data.paymentMethod,
                 subtotal: data.subtotal,
@@ -94,7 +94,7 @@ export async function createOrder(data: CreateOrderData) {
             }
         });
 
-        return { success: true, orderId: order.shortId, token: order.token };
+        return { success: true, orderId: order.id, token: order.validationCode };
     } catch (error) {
         console.error("Error al crear la orden:", error);
         return { success: false, error: "No se pudo crear la orden en la base de datos." };

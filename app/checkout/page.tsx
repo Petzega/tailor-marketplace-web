@@ -8,7 +8,6 @@ import { ArrowLeft, MessageCircle, AlertCircle, Store, Truck, Loader2 } from "lu
 import { Footer } from "@/components/layout/footer";
 import { generateWhatsAppTicket } from "@/lib/whatsapp";
 import { TermsModal } from "@/components/checkout/terms-modal";
-import { createOrder } from "@/actions/orders"; // 👈 Importamos el Server Action
 
 const WHATSAPP_NUMBER = "51992431513";
 const DELIVERY_COST = 10.00;
@@ -26,7 +25,7 @@ export default function CheckoutPage() {
     const { items, clearCart } = useCart();
 
     const [customerData, setCustomerData] = useState({
-        name: "", document: "", phone: "", address: "", reference: "",
+        name: "", phone: "", address: "", reference: "", docType: "DNI", documentNumber: ""
     });
 
     const [paymentMethod, setPaymentMethod] = useState(PAYMENT_METHODS[0].label);
@@ -34,9 +33,8 @@ export default function CheckoutPage() {
 
     const [showTermsModal, setShowTermsModal] = useState(false);
     const [termsAccepted, setTermsAccepted] = useState(false);
-
-    // 👇 Nuevo estado para controlar la carga
-    const [isProcessing, setIsProcessing] = useState(false);
+    const [isLoading, setIsLoading] = useState(false);
+    const [errorMsg, setErrorMsg] = useState("");
 
     const subtotal = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
     const finalTotal = deliveryMethod === "DELIVERY" ? subtotal + DELIVERY_COST : subtotal;
@@ -46,51 +44,56 @@ export default function CheckoutPage() {
         setShowTermsModal(false);
     };
 
-    // 👇 Función principal actualizada
     const handleWhatsAppCheckout = async (e: React.FormEvent) => {
         e.preventDefault();
-
         if (items.length === 0) return;
 
-        setIsProcessing(true); // Bloqueamos el botón mientras se guarda
+        setIsLoading(true);
+        setErrorMsg("");
 
         try {
-            // 1. Guardamos la orden en la Base de Datos usando el Server Action
-            const response = await createOrder({
+            // 1. Enviar datos al backend para crear la orden
+            const response = await fetch('/api/orders', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    customerData,
+                    items,
+                    deliveryMethod,
+                    paymentMethod
+                })
+            });
+
+            const result = await response.json();
+
+            if (!response.ok) {
+                throw new Error(result.error || "Ocurrió un error al procesar la orden");
+            }
+
+            // 2. Generar ticket de WhatsApp usando el ID generado
+            const encodedMessage = generateWhatsAppTicket({
+                orderId: result.orderId, // <-- Pasamos el ID al ticket
                 customerData,
                 items,
                 deliveryMethod,
                 paymentMethod,
-                subtotal,
-                deliveryCost: deliveryMethod === "DELIVERY" ? DELIVERY_COST : 0,
+                subtotal, deliveryCost: DELIVERY_COST,
                 finalTotal
             });
 
-            if (!response.success) {
-                alert("Hubo un problema al registrar tu orden. Inténtalo nuevamente.");
-                setIsProcessing(false);
-                return;
-            }
-
-            // 2. Generamos el texto del ticket actual
-            const encodedMessage = generateWhatsAppTicket({
-                customerData, items, deliveryMethod, paymentMethod, subtotal, deliveryCost: DELIVERY_COST, finalTotal
-            });
-
-            // 3. Le inyectamos el Código de Orden al inicio
-            const orderPrefix = encodeURIComponent(`¡Hola AME! Quiero confirmar mi pedido *#${response.orderId}*.\n\n`);
-
-            // 4. Armamos la URL y abrimos WhatsApp
-            const whatsappUrl = `https://wa.me/${WHATSAPP_NUMBER}?text=${orderPrefix}${encodedMessage}`;
+            const whatsappUrl = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodedMessage}`;
             window.open(whatsappUrl, '_blank');
-
-            // 5. Vaciamos el carrito local
             clearCart();
+
         } catch (error) {
-            console.error("Error al procesar el checkout:", error);
-            alert("Error de conexión al procesar el pedido. Revisa tu internet y vuelve a intentar.");
+            console.error("Checkout error:", error);
+            if (error instanceof Error) {
+                setErrorMsg(error.message);
+            } else {
+                setErrorMsg("Ocurrió un error inesperado al procesar la orden");
+            }
         } finally {
-            setIsProcessing(false); // Desbloqueamos por si el cliente regresa a la ventana
+            setIsLoading(false);
         }
     };
 
@@ -114,7 +117,6 @@ export default function CheckoutPage() {
 
     return (
         <main className="min-h-screen bg-gray-50 flex flex-col">
-
             <div className="flex-1 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-10 w-full">
                 <Link href="/search" className="inline-flex items-center gap-2 text-sm font-medium text-gray-500 hover:text-gray-900 mb-8 transition-colors">
                     <ArrowLeft size={16} /> Volver a la tienda
@@ -123,7 +125,6 @@ export default function CheckoutPage() {
                 <h1 className="text-3xl font-bold text-gray-900 mb-8">Finalizar Pedido</h1>
 
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-
                     {/* COLUMNA IZQUIERDA */}
                     <div className="lg:col-span-7">
                         <div className="bg-white p-6 sm:p-8 rounded-2xl shadow-sm border border-gray-100">
@@ -139,9 +140,42 @@ export default function CheckoutPage() {
 
                             <form id="checkout-form" onSubmit={handleWhatsAppCheckout} className="space-y-6">
 
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                                {/* SECCIÓN DE IDENTIDAD */}
+                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+                                    <div className="sm:col-span-1">
+                                        <label htmlFor="docType" className="block text-sm font-medium text-gray-700 mb-1">Documento *</label>
+                                        <select
+                                            id="docType"
+                                            required
+                                            className="w-full rounded-lg border-gray-300 border p-3 text-gray-900 shadow-sm focus:border-green-500 focus:ring-green-500 outline-none transition-all bg-white"
+                                            value={customerData.docType}
+                                            onChange={(e) => setCustomerData({ ...customerData, docType: e.target.value, documentNumber: "" })}
+                                        >
+                                            <option value="DNI">DNI</option>
+                                            <option value="RUC">RUC</option>
+                                            <option value="CE">Carné Ext.</option>
+                                        </select>
+                                    </div>
                                     <div className="sm:col-span-2">
-                                        <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">Nombre Completo *</label>
+                                        <label htmlFor="documentNumber" className="block text-sm font-medium text-gray-700 mb-1">Número *</label>
+                                        <input
+                                            type="text"
+                                            id="documentNumber"
+                                            required
+                                            maxLength={customerData.docType === 'RUC' ? 11 : 15}
+                                            className="w-full rounded-lg border-gray-300 border p-3 text-gray-900 shadow-sm focus:border-green-500 focus:ring-green-500 outline-none transition-all"
+                                            placeholder={`Ej. ${customerData.docType === 'RUC' ? '1045... o 2056...' : '74125896'}`}
+                                            value={customerData.documentNumber}
+                                            onChange={(e) => setCustomerData({ ...customerData, documentNumber: e.target.value.replace(/\D/g, '') })}
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                                    <div>
+                                        <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
+                                            {customerData.docType === 'RUC' ? 'Razón Social / Nombre *' : 'Nombre Completo *'}
+                                        </label>
                                         <input
                                             type="text"
                                             id="name"
@@ -153,18 +187,6 @@ export default function CheckoutPage() {
                                         />
                                     </div>
                                     <div>
-                                        <label htmlFor="document" className="block text-sm font-medium text-gray-700 mb-1">Documento (DNI/CE/RUC) *</label>
-                                        <input
-                                            type="text"
-                                            id="document"
-                                            required
-                                            className="w-full rounded-lg border-gray-300 border p-3 text-gray-900 shadow-sm focus:border-green-500 focus:ring-green-500 outline-none transition-all"
-                                            placeholder="Ej. 74125896"
-                                            value={customerData.document}
-                                            onChange={(e) => setCustomerData({ ...customerData, document: e.target.value })}
-                                        />
-                                    </div>
-                                    <div>
                                         <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-1">Número de Celular *</label>
                                         <input
                                             type="tel"
@@ -173,7 +195,7 @@ export default function CheckoutPage() {
                                             className="w-full rounded-lg border-gray-300 border p-3 text-gray-900 shadow-sm focus:border-green-500 focus:ring-green-500 outline-none transition-all"
                                             placeholder="Ej. 999 888 777"
                                             value={customerData.phone}
-                                            onChange={(e) => setCustomerData({ ...customerData, phone: e.target.value })}
+                                            onChange={(e) => setCustomerData({ ...customerData, phone: e.target.value.replace(/\D/g, '') })}
                                         />
                                     </div>
                                 </div>
@@ -184,11 +206,10 @@ export default function CheckoutPage() {
                                         <button
                                             type="button"
                                             onClick={() => setDeliveryMethod("STORE")}
-                                            className={`p-4 rounded-xl border-2 flex flex-col items-center gap-2 transition-all ${
-                                                deliveryMethod === "STORE"
+                                            className={`p-4 rounded-xl border-2 flex flex-col items-center gap-2 transition-all ${deliveryMethod === "STORE"
                                                     ? "border-gray-900 bg-gray-50 text-gray-900"
                                                     : "border-gray-200 bg-white text-gray-500 hover:border-gray-300"
-                                            }`}
+                                                }`}
                                         >
                                             <Store size={24} />
                                             <span className="text-sm font-bold">Retiro en Tienda</span>
@@ -197,11 +218,10 @@ export default function CheckoutPage() {
                                         <button
                                             type="button"
                                             onClick={() => setDeliveryMethod("DELIVERY")}
-                                            className={`p-4 rounded-xl border-2 flex flex-col items-center gap-2 transition-all ${
-                                                deliveryMethod === "DELIVERY"
+                                            className={`p-4 rounded-xl border-2 flex flex-col items-center gap-2 transition-all ${deliveryMethod === "DELIVERY"
                                                     ? "border-gray-900 bg-gray-50 text-gray-900"
                                                     : "border-gray-200 bg-white text-gray-500 hover:border-gray-300"
-                                            }`}
+                                                }`}
                                         >
                                             <Truck size={24} />
                                             <span className="text-sm font-bold">Delivery</span>
@@ -245,11 +265,10 @@ export default function CheckoutPage() {
                                         {PAYMENT_METHODS.map((method) => (
                                             <label
                                                 key={method.id}
-                                                className={`cursor-pointer flex flex-col items-center justify-center p-3 rounded-xl border-2 transition-all ${
-                                                    paymentMethod === method.label
+                                                className={`cursor-pointer flex flex-col items-center justify-center p-3 rounded-xl border-2 transition-all ${paymentMethod === method.label
                                                         ? "border-green-500 bg-green-50"
                                                         : "border-gray-100 bg-white hover:border-green-200"
-                                                }`}
+                                                    }`}
                                             >
                                                 <input
                                                     type="radio"
@@ -273,7 +292,6 @@ export default function CheckoutPage() {
 
                     {/* COLUMNA DERECHA */}
                     <div className="lg:col-span-5 relative">
-
                         <div className="bg-white p-6 sm:p-8 rounded-2xl shadow-sm border border-gray-100 lg:sticky lg:top-24">
                             <h2 className="text-xl font-bold text-gray-900 mb-6">Resumen de tu Orden</h2>
 
@@ -317,7 +335,6 @@ export default function CheckoutPage() {
                                 </div>
                             </div>
 
-                            {/* 👇 CHECKBOX ESTRATÉGICO SECUESTRADO */}
                             <div className="border-t border-gray-100 pt-5 mt-5 mb-4">
                                 <label className="flex items-start gap-3 cursor-pointer group">
                                     <div className="relative flex items-center pt-0.5">
@@ -333,8 +350,8 @@ export default function CheckoutPage() {
                                                     setTermsAccepted(false);
                                                 }
                                             }}
-                                            className="peer h-4 w-4 cursor-pointer appearance-none rounded border-2 border-gray-300 checked:border-green-600 checked:bg-green-600 transition-all"
-                                            disabled={isProcessing}
+                                            className="peer h-4 w-4 cursor-pointer appearance-none rounded border-2 border-gray-300 checked:border-green-600 checked:bg-green-600 transition-all disabled:opacity-50"
+                                            disabled={isLoading}
                                         />
                                         <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-white opacity-0 peer-checked:opacity-100 pointer-events-none">
                                             <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
@@ -348,21 +365,25 @@ export default function CheckoutPage() {
                                 </label>
                             </div>
 
-                            {/* 👇 BOTÓN VERDE ACTUALIZADO CON ESTADO DE CARGA */}
+                            {errorMsg && (
+                                <div className="mb-4 p-3 bg-red-50 text-red-700 text-sm rounded-lg border border-red-200">
+                                    {errorMsg}
+                                </div>
+                            )}
+
                             <button
                                 type="submit"
                                 form="checkout-form"
-                                disabled={!termsAccepted || isProcessing}
-                                className={`w-full flex items-center justify-center gap-2 rounded-xl px-6 py-4 text-base font-bold shadow-lg transition-all active:scale-[0.98] ${
-                                    termsAccepted && !isProcessing
+                                disabled={!termsAccepted || isLoading}
+                                className={`w-full flex items-center justify-center gap-2 rounded-xl px-6 py-4 text-base font-bold shadow-lg transition-all active:scale-[0.98] ${termsAccepted && !isLoading
                                         ? "bg-[#25D366] hover:bg-[#20bd5a] text-white shadow-green-200"
                                         : "bg-gray-200 text-gray-400 cursor-not-allowed shadow-none"
-                                }`}
+                                    }`}
                             >
-                                {isProcessing ? (
+                                {isLoading ? (
                                     <>
                                         <Loader2 className="animate-spin" size={20} />
-                                        Generando tu orden...
+                                        Creando orden...
                                     </>
                                 ) : (
                                     <>
@@ -377,7 +398,6 @@ export default function CheckoutPage() {
                             </p>
                         </div>
                     </div>
-
                 </div>
             </div>
 

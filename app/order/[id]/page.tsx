@@ -77,7 +77,7 @@ export default async function OrderTrackingPage(props: {
                     <div className="p-6 sm:p-8 border-b border-gray-100 bg-gray-900 text-white relative overflow-hidden">
                         <div className="absolute top-0 right-0 w-64 h-64 bg-white opacity-5 rounded-full -translate-y-1/2 translate-x-1/3" />
                         <h1 className="text-sm font-medium text-gray-400 mb-1">Detalle de tu Pedido</h1>
-                        <p className="text-3xl font-black tracking-tight">{order.shortId}</p>
+                        <p className="text-3xl font-black tracking-tight">{order.id}</p>
                         <p className="text-sm text-gray-400 mt-2">
                             Fecha: {new Date(order.createdAt).toLocaleDateString('es-PE', { year: 'numeric', month: 'long', day: 'numeric' })}
                         </p>
@@ -106,8 +106,8 @@ export default async function OrderTrackingPage(props: {
                                     {order.deliveryMethod === "STORE" ? <Store size={16} className="text-gray-500" /> : <Truck size={16} className="text-gray-500" />}
                                     <span>{order.deliveryMethod === "STORE" ? "Retiro en Tienda" : "Delivery"}</span>
                                 </div>
-                                {order.deliveryMethod === "DELIVERY" && order.customerAddress && (
-                                    <p className="text-sm text-gray-600">{order.customerAddress}</p>
+                                {order.deliveryMethod === "DELIVERY" && order.address && (
+                                    <p className="text-sm text-gray-600">{order.address}</p>
                                 )}
                             </div>
                         </div>

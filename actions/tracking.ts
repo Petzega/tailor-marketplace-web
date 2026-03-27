@@ -4,10 +4,10 @@ import { db } from "@/lib/db";
 
 export async function getOrderByToken(shortId: string, token: string) {
     try {
-        const order = await db.order.findUnique({
+        const order = await db.order.findFirst({
             where: {
-                shortId: shortId,
-                token: token // Validamos que el token coincida para máxima seguridad
+                id: shortId,
+                validationCode: token // Validamos que el token coincida para máxima seguridad
             },
             // Incluimos los items y la info básica del producto para mostrar la foto y el nombre
             include: {
