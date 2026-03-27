@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { OrderStatus } from "@prisma/client";
 
 // Candado de seguridad: Solo quien tenga esta contraseña podrá cambiar estados
 const WEBHOOK_SECRET = process.env.WEBHOOK_SECRET || "secreto-ame-n8n-2026";
@@ -30,8 +29,8 @@ export async function POST(req: Request) {
 
         // 5. Actualizamos la orden en la Base de Datos
         const updatedOrder = await db.order.update({
-            where: { shortId: orderId },
-            data: { status: newStatus as OrderStatus } // Actualizamos el estado
+            where: { id: orderId },
+            data: { status: newStatus } // Actualizamos el estado
         });
 
         // 6. Le avisamos a n8n que todo salió perfecto
