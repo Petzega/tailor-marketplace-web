@@ -3,16 +3,21 @@ import { db } from "@/lib/db";
 
 export async function PATCH(
     request: Request,
-    { params }: { params: Promise<{ id: string }> }
+    { params }: { params: Promise<{ id: string }> } // 1. Tipamos params como Promise
 ) {
     try {
-        const { id: orderId } = await params;
+        // 2. Esperamos a que la promesa se resuelva antes de extraer el ID
+        const resolvedParams = await params;
+        const orderId = resolvedParams.id;
+
         const body = await request.json();
-        const { action, productId, size, quantity } = body;
+
+        // Cambiamos productId por sku
+        const { action, sku, size, quantity } = body;
 
         // 1. Validaciones básicas
-        if (!action || !['ADD', 'REMOVE'].includes(action) || !productId || !quantity) {
-            return NextResponse.json({ error: "Parámetros incompletos o inválidos" }, { status: 400 });
+        if (!action || !['ADD', 'REMOVE'].includes(action) || !sku || !quantity) {
+            return NextResponse.json({ error: "Parámetros incompletos o inválidos. Se requiere action, sku y quantity." }, { status: 400 });
         }
 
         // 2. Verificar que la orden exista y esté en PENDING
@@ -24,20 +29,22 @@ export async function PATCH(
             return NextResponse.json({ error: "Solo se pueden modificar órdenes en estado PENDING" }, { status: 400 });
         }
 
-        // 3. Buscar si el item ya existe en la orden actual (mismo producto y misma talla)
+        // 3. Buscar el producto por su SKU (Paso crucial para la nueva lógica)
+        const product = await db.product.findUnique({ where: { sku } });
+        if (!product) {
+            return NextResponse.json({ error: `No existe ningún producto con el SKU: ${sku}` }, { status: 404 });
+        }
+
+        // 4. Buscar si el item ya existe en la orden actual usando el ID interno del producto resuelto
         const existingItem = await db.orderItem.findFirst({
             where: {
                 orderId: orderId,
-                productId: productId,
+                productId: product.id, // Relación interna de BD sigue usando el ID
                 size: size || null
             }
         });
 
         if (action === "ADD") {
-            // Obtener el precio actual del catálogo para congelarlo
-            const product = await db.product.findUnique({ where: { id: productId } });
-            if (!product) return NextResponse.json({ error: "Producto no existe en el catálogo" }, { status: 404 });
-
             if (existingItem) {
                 // Si ya existe, sumamos la cantidad
                 await db.orderItem.update({
@@ -49,7 +56,7 @@ export async function PATCH(
                 await db.orderItem.create({
                     data: {
                         orderId,
-                        productId,
+                        productId: product.id,
                         size: size || null,
                         quantity,
                         price: product.price // Congelamos el precio actual
@@ -74,8 +81,7 @@ export async function PATCH(
             }
         }
 
-        // 4. RECALCULAR TOTALES DE LA ORDEN
-        // Obtenemos todos los items actualizados de la orden
+        // 5. RECALCULAR TOTALES DE LA ORDEN
         const updatedItems = await db.orderItem.findMany({
             where: { orderId },
             include: { product: { select: { name: true, sku: true } } }
@@ -91,7 +97,6 @@ export async function PATCH(
             data: { subtotal: newSubtotal, total: newTotal }
         });
 
-        // 5. Retornar la respuesta según la especificación
         return NextResponse.json({
             success: true,
             message: "Orden actualizada correctamente",

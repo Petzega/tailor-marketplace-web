@@ -6,7 +6,8 @@ export async function PATCH(
     { params }: { params: Promise<{ id: string }> }
 ) {
     try {
-        const { id: orderId } = await params;
+        const resolvedParams = await params;
+        const orderId = resolvedParams.id;
         const body = await request.json();
         const { status } = body;
 

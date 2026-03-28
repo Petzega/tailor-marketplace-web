@@ -10,6 +10,32 @@ function generateValidationCode(): string {
     return result;
 }
 
+// Generador de ID con formato ORD-YYMMDDXXX
+async function generateOrderId(): Promise<string> {
+    const limaTime = new Date(new Date().toLocaleString("en-US", { timeZone: "America/Lima" }));
+    const yy = limaTime.getFullYear().toString().slice(-2);
+    const mm = (limaTime.getMonth() + 1).toString().padStart(2, '0');
+    const dd = limaTime.getDate().toString().padStart(2, '0');
+    const prefix = `ORD-${yy}${mm}${dd}`;
+
+    const lastOrder = await prisma.order.findFirst({
+        where: {
+            id: { startsWith: prefix }
+        },
+        orderBy: { id: 'desc' }
+    });
+
+    let sequence = 1;
+    if (lastOrder) {
+        const lastSequence = parseInt(lastOrder.id.slice(-3));
+        if (!isNaN(lastSequence)) {
+            sequence = lastSequence + 1;
+        }
+    }
+
+    return `${prefix}${sequence.toString().padStart(3, '0')}`;
+}
+
 export async function POST(request: Request) {
     try {
         const body = await request.json();
@@ -41,7 +67,7 @@ export async function POST(request: Request) {
             return {
                 productId: product.id,
                 quantity: cartItem.quantity,
-                price: product.price, // Se congela el precio
+                price: product.price,
                 size: cartItem.size || null,
             };
         });
@@ -59,9 +85,13 @@ export async function POST(request: Request) {
             if (!existing) isUnique = true;
         }
 
+        // Generar el ID personalizado
+        const newOrderId = await generateOrderId();
+
         // Insertar orden y detalles
         const newOrder = await prisma.order.create({
             data: {
+                id: newOrderId, // Inyección del ID calculado
                 status: "PENDING",
                 validationCode,
                 customerName: customerData.name,

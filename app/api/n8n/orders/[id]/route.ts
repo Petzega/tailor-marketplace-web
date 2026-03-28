@@ -6,7 +6,8 @@ export async function GET(
     { params }: { params: Promise<{ id: string }> }
 ) {
     try {
-        const { id: orderId } = await params;
+        const resolvedParams = await params;
+        const orderId = resolvedParams.id;
 
         // Buscamos la orden e incluimos el detalle de los items y el nombre del producto
         const order = await db.order.findUnique({
