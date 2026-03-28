@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
 export function AutoCarousel({ children }: { children: React.ReactNode }) {
@@ -25,7 +25,7 @@ export function AutoCarousel({ children }: { children: React.ReactNode }) {
         return 0;
     };
 
-    const scrollNext = () => {
+    const scrollNext = useCallback(() => {
         const carousel = carouselRef.current;
         if (!carousel) return;
 
@@ -45,7 +45,7 @@ export function AutoCarousel({ children }: { children: React.ReactNode }) {
             // Scroll normal
             carousel.scrollBy({ left: scrollAmount, behavior: "smooth" });
         }
-    };
+    }, []);
 
     const scrollPrev = () => {
         const carousel = carouselRef.current;
@@ -73,7 +73,7 @@ export function AutoCarousel({ children }: { children: React.ReactNode }) {
         if (isHovered) return;
         const intervalId = setInterval(scrollNext, 4000);
         return () => clearInterval(intervalId);
-    }, [isHovered]);
+    }, [isHovered, scrollNext]);
 
     return (
         <div

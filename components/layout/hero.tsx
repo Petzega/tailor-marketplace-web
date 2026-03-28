@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from "next/link";
+import Image from "next/image";
 import { ArrowRight, ShoppingBag, Scissors, MapPin } from "lucide-react";
 
 const BACKGROUNDS = [
@@ -35,14 +36,16 @@ export function Hero() {
             {BACKGROUNDS.map((bg, index) => (
                 <div
                     key={index}
-                    className={`absolute inset-0 transition-opacity duration-1000 ease-in-out ${
-                        index === currentBg ? 'opacity-100' : 'opacity-0'
-                    }`}
+                    className={`absolute inset-0 transition-opacity duration-1000 ease-in-out ${index === currentBg ? 'opacity-100' : 'opacity-0'
+                        }`}
                 >
-                    <img
+                    <Image
                         src={bg.url}
                         alt={bg.alt}
-                        className="w-full h-full object-cover object-center transform scale-105"
+                        fill
+                        sizes="100vw"
+                        className="object-cover object-center transform scale-105"
+                        priority={index === 0}
                     />
                 </div>
             ))}
@@ -91,9 +94,8 @@ export function Hero() {
                             <button
                                 key={index}
                                 onClick={() => setCurrentBg(index)}
-                                className={`h-1.5 rounded-full transition-all duration-300 ${
-                                    index === currentBg ? 'w-8 bg-green-400' : 'w-4 bg-white/40 hover:bg-white/60'
-                                }`}
+                                className={`h-1.5 rounded-full transition-all duration-300 ${index === currentBg ? 'w-8 bg-green-400' : 'w-4 bg-white/40 hover:bg-white/60'
+                                    }`}
                                 aria-label={`Ir a la imagen ${index + 1}`}
                             />
                         ))}

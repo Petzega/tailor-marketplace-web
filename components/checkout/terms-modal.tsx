@@ -18,16 +18,16 @@ export function TermsModal({ isOpen, onAccept }: TermsModalProps) {
     useEffect(() => {
         if (isOpen) {
             document.body.style.overflow = 'hidden';
-            setCanAccept(false);
 
             setTimeout(() => {
+                setCanAccept(false);
                 if (scrollContainerRef.current) {
                     const { scrollHeight, clientHeight } = scrollContainerRef.current;
                     if (scrollHeight <= clientHeight + 20) {
                         setCanAccept(true);
                     }
                 }
-            }, 100);
+            }, 0);
         } else {
             document.body.style.overflow = 'unset';
         }
@@ -80,11 +80,10 @@ export function TermsModal({ isOpen, onAccept }: TermsModalProps) {
                     <button
                         onClick={onAccept}
                         disabled={!canAccept}
-                        className={`w-full flex items-center justify-center gap-2 rounded-xl px-6 py-4 text-sm font-bold shadow-sm transition-all ${
-                            canAccept
+                        className={`w-full flex items-center justify-center gap-2 rounded-xl px-6 py-4 text-sm font-bold shadow-sm transition-all ${canAccept
                                 ? "bg-green-600 hover:bg-green-700 text-white shadow-green-200 active:scale-[0.98]"
                                 : "bg-gray-100 text-gray-400 cursor-not-allowed"
-                        }`}
+                            }`}
                     >
                         {canAccept ? <Check size={18} /> : null}
                         {canAccept ? "Aceptar y Cerrar" : "Sigue bajando para aceptar..."}

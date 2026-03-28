@@ -35,7 +35,7 @@ export async function PATCH(
     } catch (error: unknown) {
         console.error("Error actualizando estado de la orden:", error);
         // Manejar el caso donde la orden no existe en Prisma
-        if (typeof error === 'object' && error !== null && 'code' in error && (error as any).code === 'P2025') {
+        if (typeof error === 'object' && error !== null && 'code' in error && (error as Record<string, unknown>).code === 'P2025') {
             return NextResponse.json({ error: "Orden no encontrada" }, { status: 404 });
         }
         return NextResponse.json({ error: "Error interno del servidor" }, { status: 500 });

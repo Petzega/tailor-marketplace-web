@@ -1,7 +1,6 @@
 import { getProducts } from "@/actions/products";
 import Link from "next/link";
 import { PaginationControls } from "./pagination-controls";
-import { AddToCartButton } from "@/components/product/add-to-cart-button";
 import { AutoCarousel } from "./auto-carousel";
 import { Calendar } from "lucide-react";
 import { Product } from "@/types";

@@ -64,15 +64,16 @@ const SORTED_CLOTHING_TYPES = [...CLOTHING_TYPES].sort((a, b) => {
 });
 
 export function SearchFilters({
-                                  currentQuery,
-                                  currentCategory,
-                                  currentSort,
-                                  currentMin,
-                                  currentMax,
-                                  currentGender = "",
-                                  currentClothingType = "",
-                                  onClose
-                              }: SearchFiltersProps) {
+    currentQuery,
+    currentCategory,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    currentSort,
+    currentMin,
+    currentMax,
+    currentGender = "",
+    currentClothingType = "",
+    onClose
+}: SearchFiltersProps) {
     const router = useRouter();
     const searchParams = useSearchParams();
 
@@ -225,7 +226,7 @@ export function SearchFilters({
                             className={`px-4 py-2 rounded-xl text-xs font-medium transition-all border ${(currentCategory === cat.id || (!currentCategory && cat.id === ''))
                                 ? 'bg-gray-900 text-white border-gray-900 shadow-sm'
                                 : 'bg-white text-gray-600 border-gray-200 hover:border-gray-400'
-                            }`}
+                                }`}
                         >
                             {cat.label}
                         </button>
@@ -242,7 +243,7 @@ export function SearchFilters({
                         value={localMin}
                         onChange={(e) => setLocalMin(e.target.value)}
                         className={`w-full px-3 py-2.5 text-sm bg-gray-50 border rounded-xl focus:outline-none focus:ring-2 transition-all [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${priceError ? 'border-red-400 focus:ring-red-500' : 'border-gray-200 focus:ring-gray-900'
-                        }`}
+                            }`}
                     />
                     <span className="text-gray-400">—</span>
                     <input
@@ -251,7 +252,7 @@ export function SearchFilters({
                         value={localMax}
                         onChange={(e) => setLocalMax(e.target.value)}
                         className={`w-full px-3 py-2.5 text-sm bg-gray-50 border rounded-xl focus:outline-none focus:ring-2 transition-all [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${priceError ? 'border-red-400 focus:ring-red-500' : 'border-gray-200 focus:ring-gray-900'
-                        }`}
+                            }`}
                     />
                 </div>
                 {priceError && <p className="text-[10px] text-red-500 font-medium px-1">{priceError}</p>}
