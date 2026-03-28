@@ -87,7 +87,29 @@ export async function PATCH(
             include: { product: { select: { name: true, sku: true } } }
         });
 
-        // Sumatoria: (precio * cantidad) de cada item
+        // REGLA DE NEGOCIO: Si la orden se queda sin productos, se cancela automáticamente.
+        if (updatedItems.length === 0) {
+            await db.order.update({
+                where: { id: orderId },
+                data: {
+                    subtotal: 0,
+                    deliveryCost: 0,
+                    total: 0,
+                    status: "CANCELLED" // Forzamos la cancelación
+                }
+            });
+
+            return NextResponse.json({
+                success: true,
+                message: "La orden ha sido cancelada automáticamente porque se eliminaron todos los productos.",
+                newSubtotal: 0,
+                newTotal: 0,
+                status: "CANCELLED",
+                items: []
+            }, { status: 200 });
+        }
+
+        // Si aún hay productos, realizamos el recálculo normal
         const newSubtotal = updatedItems.reduce((acc, item) => acc + (item.price * item.quantity), 0);
         const newTotal = newSubtotal + order.deliveryCost;
 
@@ -102,6 +124,7 @@ export async function PATCH(
             message: "Orden actualizada correctamente",
             newSubtotal,
             newTotal,
+            status: order.status,
             items: updatedItems
         }, { status: 200 });
 

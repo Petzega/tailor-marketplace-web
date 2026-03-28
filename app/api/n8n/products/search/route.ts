@@ -12,7 +12,7 @@ export async function GET(request: Request) {
 
         // 1. Detección de Intención: Validamos si el texto parece un SKU (Prefijo + Guion + Datos)
         // Esto captura entradas como "CLT-", "CLT-2603", "CLT-260305009"
-        const isSkuIntent = /^[A-Za-z0-9]+-/.test(query);
+        const isSkuIntent = /^[A-Za-z]{3}-\d+/.test(query);
 
         if (isSkuIntent) {
             // 2. Ruta A: Búsqueda EXACTA por SKU

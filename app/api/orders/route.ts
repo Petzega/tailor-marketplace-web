@@ -117,8 +117,16 @@ export async function POST(request: Request) {
             validationCode: newOrder.validationCode
         }, { status: 201 });
 
-    } catch (error) {
+    } catch (error: unknown) {
         console.error("Error al crear la orden:", error);
+
+        // Manejo específico para el error de concurrencia
+        if (error instanceof Error && error.message === "Alta concurrencia: No se pudo generar un ID único para la orden.") {
+            return NextResponse.json({
+                error: "Hay muchos usuarios comprando en este momento. Por favor, intenta hacer clic en el botón nuevamente."
+            }, { status: 409 });
+        }
+
         return NextResponse.json({ error: "Error interno del servidor" }, { status: 500 });
     }
 }
