@@ -100,3 +100,42 @@ export async function createOrder(data: CreateOrderData) {
         return { success: false, error: "No se pudo crear la orden en la base de datos." };
     }
 }
+
+export async function getOrders() {
+    try {
+        const orders = await db.order.findMany({
+            orderBy: {
+                createdAt: 'desc'
+            },
+            // Incluimos los items para saber cuántos productos tiene cada orden si es necesario
+            include: {
+                items: true
+            }
+        });
+
+        return orders;
+    } catch (error) {
+        console.error("Error al obtener las órdenes:", error);
+        throw new Error("No se pudieron cargar las órdenes.");
+    }
+}
+
+export async function getOrderById(id: string) {
+    try {
+        const order = await db.order.findUnique({
+            where: { id },
+            include: {
+                items: {
+                    include: {
+                        product: true // Traemos el nombre e imagen del producto
+                    }
+                }
+            }
+        });
+
+        return order;
+    } catch (error) {
+        console.error("Error al obtener el detalle de la orden:", error);
+        return null;
+    }
+}
