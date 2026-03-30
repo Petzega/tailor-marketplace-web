@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { Navbar } from "@/components/layout/navbar";
-import { CartSheet } from "@/components/cart/cart-sheet"; // 👈 Importamos el carrito
+import { CartSheet } from "@/components/cart/cart-sheet";
+import { ClerkProvider } from "@clerk/nextjs";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -12,24 +13,19 @@ export const metadata: Metadata = {
 };
 
 export default function RootLayout({
-    children,
-}: Readonly<{
+                                       children,
+                                   }: Readonly<{
     children: React.ReactNode;
 }>) {
     return (
-        <html lang="es">
+        <ClerkProvider>
+            <html lang="es">
             <body className={inter.className}>
-                {/* Navegación superior global */}
-                <Navbar />
-
-                {/* Contenido principal de cada página */}
-                <main>
-                    {children}
-                </main>
-
-                {/* 👇 El panel lateral del carrito, disponible globalmente */}
-                <CartSheet />
+            <Navbar />
+            <main>{children}</main>
+            <CartSheet />
             </body>
-        </html>
+            </html>
+        </ClerkProvider>
     );
 }

@@ -188,7 +188,7 @@ export async function createProduct(formData: FormData) {
     });
 
     revalidatePath("/");
-    revalidatePath("/admin");
+    revalidatePath("/ame-studio-ops");
     return { success: true };
 }
 
@@ -221,7 +221,7 @@ export async function updateProduct(id: string, formData: FormData) {
             },
         });
 
-        revalidatePath("/admin");
+        revalidatePath("/ame-studio-ops");
         revalidatePath("/");
         return { success: true };
     } catch (error) {
@@ -233,7 +233,7 @@ export async function updateProduct(id: string, formData: FormData) {
 export async function deleteProduct(id: string) {
     try {
         await db.product.delete({ where: { id } });
-        revalidatePath("/admin");
+        revalidatePath("/ame-studio-ops");
         revalidatePath("/");
         return { success: true };
     } catch (error) {
