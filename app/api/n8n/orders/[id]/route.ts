@@ -30,7 +30,7 @@ export async function GET(
         // Devolvemos la orden con toda su estructura
         return NextResponse.json(order, { status: 200 });
 
-    } catch (error: unknown) {
+    } catch (error) {
         console.error("Error obteniendo la orden para n8n:", error);
         return NextResponse.json({ error: "Error interno del servidor" }, { status: 500 });
     }

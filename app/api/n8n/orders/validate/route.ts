@@ -33,7 +33,7 @@ export async function POST(request: Request) {
         // Si todo coincide, devolvemos la orden para que n8n le informe al usuario
         return NextResponse.json(order, { status: 200 });
 
-    } catch (error: unknown) {
+    } catch (error) {
         console.error("Error validando la orden:", error);
         return NextResponse.json({ error: "Error interno del servidor" }, { status: 500 });
     }
