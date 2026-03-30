@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { ArrowLeft, User, MapPin, CreditCard, Key, CheckCircle2, Clock, XCircle, AlertCircle } from "lucide-react";
+import { OrderStatusActions } from "@/components/admin/order-status-actions";
 
 // Reutilizamos el helper de estados visuales
 function StatusBadge({ status }: { status: string }) {
@@ -19,11 +20,9 @@ function StatusBadge({ status }: { status: string }) {
 }
 
 export default async function OrderDetailPage({ params }: { params: Promise<{ id: string }> }) {
-    // Next.js 15 requiere resolver params como una promesa
     const { id } = await params;
     const order = await getOrderById(id);
 
-    // Si alguien ingresa un ID falso en la URL, mostramos error 404
     if (!order) {
         notFound();
     }
@@ -31,14 +30,19 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
     return (
         <div className="p-8 max-w-5xl mx-auto">
             {/* Header de navegación */}
-            <div className="flex items-center gap-4 mb-8">
-                <Link href="/ame-studio-ops/orders" className="p-2 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 text-gray-600 transition-colors">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-4 mb-8">
+                <Link href="/ame-studio-ops/orders" className="p-2 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 text-gray-600 transition-colors shrink-0 self-start sm:self-auto">
                     <ArrowLeft size={20} />
                 </Link>
                 <div>
-                    <div className="flex items-center gap-3">
+                    <div className="flex flex-wrap items-center gap-3">
                         <h1 className="text-2xl font-bold text-gray-900">Orden {order.id}</h1>
                         <StatusBadge status={order.status} />
+                        {/* 👇 NUEVO: Token de N8N movido al header como un badge sutil pero visible */}
+                        <div className="flex items-center gap-1.5 bg-gray-900 text-gray-100 px-2.5 py-1 rounded-md text-xs font-mono font-medium shadow-sm">
+                            <Key size={12} className="text-gray-400" />
+                            <span>N8N: {order.validationCode}</span>
+                        </div>
                     </div>
                     <p className="text-sm text-gray-500 mt-1">
                         Registrada el {order.createdAt.toLocaleDateString('es-PE', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
@@ -133,21 +137,13 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
                     </div>
                 </div>
 
-                {/* Columna Derecha: Finanzas y Código Bot */}
+                {/* 👇 COLUMNA DERECHA LIMPIA Y ALINEADA 👇 */}
                 <div className="space-y-6">
-                    {/* Código de Validación Bot */}
-                    <div className="bg-gray-900 p-6 rounded-xl border border-gray-800 shadow-sm text-white relative overflow-hidden">
-                        <div className="absolute -right-4 -top-4 opacity-10">
-                            <Key size={100} />
-                        </div>
-                        <h2 className="text-sm font-semibold text-gray-400 flex items-center gap-2 mb-2 uppercase tracking-wider">
-                            Código N8N
-                        </h2>
-                        <p className="text-3xl font-mono font-bold tracking-widest">{order.validationCode}</p>
-                        <p className="text-xs text-gray-400 mt-2">Código usado por el bot de WhatsApp para validar la orden con el cliente.</p>
-                    </div>
 
-                    {/* Resumen Financiero */}
+                    {/* 1. Acciones Operativas (Primer elemento interactivo) */}
+                    <OrderStatusActions orderId={order.id} currentStatus={order.status} />
+
+                    {/* 2. Resumen Financiero */}
                     <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
                         <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2 mb-6">
                             <CreditCard size={20} className="text-gray-400" /> Resumen de Pago
@@ -174,8 +170,8 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
                             <p className="font-medium text-gray-900">{order.paymentMethod}</p>
                         </div>
                     </div>
-                </div>
 
+                </div>
             </div>
         </div>
     );

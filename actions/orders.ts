@@ -1,6 +1,7 @@
 "use server";
 
 import { db } from "@/lib/db";
+import {revalidatePath} from "next/cache";
 
 interface OrderItem {
     id: string;
@@ -137,5 +138,23 @@ export async function getOrderById(id: string) {
     } catch (error) {
         console.error("Error al obtener el detalle de la orden:", error);
         return null;
+    }
+}
+
+export async function updateOrderStatus(orderId: string, newStatus: string) {
+    try {
+        await db.order.update({
+            where: { id: orderId },
+            data: { status: newStatus }
+        });
+
+        // Forzamos la actualización de la caché en ambas vistas
+        revalidatePath('/ame-studio-ops/orders');
+        revalidatePath(`/ame-studio-ops/orders/${orderId}`);
+
+        return { success: true };
+    } catch (error) {
+        console.error("Error al actualizar el estado de la orden:", error);
+        return { success: false, error: "No se pudo actualizar el estado." };
     }
 }
