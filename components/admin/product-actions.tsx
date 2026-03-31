@@ -5,24 +5,23 @@ import { Trash2, Pencil, AlertTriangle, Image as ImageIcon } from "lucide-react"
 import { useState } from "react";
 import Link from "next/link";
 import NextImage from "next/image";
-import { useRouter } from "next/navigation"; // 👈 Importamos el Router
+import { useRouter } from "next/navigation";
 import { Product } from "@/types";
 
 export function ProductActions({ product }: { product: Product }) {
-    const router = useRouter(); // 👈 Inicializamos el Router
+    const router = useRouter();
     const [isLoading, setIsLoading] = useState(false);
     const [showModal, setShowModal] = useState(false);
 
     const handleConfirmDelete = async () => {
         setIsLoading(true);
 
-        // 1. Intentamos borrar en la Base de Datos
         const result = await deleteProduct(product.id);
 
-        // 2. SI Y SOLO SI fue exitoso, cerramos y mandamos el aviso
         if (result?.success) {
             setShowModal(false);
-            router.push("/admin?action=deleted", { scroll: false });
+            // 👇 CORRECCIÓN 1: Redirección al eliminar
+            router.push("/ame-studio-ops/inventory?action=deleted", { scroll: false });
         } else {
             setIsLoading(false);
             alert("Hubo un error al eliminar el producto");
@@ -32,8 +31,9 @@ export function ProductActions({ product }: { product: Product }) {
     return (
         <>
             <div className="flex items-center justify-end gap-2">
+                {/* 👇 CORRECCIÓN 2: Ruta del botón de edición */}
                 <Link
-                    href={`/admin?edit=${product.id}`}
+                    href={`/ame-studio-ops/inventory?edit=${product.id}`}
                     scroll={false}
                     className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                     title="Editar"

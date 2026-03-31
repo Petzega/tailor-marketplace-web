@@ -156,10 +156,7 @@ export async function getProductById(id: string) {
 }
 
 export async function createProduct(formData: FormData) {
-    // 👇 2. Extraemos la categoría PRIMERO
     const category = formData.get("category") as string;
-
-    // 👇 3. Generamos el SKU pasándole la categoría
     const sku = await generateSku(category);
 
     const imageUrlText = formData.get("imageUrl") as string;
@@ -173,22 +170,51 @@ export async function createProduct(formData: FormData) {
     const gender = formData.get("gender") as string;
     const clothingType = formData.get("clothingType") as string;
 
+    // 👇 NUEVA LÓGICA: Procesamiento del JSON de tallas
+    const sizesData = formData.get("sizesData") as string;
+    let sizes: { size: string, stock: number }[] = [];
+    try {
+        if (sizesData) sizes = JSON.parse(sizesData);
+    } catch(e) {
+        console.error("Error al parsear tallas JSON", e);
+    }
+
+    // Filtrar tallas inválidas por seguridad
+    const validSizes = sizes.filter(s => s.size.trim() !== '');
+
+    // Calcular el stock real: Si hay tallas usa la suma, si no, usa el valor manual
+    const manualStock = parseInt(formData.get("stock") as string) || 0;
+    const calculatedStock = validSizes.length > 0
+        ? validSizes.reduce((sum, s) => sum + s.stock, 0)
+        : manualStock;
+
+    // 👇 NUEVA LÓGICA: Inserción Anidada
     await db.product.create({
         data: {
             name: formData.get("name") as string,
             description: formData.get("description") as string,
             price: parseFloat(formData.get("price") as string),
-            stock: parseInt(formData.get("stock") as string),
-            category: category, // Usamos la variable que ya extrajimos
+            stock: calculatedStock, // 👈 Stock asegurado y sincronizado
+            category: category,
             imageUrl: finalImageUrl || null,
             sku,
             gender: gender || null,
             clothingType: clothingType || null,
+
+            // Si validSizes tiene elementos, Prisma crea los registros en ProductSize
+            // vinculándolos automáticamente al nuevo productId.
+            sizes: validSizes.length > 0 ? {
+                create: validSizes.map(s => ({
+                    size: s.size.trim().toUpperCase(),
+                    stock: s.stock
+                }))
+            } : undefined
         },
     });
 
+    // Rutas corregidas para la nueva arquitectura
     revalidatePath("/");
-    revalidatePath("/ame-studio-ops");
+    revalidatePath("/ame-studio-ops/inventory");
     return { success: true };
 }
 
@@ -205,6 +231,25 @@ export async function updateProduct(id: string, formData: FormData) {
 
     const gender = formData.get("gender") as string;
     const clothingType = formData.get("clothingType") as string;
+    const category = formData.get("category") as string;
+
+    // Procesamiento del JSON de tallas
+    const sizesData = formData.get("sizesData") as string;
+    let sizes: { size: string, stock: number }[] = [];
+    try {
+        if (sizesData) sizes = JSON.parse(sizesData);
+    } catch(e) {
+        console.error("Error al parsear tallas JSON en update", e);
+    }
+
+    // Filtrar tallas inválidas
+    const validSizes = sizes.filter(s => s.size.trim() !== '');
+
+    // Calcular el stock real
+    const manualStock = parseInt(formData.get("stock") as string) || 0;
+    const calculatedStock = validSizes.length > 0
+        ? validSizes.reduce((sum, s) => sum + Number(s.stock), 0)
+        : manualStock;
 
     try {
         await db.product.update({
@@ -213,15 +258,24 @@ export async function updateProduct(id: string, formData: FormData) {
                 name: formData.get("name") as string,
                 description: formData.get("description") as string,
                 price: parseFloat(formData.get("price") as string),
-                stock: parseInt(formData.get("stock") as string),
-                category: formData.get("category") as string,
+                stock: calculatedStock,
+                category: category,
                 imageUrl: finalImageUrl,
                 gender: gender || null,
                 clothingType: clothingType || null,
+
+                // Sincronización atómica de tallas: Borra las anteriores y reinserta el estado actual
+                sizes: {
+                    deleteMany: {},
+                    create: category !== 'SERVICE' && validSizes.length > 0 ? validSizes.map(s => ({
+                        size: s.size.trim().toUpperCase(),
+                        stock: Number(s.stock)
+                    })) : []
+                }
             },
         });
 
-        revalidatePath("/ame-studio-ops");
+        revalidatePath("/ame-studio-ops/inventory");
         revalidatePath("/");
         return { success: true };
     } catch (error) {

@@ -29,7 +29,7 @@ export function ActionToast() {
 
         const timer = setTimeout(() => {
             setToastInfo(null)
-            router.replace('/admin', { scroll: false })
+            router.replace("/ame-studio-ops/inventory", { scroll: false });
         }, 3000)
 
         return () => clearTimeout(timer)
