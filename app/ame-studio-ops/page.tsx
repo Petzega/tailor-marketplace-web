@@ -1,212 +1,181 @@
+import { getOrders, getOrderStats, getOrderById } from "@/actions/orders";
+import { Download, Search, Eye } from "lucide-react";
 import Link from "next/link";
-import Image from "next/image";
-import { Suspense } from "react"; // ✅ NUEVO: Requerido por useSearchParams en Next.js 15
-import { getProducts, getProductStats, getProductById } from "@/actions/products";
-import { ITEMS_PER_PAGE } from "@/lib/constants";
-import { Plus, Download } from "lucide-react";
-import { ProductSheet } from "@/components/admin/product-sheet";
-import { EditProductSheet } from "@/components/admin/edit-product-sheet";
-import { ProductActions } from "@/components/admin/product-actions";
-import { ActionToast } from "@/components/admin/action-toast";
-import { ProductFilters } from "@/components/admin/product-filters";    // ✅ NUEVO
-import { ProductPagination } from "@/components/admin/product-pagination"; // ✅ NUEVO
+import { OrderDetailsSheet } from "@/components/admin/order-details-sheet";
 
-interface AdminPageProps {
+interface OrdersPageProps {
     searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }
 
-export default async function AdminPage({ searchParams }: AdminPageProps) {
+export default async function OrdersPage({ searchParams }: OrdersPageProps) {
     const params = await searchParams;
-
-    // ✅ NUEVO: Leemos los filtros desde la URL
-    const query = typeof params?.q === 'string' ? params.q : undefined;
-    const category = typeof params?.category === 'string' ? params.category : undefined;
     const page = typeof params?.page === 'string' ? Math.max(1, parseInt(params.page)) : 1;
+    const viewId = typeof params?.view === 'string' ? params.view : undefined;
 
-    const showNewProductForm = params?.new === 'true';
-    const editId = params?.edit;
-
-    // ✅ NUEVO: Queries en paralelo para mejor performance
-    const [{ products, total, totalPages }, stats] = await Promise.all([
-        getProducts(query, category, page),  // Tabla paginada con filtros
-        getProductStats(),                   // Tarjetas siempre con datos globales
+    // Ejecutamos ambas consultas en paralelo
+    const [{ orders }, stats] = await Promise.all([
+        getOrders(page, 20),
+        getOrderStats(),
     ]);
 
-    let productToEdit = null;
-    if (typeof editId === 'string') {
-        productToEdit = await getProductById(editId);
+    // Verificamos si hay una orden específica que mostrar en el panel lateral
+    let orderToView = null;
+    if (viewId) {
+        orderToView = await getOrderById(viewId);
     }
 
     return (
         <div className="p-8 relative min-h-screen bg-gray-50">
-            <ActionToast />
-            {showNewProductForm && <ProductSheet />}
-            {productToEdit && <EditProductSheet product={productToEdit} />}
-
             <div className="max-w-7xl mx-auto space-y-8">
 
                 {/* Encabezado */}
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <div>
-                        <h1 className="text-2xl font-bold text-gray-900">Inventory Management</h1>
-                        <p className="text-gray-500 text-sm mt-1">Track stock levels, manage products, and update pricing.</p>
+                        <h1 className="text-2xl font-bold text-gray-900">Order Management</h1>
+                        <p className="text-gray-500 text-sm mt-1">Review incoming WhatsApp orders and track fulfillment.</p>
                     </div>
                     <div className="flex gap-3">
                         <button className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 text-sm font-medium transition-colors shadow-sm">
                             <Download size={16} />
-                            Export
+                            Export CSV
                         </button>
-                        <Link
-                            href="/admin?new=true"
-                            className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm font-medium shadow-sm transition-all active:scale-95"
-                        >
-                            <Plus size={16} />
-                            Add Product
-                        </Link>
                     </div>
                 </div>
 
-                {/* ✅ NUEVO: Stats usan datos globales reales (no de la página actual) */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <StatCard label="Total Products" value={stats.total.toString()} trend="+12%" />
-                    <StatCard label="Low Stock Alerts" value={stats.lowStockCount.toString()} trend="Action required" isAlert />
-                    <StatCard label="Total Value" value={`S/ ${stats.totalValue.toLocaleString()}`} trend="Updated just now" />
+                {/* Tarjetas de Estadísticas */}
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <StatCard label="Total Orders" value={stats.total.toString()} />
+                    <StatCard label="Pending Validation" value={stats.pending.toString()} isAlert={stats.pending > 0} />
+                    <StatCard label="Completed" value={stats.completed.toString()} isSuccess />
+                    <StatCard label="Total Revenue" value={`S/ ${stats.revenue.toLocaleString()}`} />
                 </div>
 
-                {/* Tabla */}
+                {/* Tabla de Órdenes */}
                 <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
 
-                    {/* ✅ NUEVO: Filtros reales — Suspense requerido por useSearchParams */}
-                    <Suspense fallback={<div className="h-[73px] animate-pulse bg-gray-50 border-b border-gray-100" />}>
-                        <ProductFilters />
-                    </Suspense>
+                    {/* Barra de herramientas / Búsqueda */}
+                    <div className="p-4 border-b border-gray-100 bg-white flex justify-between items-center">
+                        <div className="relative max-w-sm w-full">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+                            <input
+                                type="text"
+                                placeholder="Search by Order ID or Code..."
+                                className="w-full pl-9 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm outline-none focus:border-green-500 focus:ring-1 focus:ring-green-500 transition-all"
+                            />
+                        </div>
+                    </div>
 
                     <div className="overflow-x-auto">
                         <table className="w-full text-left border-collapse">
                             <thead>
-                                <tr className="bg-gray-50/50 border-b border-gray-100 text-xs uppercase tracking-wider text-gray-500 font-semibold">
-                                    <th className="px-6 py-4 w-[40px]"><input type="checkbox" className="rounded border-gray-300 text-green-600 focus:ring-green-500" /></th>
-                                    <th className="px-6 py-4">Product</th>
-                                    <th className="px-6 py-4">SKU</th>
-                                    <th className="px-6 py-4">Category</th>
-                                    <th className="px-6 py-4">Price</th>
-                                    <th className="px-6 py-4">Stock Level</th>
-                                    <th className="px-6 py-4">Status</th>
-                                    <th className="px-6 py-4 text-right">Actions</th>
-                                </tr>
+                            <tr className="bg-gray-50/50 border-b border-gray-100 text-[11px] uppercase tracking-wider text-gray-500 font-bold">
+                                <th className="px-6 py-4">Order ID</th>
+                                <th className="px-6 py-4">Date</th>
+                                <th className="px-6 py-4">Customer</th>
+                                <th className="px-6 py-4">Validation Code</th>
+                                <th className="px-6 py-4">Delivery</th>
+                                <th className="px-6 py-4">Total</th>
+                                <th className="px-6 py-4">Status</th>
+                                <th className="px-6 py-4 text-right">Actions</th>
+                            </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-100 bg-white">
-                                {/* ✅ NUEVO: Estado vacío cuando no hay resultados */}
-                                {products.length === 0 ? (
-                                    <tr>
-                                        <td colSpan={8} className="px-6 py-16 text-center">
-                                            <p className="text-gray-400 text-sm">No products found.</p>
-                                            {query && (
-                                                <p className="text-gray-400 text-xs mt-1">
-                                                    No results for <span className="font-medium text-gray-600">&quot;{query}&quot;</span>.
-                                                </p>
-                                            )}
-                                        </td>
-                                    </tr>
-                                ) : (
-                                    products.map((product) => {
-                                        const isLow = product.stock > 0 && product.stock < 5;
-                                        const isOut = product.stock === 0;
-                                        const isService = product.category === 'SERVICE';
-                                        const percent = Math.min((product.stock / 50) * 100, 100);
+                            {orders.length === 0 ? (
+                                <tr>
+                                    <td colSpan={8} className="px-6 py-16 text-center">
+                                        <p className="text-gray-400 text-sm">No orders received yet.</p>
+                                    </td>
+                                </tr>
+                            ) : (
+                                orders.map((order) => {
+                                    // Formato de fecha seguro para el servidor (evita errores de hidratación)
+                                    const date = new Date(order.createdAt);
+                                    const formattedDate = date.toLocaleDateString("en-GB", { day: '2-digit', month: 'short', year: 'numeric' });
 
-                                        return (
-                                            <tr key={product.id} className="hover:bg-gray-50/80 transition-colors group">
-                                                <td className="px-6 py-4"><input type="checkbox" className="rounded border-gray-300 text-green-600 focus:ring-green-500" /></td>
+                                    return (
+                                        <tr key={order.id} className="hover:bg-gray-50/80 transition-colors group">
+                                            <td className="px-6 py-4">
+                                                <span className="text-xs font-bold text-gray-900">{order.id}</span>
+                                            </td>
 
-                                                <td className="px-6 py-4">
-                                                    <div className="flex items-center gap-3">
-                                                        <div className="h-10 w-10 rounded-lg bg-gray-100 overflow-hidden border border-gray-200 shrink-0 flex items-center justify-center relative">
-                                                            {product.imageUrl ? (
-                                                                <Image src={product.imageUrl} fill className="object-cover" alt={product.name} />
-                                                            ) : (
-                                                                <div className="text-gray-300 text-xs">No img</div>
-                                                            )}
-                                                        </div>
-                                                        <div>
-                                                            <p className="text-sm font-medium text-gray-900">{product.name}</p>
-                                                            <p className="text-xs text-gray-500 truncate max-w-[140px]">{product.description}</p>
-                                                        </div>
-                                                    </div>
-                                                </td>
+                                            <td className="px-6 py-4">
+                                                <span className="text-xs text-gray-500">{formattedDate}</span>
+                                            </td>
 
-                                                <td className="px-6 py-4">
-                                                    <span className="text-xs font-mono text-gray-500 bg-gray-100 px-2 py-1 rounded">{product.sku || '---'}</span>
-                                                </td>
+                                            <td className="px-6 py-4">
+                                                <p className="text-sm font-medium text-gray-900">{order.customerName}</p>
+                                                <p className="text-xs text-gray-500">{order.customerPhone}</p>
+                                            </td>
 
-                                                <td className="px-6 py-4 text-sm text-gray-600">{isService ? 'Sewing Service' : 'Ready-to-wear'}</td>
+                                            <td className="px-6 py-4">
+                                                    <span className="inline-block px-2.5 py-1 bg-gray-100 text-gray-700 font-mono text-xs font-bold rounded tracking-widest border border-gray-200">
+                                                        {order.validationCode}
+                                                    </span>
+                                            </td>
 
-                                                <td className="px-6 py-4 text-sm font-medium text-gray-900">S/ {product.price.toFixed(2)}</td>
+                                            <td className="px-6 py-4">
+                                                <p className="text-xs text-gray-600 font-medium">{order.deliveryMethod === 'DELIVERY' ? 'Delivery' : 'Store Pickup'}</p>
+                                                <p className="text-[10px] text-gray-400 uppercase tracking-wide">{order.paymentMethod}</p>
+                                            </td>
 
-                                                <td className="px-6 py-4 w-48">
-                                                    {isService ? (
-                                                        <span className="text-xs text-gray-400 italic">Unlimited</span>
-                                                    ) : (
-                                                        <div className="space-y-1.5">
-                                                            <div className="flex justify-between text-xs">
-                                                                <span className={`font-medium ${isLow ? 'text-amber-600' : 'text-green-600'}`}>{product.stock} units</span>
-                                                            </div>
-                                                            <div className="w-full bg-gray-100 rounded-full h-1.5 overflow-hidden">
-                                                                <div
-                                                                    className={`h-full rounded-full transition-all duration-500 ${isOut ? 'bg-gray-300' : isLow ? 'bg-amber-400' : 'bg-green-500'}`}
-                                                                    style={{ width: `${isOut ? 0 : Math.max(percent, 5)}%` }}
-                                                                />
-                                                            </div>
-                                                        </div>
-                                                    )}
-                                                </td>
+                                            <td className="px-6 py-4 text-sm font-bold text-gray-900">
+                                                S/ {order.total.toFixed(2)}
+                                            </td>
 
-                                                <td className="px-6 py-4">
-                                                    <StatusBadge isOut={isOut} isLow={isLow} isService={isService} />
-                                                </td>
+                                            <td className="px-6 py-4">
+                                                <OrderStatusBadge status={order.status} />
+                                            </td>
 
-                                                <td className="px-6 py-4 text-right">
-                                                    <ProductActions product={product} />
-                                                </td>
-                                            </tr>
-                                        );
-                                    })
-                                )}
+                                            <td className="px-6 py-4 text-right">
+                                                <Link
+                                                    href={`/ame-studio-ops/orders?view=${order.id}`}
+                                                    className="p-2 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors inline-flex items-center justify-center"
+                                                >
+                                                    <Eye size={18} />
+                                                </Link>
+                                            </td>
+                                        </tr>
+                                    );
+                                })
+                            )}
                             </tbody>
                         </table>
                     </div>
-
-                    {/* ✅ NUEVO: Paginación real — Suspense requerido por useSearchParams */}
-                    <Suspense fallback={<div className="h-[57px] animate-pulse bg-gray-50 border-t border-gray-100" />}>
-                        <ProductPagination
-                            currentPage={page}
-                            totalPages={totalPages}
-                            totalItems={total}
-                            itemsPerPage={ITEMS_PER_PAGE}
-                        />
-                    </Suspense>
                 </div>
             </div>
+
+            {/* Renderizado condicional del panel lateral */}
+            {orderToView && <OrderDetailsSheet order={orderToView} />}
         </div>
     );
 }
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-function StatCard({ label, value, trend, isAlert }: { label: string; value: string; trend: string; isAlert?: boolean }) {
+// ─── Componentes Auxiliares ───────────────────────────────────────────────────
+
+function StatCard({ label, value, isAlert, isSuccess }: { label: string; value: string; isAlert?: boolean; isSuccess?: boolean }) {
+    let colorClass = "text-gray-900";
+    if (isAlert) colorClass = "text-amber-600";
+    if (isSuccess) colorClass = "text-green-600";
+
     return (
         <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
-            <p className="text-sm font-medium text-gray-500">{label}</p>
-            <div className="mt-2 flex items-baseline gap-2">
-                <h3 className="text-2xl font-bold text-gray-900">{value}</h3>
-            </div>
-            <p className={`text-xs mt-1 font-medium ${isAlert ? 'text-red-600' : 'text-green-600'}`}>{trend}</p>
+            <p className="text-sm font-medium text-gray-500 mb-2">{label}</p>
+            <h3 className={`text-3xl font-black tracking-tight ${colorClass}`}>{value}</h3>
         </div>
     );
 }
 
-function StatusBadge({ isOut, isLow, isService }: { isOut: boolean; isLow: boolean; isService: boolean }) {
-    if (isOut) return <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-50   text-red-700   border border-red-100">Out of Stock</span>;
-    if (isLow) return <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-50 text-amber-700 border border-amber-100">Low Stock</span>;
-    if (isService) return <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-50  text-blue-700  border border-blue-100">Active</span>;
-    return <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-50 text-green-700 border border-green-100">In Stock</span>;
+function OrderStatusBadge({ status }: { status: string }) {
+    switch (status) {
+        case 'PENDING':
+            return <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200 uppercase tracking-wider">Pending</span>;
+        case 'IN_PROGRESS':
+            return <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200 uppercase tracking-wider">In Progress</span>;
+        case 'COMPLETED':
+            return <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold bg-green-50 text-green-700 border border-green-200 uppercase tracking-wider">Completed</span>;
+        case 'CANCELLED':
+            return <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold bg-red-50 text-red-700 border border-red-200 uppercase tracking-wider">Cancelled</span>;
+        default:
+            return <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold bg-gray-50 text-gray-700 border border-gray-200 uppercase tracking-wider">{status}</span>;
+    }
 }

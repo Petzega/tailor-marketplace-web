@@ -1,5 +1,7 @@
-import { getOrders, getOrderStats } from "@/actions/orders";
+import { getOrders, getOrderStats, getOrderById } from "@/actions/orders";
 import { Download, Search, Eye } from "lucide-react";
+import Link from "next/link";
+import { OrderDetailsSheet } from "@/components/admin/order-details-sheet";
 
 interface OrdersPageProps {
     searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
@@ -8,12 +10,19 @@ interface OrdersPageProps {
 export default async function OrdersPage({ searchParams }: OrdersPageProps) {
     const params = await searchParams;
     const page = typeof params?.page === 'string' ? Math.max(1, parseInt(params.page)) : 1;
+    const viewId = typeof params?.view === 'string' ? params.view : undefined;
 
     // Ejecutamos ambas consultas en paralelo
     const [{ orders }, stats] = await Promise.all([
         getOrders(page, 20),
         getOrderStats(),
     ]);
+
+    // Verificamos si hay una orden específica que mostrar en el panel lateral
+    let orderToView = null;
+    if (viewId) {
+        orderToView = await getOrderById(viewId);
+    }
 
     return (
         <div className="p-8 relative min-h-screen bg-gray-50">
@@ -22,23 +31,23 @@ export default async function OrdersPage({ searchParams }: OrdersPageProps) {
                 {/* Encabezado */}
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <div>
-                        <h1 className="text-2xl font-bold text-gray-900">Order Management</h1>
-                        <p className="text-gray-500 text-sm mt-1">Review incoming WhatsApp orders and track fulfillment.</p>
+                        <h1 className="text-2xl font-bold text-gray-900">Gestión de Órdenes</h1>
+                        <p className="text-gray-500 text-sm mt-1">Revisa las ventas entrantes de WhatsApp y gestiona los envíos.</p>
                     </div>
                     <div className="flex gap-3">
                         <button className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 text-sm font-medium transition-colors shadow-sm">
                             <Download size={16} />
-                            Export CSV
+                            Exportar CSV
                         </button>
                     </div>
                 </div>
 
                 {/* Tarjetas de Estadísticas */}
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                    <StatCard label="Total Orders" value={stats.total.toString()} />
-                    <StatCard label="Pending Validation" value={stats.pending.toString()} isAlert={stats.pending > 0} />
-                    <StatCard label="Completed" value={stats.completed.toString()} isSuccess />
-                    <StatCard label="Total Revenue" value={`S/ ${stats.revenue.toLocaleString()}`} />
+                    <StatCard label="Órdenes Totales" value={stats.total.toString()} />
+                    <StatCard label="Pendientes" value={stats.pending.toString()} isAlert={stats.pending > 0} />
+                    <StatCard label="Completadas" value={stats.completed.toString()} isSuccess />
+                    <StatCard label="Ingresos Totales" value={`S/ ${stats.revenue.toLocaleString()}`} />
                 </div>
 
                 {/* Tabla de Órdenes */}
@@ -50,7 +59,7 @@ export default async function OrdersPage({ searchParams }: OrdersPageProps) {
                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
                             <input
                                 type="text"
-                                placeholder="Search by Order ID or Code..."
+                                placeholder="Buscar por ID de orden o código..."
                                 className="w-full pl-9 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm outline-none focus:border-green-500 focus:ring-1 focus:ring-green-500 transition-all"
                             />
                         </div>
@@ -60,28 +69,28 @@ export default async function OrdersPage({ searchParams }: OrdersPageProps) {
                         <table className="w-full text-left border-collapse">
                             <thead>
                             <tr className="bg-gray-50/50 border-b border-gray-100 text-[11px] uppercase tracking-wider text-gray-500 font-bold">
-                                <th className="px-6 py-4">Order ID</th>
-                                <th className="px-6 py-4">Date</th>
-                                <th className="px-6 py-4">Customer</th>
-                                <th className="px-6 py-4">Validation Code</th>
-                                <th className="px-6 py-4">Delivery</th>
+                                <th className="px-6 py-4">ID de Orden</th>
+                                <th className="px-6 py-4">Fecha y Hora</th>
+                                <th className="px-6 py-4">Cliente</th>
+                                <th className="px-6 py-4">Entrega</th>
                                 <th className="px-6 py-4">Total</th>
-                                <th className="px-6 py-4">Status</th>
-                                <th className="px-6 py-4 text-right">Actions</th>
+                                <th className="px-6 py-4">Estado</th>
+                                <th className="px-6 py-4 text-right">Acciones</th>
                             </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-100 bg-white">
                             {orders.length === 0 ? (
                                 <tr>
-                                    <td colSpan={8} className="px-6 py-16 text-center">
-                                        <p className="text-gray-400 text-sm">No orders received yet.</p>
+                                    <td colSpan={7} className="px-6 py-16 text-center">
+                                        <p className="text-gray-400 text-sm">Aún no se han recibido órdenes.</p>
                                     </td>
                                 </tr>
                             ) : (
                                 orders.map((order) => {
-                                    // Formato de fecha seguro para el servidor (evita errores de hidratación)
+                                    // 👇 Formato de fecha y hora local (Perú)
                                     const date = new Date(order.createdAt);
-                                    const formattedDate = date.toLocaleDateString("en-GB", { day: '2-digit', month: 'short', year: 'numeric' });
+                                    const formattedDate = date.toLocaleDateString("es-PE", { day: '2-digit', month: 'short', year: 'numeric' });
+                                    const formattedTime = date.toLocaleTimeString("es-PE", { hour: '2-digit', minute: '2-digit', hour12: true });
 
                                     return (
                                         <tr key={order.id} className="hover:bg-gray-50/80 transition-colors group">
@@ -90,7 +99,9 @@ export default async function OrdersPage({ searchParams }: OrdersPageProps) {
                                             </td>
 
                                             <td className="px-6 py-4">
-                                                <span className="text-xs text-gray-500">{formattedDate}</span>
+                                                {/* Mostramos la fecha y la hora apiladas para mejor lectura */}
+                                                <span className="block text-xs font-medium text-gray-900">{formattedDate}</span>
+                                                <span className="block text-[10px] text-gray-500 uppercase tracking-wider mt-0.5">{formattedTime}</span>
                                             </td>
 
                                             <td className="px-6 py-4">
@@ -99,13 +110,7 @@ export default async function OrdersPage({ searchParams }: OrdersPageProps) {
                                             </td>
 
                                             <td className="px-6 py-4">
-                                                    <span className="inline-block px-2.5 py-1 bg-gray-100 text-gray-700 font-mono text-xs font-bold rounded tracking-widest border border-gray-200">
-                                                        {order.validationCode}
-                                                    </span>
-                                            </td>
-
-                                            <td className="px-6 py-4">
-                                                <p className="text-xs text-gray-600 font-medium">{order.deliveryMethod === 'DELIVERY' ? 'Delivery' : 'Store Pickup'}</p>
+                                                <p className="text-xs text-gray-600 font-medium">{order.deliveryMethod === 'DELIVERY' ? 'Envío a Domicilio' : 'Retiro en Tienda'}</p>
                                                 <p className="text-[10px] text-gray-400 uppercase tracking-wide">{order.paymentMethod}</p>
                                             </td>
 
@@ -118,9 +123,12 @@ export default async function OrdersPage({ searchParams }: OrdersPageProps) {
                                             </td>
 
                                             <td className="px-6 py-4 text-right">
-                                                <button className="p-2 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors inline-flex items-center justify-center">
+                                                <Link
+                                                    href={`/ame-studio-ops/orders?view=${order.id}`}
+                                                    className="p-2 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors inline-flex items-center justify-center"
+                                                >
                                                     <Eye size={18} />
-                                                </button>
+                                                </Link>
                                             </td>
                                         </tr>
                                     );
@@ -131,6 +139,9 @@ export default async function OrdersPage({ searchParams }: OrdersPageProps) {
                     </div>
                 </div>
             </div>
+
+            {/* Renderizado condicional del panel lateral */}
+            {orderToView && <OrderDetailsSheet order={orderToView} />}
         </div>
     );
 }
@@ -153,13 +164,13 @@ function StatCard({ label, value, isAlert, isSuccess }: { label: string; value: 
 function OrderStatusBadge({ status }: { status: string }) {
     switch (status) {
         case 'PENDING':
-            return <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200 uppercase tracking-wider">Pending</span>;
+            return <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200 uppercase tracking-wider">Pendiente</span>;
         case 'IN_PROGRESS':
-            return <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200 uppercase tracking-wider">In Progress</span>;
+            return <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200 uppercase tracking-wider">En Proceso</span>;
         case 'COMPLETED':
-            return <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold bg-green-50 text-green-700 border border-green-200 uppercase tracking-wider">Completed</span>;
+            return <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold bg-green-50 text-green-700 border border-green-200 uppercase tracking-wider">Completado</span>;
         case 'CANCELLED':
-            return <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold bg-red-50 text-red-700 border border-red-200 uppercase tracking-wider">Cancelled</span>;
+            return <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold bg-red-50 text-red-700 border border-red-200 uppercase tracking-wider">Cancelado</span>;
         default:
             return <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold bg-gray-50 text-gray-700 border border-gray-200 uppercase tracking-wider">{status}</span>;
     }
