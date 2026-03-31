@@ -13,7 +13,8 @@ interface OrderItem {
 interface CreateOrderData {
     customerData: {
         name: string;
-        document: string;
+        docType: string;        // 👈 Corregido
+        documentNumber: string; // 👈 Corregido
         phone: string;
         address?: string;
         reference?: string;
@@ -28,53 +29,57 @@ interface CreateOrderData {
 
 export async function createOrder(data: CreateOrderData) {
     try {
-        // 1. Obtenemos la fecha actual ajustada a la hora de Perú
         const now = new Date();
         const peruTime = new Date(now.toLocaleString("en-US", { timeZone: "America/Lima" }));
 
-        const year = peruTime.getFullYear().toString().slice(-2); // "26"
-        const month = (peruTime.getMonth() + 1).toString().padStart(2, "0"); // "03"
-        const day = peruTime.getDate().toString().padStart(2, "0"); // "07"
+        const year = peruTime.getFullYear().toString().slice(-2);
+        const month = (peruTime.getMonth() + 1).toString().padStart(2, "0");
+        const day = peruTime.getDate().toString().padStart(2, "0");
 
-        const datePrefix = `${year}${month}${day}`; // Resultado: "260307"
+        const datePrefix = `${year}${month}${day}`;
 
-        // 2. Buscamos la última orden creada el día de HOY
         const lastOrder = await db.order.findFirst({
-            where: {
-                id: {
-                    startsWith: `ORD-${datePrefix}`
-                }
-            },
-            orderBy: {
-                id: 'desc' // Ordenamos de mayor a menor para obtener el último número
-            }
+            where: { id: { startsWith: `ORD-${datePrefix}` } },
+            orderBy: { id: 'desc' }
         });
 
-        // 3. Calculamos el siguiente número de la cola
         let sequence = 1;
         if (lastOrder) {
-            // Si ya hay ventas hoy, extraemos los últimos 3 dígitos y le sumamos 1
             const lastSequence = parseInt(lastOrder.id.slice(-3));
-            if (!isNaN(lastSequence)) {
-                sequence = lastSequence + 1;
+            if (!isNaN(lastSequence)) sequence = lastSequence + 1;
+        }
+
+        const sequenceString = sequence.toString().padStart(3, "0");
+        const shortId = `ORD-${datePrefix}${sequenceString}`;
+
+        const generateValidationCode = () => {
+            const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+            let result = '';
+            for (let i = 0; i < 6; i++) {
+                result += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+            return result;
+        };
+
+        let token = generateValidationCode();
+
+        // Verificación de colisión (Asegura que el código sea 100% único en la BD)
+        let isUnique = false;
+        while (!isUnique) {
+            const existingOrder = await db.order.findUnique({ where: { validationCode: token } });
+            if (existingOrder) {
+                token = generateValidationCode();
+            } else {
+                isUnique = true;
             }
         }
 
-        // 4. Formateamos a 3 dígitos (ej: 1 -> "001", 15 -> "015")
-        const sequenceString = sequence.toString().padStart(3, "0");
-
-        // 5. Unimos todo para el ID final
-        const shortId = `ORD-${datePrefix}${sequenceString}`; // Resultado: "ORD-260307001"
-
-        // Generamos el token de seguridad para el Enlace Mágico
-        const token = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
-
-        // Guardamos todo en la base de datos
         const order = await db.order.create({
             data: {
                 id: shortId,
                 validationCode: token,
-                customerDocument: data.customerData.document,
+                customerDocType: data.customerData.docType,       // 👈 Ahora sí se guarda en BD
+                customerDocument: data.customerData.documentNumber, // 👈 Ahora sí se guarda en BD
                 customerName: data.customerData.name,
                 customerPhone: data.customerData.phone,
                 address: data.customerData.address || null,
@@ -102,22 +107,53 @@ export async function createOrder(data: CreateOrderData) {
     }
 }
 
-export async function getOrders() {
-    try {
-        const orders = await db.order.findMany({
-            orderBy: {
-                createdAt: 'desc'
-            },
-            // Incluimos los items para saber cuántos productos tiene cada orden si es necesario
-            include: {
-                items: true
-            }
-        });
+export async function getOrders(page: number = 1, limit: number = 10) {
+    const skip = (page - 1) * limit;
 
-        return orders;
+    try {
+        const [orders, total] = await Promise.all([
+            db.order.findMany({
+                orderBy: { createdAt: 'desc' },
+                skip,
+                take: limit,
+                // Incluimos los items y el producto para ver qué compraron si es necesario
+                include: { items: { include: { product: true } } }
+            }),
+            db.order.count()
+        ]);
+
+        return {
+            orders,
+            total,
+            totalPages: Math.ceil(total / limit),
+        };
     } catch (error) {
-        console.error("Error al obtener las órdenes:", error);
-        throw new Error("No se pudieron cargar las órdenes.");
+        console.error("Error al obtener órdenes:", error);
+        return { orders: [], total: 0, totalPages: 0 };
+    }
+}
+
+export async function getOrderStats() {
+    try {
+        const [total, pending, completed, revenueData] = await Promise.all([
+            db.order.count(),
+            db.order.count({ where: { status: 'PENDING' } }),
+            db.order.count({ where: { status: 'COMPLETED' } }),
+            db.order.aggregate({
+                where: { status: { not: 'CANCELLED' } }, // No sumamos órdenes canceladas
+                _sum: { total: true }
+            })
+        ]);
+
+        return {
+            total,
+            pending,
+            completed,
+            revenue: revenueData._sum.total || 0,
+        };
+    } catch (error) {
+        console.error("Error al obtener estadísticas de órdenes:", error);
+        return { total: 0, pending: 0, completed: 0, revenue: 0 };
     }
 }
 

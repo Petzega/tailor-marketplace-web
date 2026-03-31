@@ -8,6 +8,7 @@ import { ArrowLeft, MessageCircle, AlertCircle, Store, Truck, Loader2 } from "lu
 import { Footer } from "@/components/layout/footer";
 import { generateWhatsAppTicket } from "@/lib/whatsapp";
 import { TermsModal } from "@/components/checkout/terms-modal";
+import { createOrder } from "@/actions/orders";
 
 const WHATSAPP_NUMBER = "51992431513";
 const DELIVERY_COST = 10.00;
@@ -52,32 +53,30 @@ export default function CheckoutPage() {
         setErrorMsg("");
 
         try {
-            // 1. Enviar datos al backend para crear la orden
-            const response = await fetch('/api/orders', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    customerData,
-                    items,
-                    deliveryMethod,
-                    paymentMethod
-                })
-            });
-
-            const result = await response.json();
-
-            if (!response.ok) {
-                throw new Error(result.error || "Ocurrió un error al procesar la orden");
-            }
-
-            // 2. Generar ticket de WhatsApp usando el ID generado
-            const encodedMessage = generateWhatsAppTicket({
-                orderId: result.orderId, // <-- Pasamos el ID al ticket
+            // 1. Llamada directa al Server Action con TODOS los datos requeridos
+            const result = await createOrder({
                 customerData,
                 items,
                 deliveryMethod,
                 paymentMethod,
-                subtotal, deliveryCost: DELIVERY_COST,
+                subtotal,            // 👈 Dato financiero añadido
+                deliveryCost: DELIVERY_COST, // 👈 Dato financiero añadido
+                finalTotal           // 👈 Dato financiero añadido
+            });
+
+            if (!result.success || !result.orderId) {
+                throw new Error(result.error || "Ocurrió un error al procesar la orden en la base de datos");
+            }
+
+            // 2. Generar ticket de WhatsApp usando el ID devuelto por la Base de Datos
+            const encodedMessage = generateWhatsAppTicket({
+                orderId: result.orderId,
+                customerData,
+                items,
+                deliveryMethod,
+                paymentMethod,
+                subtotal,
+                deliveryCost: DELIVERY_COST,
                 finalTotal
             });
 
