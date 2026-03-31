@@ -5,6 +5,38 @@ import { Product } from "@/types";
 import { revalidatePath } from "next/cache";
 import { ITEMS_PER_PAGE } from "@/lib/constants";
 import { Prisma } from "@prisma/client";
+// 👇 1. Importamos Cloudinary
+import { v2 as cloudinary } from 'cloudinary';
+
+// 👇 2. Configuramos las credenciales desde el .env
+cloudinary.config({
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+    api_key: process.env.CLOUDINARY_API_KEY,
+    api_secret: process.env.CLOUDINARY_API_SECRET,
+});
+
+// 👇 3. Función auxiliar para subir el archivo (File) a Cloudinary
+async function uploadToCloudinary(file: File): Promise<string> {
+    const arrayBuffer = await file.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+    const base64Data = buffer.toString('base64');
+
+    // Formato Data URI que Cloudinary entiende nativamente
+    const fileUri = `data:${file.type};base64,${base64Data}`;
+
+    return new Promise((resolve, reject) => {
+        cloudinary.uploader.upload(fileUri, {
+            folder: 'ame_studio_products', // Carpeta para mantener tu dashboard ordenado
+            resource_type: 'image',
+        }, (error, result) => {
+            if (error || !result) {
+                reject(error);
+            } else {
+                resolve(result.secure_url);
+            }
+        });
+    });
+}
 
 export type GetProductsResult = {
     products: Product[];
@@ -12,29 +44,23 @@ export type GetProductsResult = {
     totalPages: number;
 };
 
-// 👇 1. GENERADOR DE SKU MULTI-CATEGORÍA
+// GENERADOR DE SKU MULTI-CATEGORÍA
 async function generateSku(category: string): Promise<string> {
-    // Definimos el prefijo con lógica escalable
-    let typePrefix = 'PRD'; // 👈 Por defecto será PRD (Producto General)
+    let typePrefix = 'PRD';
 
     if (category === 'SERVICE') {
-        typePrefix = 'SRV'; // Servicios de costura
+        typePrefix = 'SRV';
     } else if (category === 'READY_MADE') {
-        typePrefix = 'CLT'; // Ropa y prendas
+        typePrefix = 'CLT';
     }
 
-    // Ajustar a hora de Perú (UTC-5) para que el cambio de día sea exacto a la medianoche local
     const now = new Date(new Date().getTime() - 5 * 60 * 60 * 1000);
-
-    // Extraer año (2 dígitos), mes y día
     const yy = String(now.getUTCFullYear()).slice(-2);
     const mm = String(now.getUTCMonth() + 1).padStart(2, '0');
     const dd = String(now.getUTCDate()).padStart(2, '0');
 
-    // Armar la base, ej: "CLT-260305", "SRV-260305" o "PRD-260305"
     const prefix = `${typePrefix}-${yy}${mm}${dd}`;
 
-    // Buscar el último producto de HOY con ESE prefijo específico
     const lastProduct = await db.product.findFirst({
         where: { sku: { startsWith: prefix } },
         orderBy: { sku: 'desc' },
@@ -42,12 +68,10 @@ async function generateSku(category: string): Promise<string> {
 
     let sequence = 1;
     if (lastProduct) {
-        // Extraer los últimos 3 dígitos numéricos y sumar 1
         const lastSequence = parseInt(lastProduct.sku.slice(-3), 10);
         if (!isNaN(lastSequence)) sequence = lastSequence + 1;
     }
 
-    // Retornar formato final, ej: "PRD-260305001"
     return `${prefix}${String(sequence).padStart(3, '0')}`;
 }
 
@@ -163,14 +187,20 @@ export async function createProduct(formData: FormData) {
     const imageFile = formData.get("imageFile") as File;
     let finalImageUrl = imageUrlText;
 
+    // 👇 4. Subida real a Cloudinary en CREACIÓN
     if (imageFile && imageFile.size > 0) {
-        finalImageUrl = "https://placehold.co/600x400?text=Imagen+Subida";
+        try {
+            finalImageUrl = await uploadToCloudinary(imageFile);
+        } catch (error) {
+            console.error("Error crítico subiendo a Cloudinary:", error);
+            // Si falla, evitamos guardar basura y detenemos el proceso (opcional)
+            throw new Error("Fallo la subida de la imagen");
+        }
     }
 
     const gender = formData.get("gender") as string;
     const clothingType = formData.get("clothingType") as string;
 
-    // 👇 NUEVA LÓGICA: Procesamiento del JSON de tallas
     const sizesData = formData.get("sizesData") as string;
     let sizes: { size: string, stock: number }[] = [];
     try {
@@ -179,40 +209,34 @@ export async function createProduct(formData: FormData) {
         console.error("Error al parsear tallas JSON", e);
     }
 
-    // Filtrar tallas inválidas por seguridad
     const validSizes = sizes.filter(s => s.size.trim() !== '');
 
-    // Calcular el stock real: Si hay tallas usa la suma, si no, usa el valor manual
+    // Calcular el stock real: Forzamos la conversión a Number
     const manualStock = parseInt(formData.get("stock") as string) || 0;
     const calculatedStock = validSizes.length > 0
-        ? validSizes.reduce((sum, s) => sum + s.stock, 0)
+        ? validSizes.reduce((sum, s) => sum + Number(s.stock), 0) // 👈 Convertimos a Number aquí
         : manualStock;
 
-    // 👇 NUEVA LÓGICA: Inserción Anidada
     await db.product.create({
         data: {
             name: formData.get("name") as string,
             description: formData.get("description") as string,
             price: parseFloat(formData.get("price") as string),
-            stock: calculatedStock, // 👈 Stock asegurado y sincronizado
+            stock: calculatedStock,
             category: category,
             imageUrl: finalImageUrl || null,
             sku,
             gender: gender || null,
             clothingType: clothingType || null,
-
-            // Si validSizes tiene elementos, Prisma crea los registros en ProductSize
-            // vinculándolos automáticamente al nuevo productId.
             sizes: validSizes.length > 0 ? {
                 create: validSizes.map(s => ({
                     size: s.size.trim().toUpperCase(),
-                    stock: s.stock
+                    stock: Number(s.stock) // 👈 Convertimos a Number aquí también
                 }))
             } : undefined
         },
     });
 
-    // Rutas corregidas para la nueva arquitectura
     revalidatePath("/");
     revalidatePath("/ame-studio-ops/inventory");
     return { success: true };
@@ -223,8 +247,14 @@ export async function updateProduct(id: string, formData: FormData) {
     const imageFile = formData.get("imageFile") as File;
     let finalImageUrl: string | undefined = undefined;
 
+    // 👇 5. Subida real a Cloudinary en EDICIÓN
     if (imageFile && imageFile.size > 0) {
-        finalImageUrl = "https://placehold.co/600x400?text=Nueva+Imagen+Update";
+        try {
+            finalImageUrl = await uploadToCloudinary(imageFile);
+        } catch (error) {
+            console.error("Error crítico subiendo a Cloudinary:", error);
+            return { success: false, error: "Fallo la subida de la imagen" };
+        }
     } else if (imageUrlText && imageUrlText.trim() !== "") {
         finalImageUrl = imageUrlText;
     }
@@ -233,7 +263,6 @@ export async function updateProduct(id: string, formData: FormData) {
     const clothingType = formData.get("clothingType") as string;
     const category = formData.get("category") as string;
 
-    // Procesamiento del JSON de tallas
     const sizesData = formData.get("sizesData") as string;
     let sizes: { size: string, stock: number }[] = [];
     try {
@@ -242,10 +271,8 @@ export async function updateProduct(id: string, formData: FormData) {
         console.error("Error al parsear tallas JSON en update", e);
     }
 
-    // Filtrar tallas inválidas
     const validSizes = sizes.filter(s => s.size.trim() !== '');
 
-    // Calcular el stock real
     const manualStock = parseInt(formData.get("stock") as string) || 0;
     const calculatedStock = validSizes.length > 0
         ? validSizes.reduce((sum, s) => sum + Number(s.stock), 0)
@@ -260,11 +287,10 @@ export async function updateProduct(id: string, formData: FormData) {
                 price: parseFloat(formData.get("price") as string),
                 stock: calculatedStock,
                 category: category,
-                imageUrl: finalImageUrl,
+                // Solo se actualiza la imagen si se subió una nueva
+                ...(finalImageUrl !== undefined && { imageUrl: finalImageUrl }),
                 gender: gender || null,
                 clothingType: clothingType || null,
-
-                // Sincronización atómica de tallas: Borra las anteriores y reinserta el estado actual
                 sizes: {
                     deleteMany: {},
                     create: category !== 'SERVICE' && validSizes.length > 0 ? validSizes.map(s => ({

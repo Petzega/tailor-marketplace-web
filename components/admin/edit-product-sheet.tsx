@@ -21,18 +21,18 @@ export function EditProductSheet({ product }: EditSheetProps) {
     const [showModal, setShowModal] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
 
-    // 👇 Inicializamos la categoría con el valor del producto
     const [category, setCategory] = useState(product.category || "READY_MADE");
 
-    // 👇 Precargamos las tallas existentes o iniciamos un array vacío
     const initialSizes = product.sizes ? product.sizes.map(s => ({ size: s.size, stock: s.stock })) : [];
     const [sizes, setSizes] = useState<{ size: string, stock: number | string }[]>(initialSizes);
     const [manualStock, setManualStock] = useState<string>(initialSizes.length > 0 ? "" : String(product.stock));
 
+    // 👇 NUEVO: Estado para controlar el error de la imagen
+    const [imageError, setImageError] = useState<string | null>(null);
+
     const urlInputRef = useRef<HTMLInputElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
-    // Funciones del Gestor de Tallas
     const addSize = () => setSizes([...sizes, { size: '', stock: '' }]);
     const updateSize = (index: number, field: 'size' | 'stock', value: string | number) => {
         const newSizes = [...sizes];
@@ -46,7 +46,22 @@ export function EditProductSheet({ product }: EditSheetProps) {
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
-        if (file) setPreview(URL.createObjectURL(file));
+        setImageError(null);
+
+        if (file) {
+            const MAX_SIZE_MB = 5;
+            const MAX_SIZE_BYTES = MAX_SIZE_MB * 1024 * 1024;
+
+            if (file.size > MAX_SIZE_BYTES) {
+                // 👇 Modificamos para usar el estado en lugar de alert()
+                setImageError(`La imagen es muy pesada. El tamaño máximo permitido es de ${MAX_SIZE_MB}MB.`);
+                if (fileInputRef.current) fileInputRef.current.value = '';
+                setPreview(product.imageUrl); // Restauramos la preview original en caso de error
+                return;
+            }
+
+            setPreview(URL.createObjectURL(file));
+        }
     };
 
     const handleSubmit = (e: React.FormEvent) => {
@@ -63,7 +78,6 @@ export function EditProductSheet({ product }: EditSheetProps) {
 
         if (result.success) {
             setShowModal(false);
-            // 👇 CORRECCIÓN: Rutas actualizadas a la nueva arquitectura
             router.push("/ame-studio-ops/inventory?action=updated", { scroll: false });
             router.refresh();
         } else {
@@ -98,7 +112,6 @@ export function EditProductSheet({ product }: EditSheetProps) {
                 </div>
 
                 <form id="edit-form" onSubmit={handleSubmit} className="flex-1 p-6 space-y-6">
-                    {/* Campo oculto con el JSON de tallas */}
                     <input type="hidden" name="sizesData" value={JSON.stringify(sizes)} />
 
                     <div className="space-y-3">
@@ -120,7 +133,7 @@ export function EditProductSheet({ product }: EditSheetProps) {
                         )}
 
                         {inputType === 'file' && (
-                            <div onClick={() => fileInputRef.current?.click()} className="border-2 border-dashed border-gray-200 rounded-xl p-6 flex flex-col items-center justify-center text-center hover:bg-gray-50 transition-colors group cursor-pointer relative overflow-hidden h-32">
+                            <div onClick={() => fileInputRef.current?.click()} className={`border-2 border-dashed rounded-xl p-6 flex flex-col items-center justify-center text-center hover:bg-gray-50 transition-colors group cursor-pointer relative overflow-hidden h-32 ${imageError ? 'border-red-300 bg-red-50' : 'border-gray-200'}`}>
                                 {preview && <NextImage src={preview} fill className="object-cover opacity-30 group-hover:opacity-20 transition-opacity" alt="Preview" />}
                                 <div className="relative z-10 flex flex-col items-center">
                                     <div className="bg-blue-50 p-3 rounded-full mb-2 group-hover:scale-110 transition-transform">
@@ -129,6 +142,14 @@ export function EditProductSheet({ product }: EditSheetProps) {
                                     <p className="text-xs text-gray-500 font-medium">{preview ? "Clic para cambiar" : "Subir nueva imagen"}</p>
                                 </div>
                                 <input ref={fileInputRef} name="imageFile" type="file" accept="image/*" onChange={handleFileChange} className="hidden" />
+                            </div>
+                        )}
+
+                        {/* 👇 Renderizado condicional del error */}
+                        {imageError && (
+                            <div className="flex items-center gap-2 text-red-600 bg-red-50 px-3 py-2.5 rounded-lg border border-red-100 text-xs font-medium animate-in fade-in slide-in-from-top-1">
+                                <AlertTriangle size={14} className="shrink-0" />
+                                <p>{imageError}</p>
                             </div>
                         )}
                     </div>

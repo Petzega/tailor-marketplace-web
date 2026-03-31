@@ -20,10 +20,12 @@ export function ProductSheet() {
     const [sizes, setSizes] = useState<{ size: string, stock: number | string }[]>([]);
     const [manualStock, setManualStock] = useState<string>("");
 
+    // 👇 NUEVO: Estado para controlar el error de la imagen
+    const [imageError, setImageError] = useState<string | null>(null);
+
     const urlInputRef = useRef<HTMLInputElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
-    // Las tallas inician vacías en lugar de tener un "0"
     const addSize = () => setSizes([...sizes, { size: '', stock: '' }]);
 
     const updateSize = (index: number, field: 'size' | 'stock', value: string | number) => {
@@ -39,7 +41,22 @@ export function ProductSheet() {
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
-        if (file) setPreview(URL.createObjectURL(file));
+        setImageError(null); // Limpiamos errores previos al seleccionar
+
+        if (file) {
+            const MAX_SIZE_MB = 5;
+            const MAX_SIZE_BYTES = MAX_SIZE_MB * 1024 * 1024;
+
+            if (file.size > MAX_SIZE_BYTES) {
+                // 👇 Modificamos para usar el estado en lugar de alert()
+                setImageError(`La imagen es muy pesada. El tamaño máximo permitido es de ${MAX_SIZE_MB}MB.`);
+                if (fileInputRef.current) fileInputRef.current.value = '';
+                setPreview(null);
+                return;
+            }
+
+            setPreview(URL.createObjectURL(file));
+        }
     };
 
     const handleSubmit = (e: React.FormEvent) => {
@@ -109,13 +126,21 @@ export function ProductSheet() {
                         )}
 
                         {inputType === 'file' && (
-                            <div onClick={() => fileInputRef.current?.click()} className="border-2 border-dashed border-gray-200 rounded-xl p-6 flex flex-col items-center justify-center text-center hover:bg-gray-50 transition-colors group cursor-pointer relative overflow-hidden h-32">
+                            <div onClick={() => fileInputRef.current?.click()} className={`border-2 border-dashed rounded-xl p-6 flex flex-col items-center justify-center text-center hover:bg-gray-50 transition-colors group cursor-pointer relative overflow-hidden h-32 ${imageError ? 'border-red-300 bg-red-50' : 'border-gray-200'}`}>
                                 {preview && <NextImage src={preview} fill className="object-cover opacity-30 group-hover:opacity-20 transition-opacity" alt="Preview" />}
                                 <div className="relative z-10 flex flex-col items-center">
                                     <div className="bg-blue-50 p-3 rounded-full mb-2 group-hover:scale-110 transition-transform"><ImageIcon className="text-blue-600" size={20} /></div>
                                     <p className="text-xs text-gray-500 font-medium">{preview ? "Cambiar archivo" : "Subir imagen"}</p>
                                 </div>
                                 <input ref={fileInputRef} name="imageFile" type="file" accept="image/*" onChange={handleFileChange} className="hidden" />
+                            </div>
+                        )}
+
+                        {/* 👇 Renderizado condicional del error */}
+                        {imageError && (
+                            <div className="flex items-center gap-2 text-red-600 bg-red-50 px-3 py-2.5 rounded-lg border border-red-100 text-xs font-medium animate-in fade-in slide-in-from-top-1">
+                                <AlertTriangle size={14} className="shrink-0" />
+                                <p>{imageError}</p>
                             </div>
                         )}
                     </div>
@@ -179,7 +204,6 @@ export function ProductSheet() {
                                                 onChange={(e) => updateSize(index, 'size', e.target.value)}
                                                 className="w-1/2 px-3 py-1.5 border border-gray-200 rounded-lg text-sm outline-none focus:border-green-500" required
                                             />
-                                            {/* 👇 Input Refactorizado para evitar retención de ceros */}
                                             <input
                                                 type="text"
                                                 inputMode="numeric"
