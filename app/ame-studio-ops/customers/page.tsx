@@ -1,6 +1,6 @@
 import { getCustomers, getCustomerById } from "@/actions/customers";
 import { CustomerDetailsSheet } from "@/components/admin/customer-details-sheet";
-import { Users, Search, Eye, Scissors, ShoppingBag } from "lucide-react";
+import { Users, Eye, Scissors, ShoppingBag } from "lucide-react";
 import Link from "next/link";
 import { CustomerFormSheet } from "@/components/admin/customer-form-sheet";
 import { CustomerFilters } from "@/components/admin/customer-filters";
@@ -14,7 +14,7 @@ export default async function CustomersPage({ searchParams }: CustomersPageProps
     const page = typeof params?.page === 'string' ? Math.max(1, parseInt(params.page)) : 1;
     const query = typeof params?.q === 'string' ? params.q : undefined;
 
-    const { customers, total } = await getCustomers(page, 15, query);
+    const { customers } = await getCustomers(page, 15, query);
 
     // Lógica para interceptar la URL de visualización
     const viewId = typeof params?.view === 'string' ? params.view : undefined;

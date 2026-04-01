@@ -5,7 +5,23 @@ import { X, User, Ruler, MapPin, Phone, FileText, ShoppingBag, Scissors, Calenda
 import Link from "next/link";
 import { saveCustomer } from "@/actions/customers";
 
-export function CustomerDetailsSheet({ customer }: { customer: any }) {
+type ServiceItem = { id: string; serviceType: string; createdAt: string | Date; status: string; price: number };
+type OrderItem = { id: string; createdAt: string | Date; total: number; status: string };
+type CustomerProps = {
+    id: string;
+    name: string;
+    docType: string;
+    documentNumber: string;
+    phone?: string | null;
+    address?: string | null;
+    createdAt: string | Date;
+    measurements?: string | null;
+    notes?: string | null;
+    services: ServiceItem[];
+    orders: OrderItem[];
+};
+
+export function CustomerDetailsSheet({ customer }: { customer: CustomerProps }) {
     const [isEditing, setIsEditing] = useState(false);
     const [isPending, startTransition] = useTransition();
     const [error, setError] = useState("");
@@ -102,7 +118,7 @@ export function CustomerDetailsSheet({ customer }: { customer: any }) {
                             <div className="flex items-center gap-3 text-sm">
                                 <Phone size={16} className="text-gray-400 shrink-0" />
                                 {isEditing ? (
-                                    <input name="phone" defaultValue={customer.phone} className="w-full bg-gray-50 border border-gray-200 rounded px-2 py-1.5 text-sm outline-none focus:border-green-500 focus:bg-white transition-colors" placeholder="Teléfono" />
+                                    <input name="phone" defaultValue={customer.phone ?? ""} className="w-full bg-gray-50 border border-gray-200 rounded px-2 py-1.5 text-sm outline-none focus:border-green-500 focus:bg-white transition-colors" placeholder="Teléfono" />
                                 ) : (
                                     <span className="text-gray-900 font-medium">{customer.phone || <span className="text-gray-400 italic">No registrado</span>}</span>
                                 )}
@@ -110,7 +126,7 @@ export function CustomerDetailsSheet({ customer }: { customer: any }) {
                             <div className="flex items-center gap-3 text-sm">
                                 <MapPin size={16} className="text-gray-400 shrink-0" />
                                 {isEditing ? (
-                                    <input name="address" defaultValue={customer.address} className="w-full bg-gray-50 border border-gray-200 rounded px-2 py-1.5 text-sm outline-none focus:border-green-500 focus:bg-white transition-colors" placeholder="Dirección completa" />
+                                    <input name="address" defaultValue={customer.address ?? ""} className="w-full bg-gray-50 border border-gray-200 rounded px-2 py-1.5 text-sm outline-none focus:border-green-500 focus:bg-white transition-colors" placeholder="Dirección completa" />
                                 ) : (
                                     <span className="text-gray-900 font-medium">{customer.address || <span className="text-gray-400 italic">No registrado</span>}</span>
                                 )}
@@ -139,7 +155,7 @@ export function CustomerDetailsSheet({ customer }: { customer: any }) {
                             <div>
                                 <h4 className="text-xs font-bold text-blue-900 mb-2">Medidas Corporales:</h4>
                                 {isEditing ? (
-                                    <textarea name="measurements" defaultValue={customer.measurements} rows={3} className="w-full bg-white border border-blue-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-blue-500 resize-none shadow-sm placeholder:text-blue-300 text-blue-900 font-medium" placeholder="Ej: Busto 90cm, Cintura 70cm, Cadera 95cm..."></textarea>
+                                    <textarea name="measurements" defaultValue={customer.measurements ?? ""} rows={3} className="w-full bg-white border border-blue-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-blue-500 resize-none shadow-sm placeholder:text-blue-300 text-blue-900 font-medium" placeholder="Ej: Busto 90cm, Cintura 70cm, Cadera 95cm..."></textarea>
                                 ) : (
                                     customer.measurements ? <p className="text-sm text-blue-800 leading-relaxed whitespace-pre-line">{customer.measurements}</p> : <p className="text-sm text-gray-500 italic">No hay medidas registradas.</p>
                                 )}
@@ -150,7 +166,7 @@ export function CustomerDetailsSheet({ customer }: { customer: any }) {
                                         <FileText size={12} /> Notas y Preferencias:
                                     </h4>
                                     {isEditing ? (
-                                        <textarea name="notes" defaultValue={customer.notes} rows={2} className="w-full bg-white border border-blue-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-blue-500 resize-none shadow-sm placeholder:text-blue-300 text-blue-900 font-medium" placeholder="Preferencias adicionales..."></textarea>
+                                        <textarea name="notes" defaultValue={customer.notes ?? ""} rows={2} className="w-full bg-white border border-blue-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-blue-500 resize-none shadow-sm placeholder:text-blue-300 text-blue-900 font-medium" placeholder="Preferencias adicionales..."></textarea>
                                     ) : (
                                         <p className="text-sm text-blue-800 leading-relaxed whitespace-pre-line">{customer.notes}</p>
                                     )}
@@ -169,7 +185,7 @@ export function CustomerDetailsSheet({ customer }: { customer: any }) {
                                 {customer.services.length === 0 ? (
                                     <p className="text-sm text-gray-400 italic text-center py-4 bg-gray-50 rounded-lg border border-dashed border-gray-200">Sin historial de sastrería.</p>
                                 ) : (
-                                    customer.services.map((service: any) => (
+                                    customer.services.map((service: ServiceItem) => (
                                         <div key={service.id} className="bg-white border border-gray-100 p-3 rounded-xl shadow-sm flex justify-between items-start">
                                             <div>
                                                 <p className="text-xs font-bold text-gray-900">{service.serviceType}</p>
@@ -200,7 +216,7 @@ export function CustomerDetailsSheet({ customer }: { customer: any }) {
                                 {customer.orders.length === 0 ? (
                                     <p className="text-sm text-gray-400 italic text-center py-4 bg-gray-50 rounded-lg border border-dashed border-gray-200">Sin historial de compras.</p>
                                 ) : (
-                                    customer.orders.map((order: any) => (
+                                    customer.orders.map((order: OrderItem) => (
                                         <Link key={order.id} href={`/ame-studio-ops/orders?view=${order.id}`} className="bg-white border border-gray-100 p-3 rounded-xl shadow-sm flex justify-between items-center hover:border-green-300 transition-colors group">
                                             <div>
                                                 <p className="text-xs font-bold text-gray-900 group-hover:text-green-700 transition-colors">{order.id}</p>

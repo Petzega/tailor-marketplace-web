@@ -91,9 +91,9 @@ export async function saveCustomer(data: {
         revalidatePath("/ame-studio-ops/customers");
         return { success: true };
 
-    } catch (error: any) {
+    } catch (error: unknown) {
         // Código de Prisma P2002: Violación de restricción única (Unique constraint)
-        if (error.code === 'P2002') {
+        if (typeof error === 'object' && error !== null && 'code' in error && (error as {code: string}).code === 'P2002') {
             return { success: false, error: "Este número de documento ya está registrado." };
         }
         console.error("Error guardando cliente:", error);

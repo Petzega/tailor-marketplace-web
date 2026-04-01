@@ -116,7 +116,12 @@ export async function getOrders(
     statuses?: string[]
 ) {
     const skip = (page - 1) * limit;
-    const whereClause: any = {};
+    type WhereClause = {
+        OR?: Array<Record<string, { contains: string }>>;
+        status?: { in: string[] };
+        createdAt?: { gte?: Date; lte?: Date };
+    };
+    const whereClause: WhereClause = {};
 
     // 1. Filtro de búsqueda por texto
     if (query) {

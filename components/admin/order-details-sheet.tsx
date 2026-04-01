@@ -6,7 +6,32 @@ import Link from "next/link";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
-export function OrderDetailsSheet({ order }: { order: any }) {
+type OrderItemProps = {
+    id: string;
+    quantity: number;
+    price: number;
+    size?: string;
+    product: { name: string; imageUrl?: string };
+};
+type OrderProps = {
+    id: string;
+    validationCode: string;
+    status: string;
+    customerName: string;
+    customerPhone?: string;
+    customerDocType: string;
+    customerDocument: string;
+    deliveryMethod: string;
+    address?: string;
+    reference?: string;
+    paymentMethod: string;
+    subtotal: number;
+    deliveryCost: number;
+    total: number;
+    items: OrderItemProps[];
+};
+
+export function OrderDetailsSheet({ order }: { order: OrderProps }) {
     const router = useRouter();
     const [isUpdating, setIsUpdating] = useState(false);
 
@@ -130,10 +155,11 @@ export function OrderDetailsSheet({ order }: { order: any }) {
 
                         <div className="bg-white border border-gray-100 rounded-xl shadow-sm overflow-hidden">
                             <div className="divide-y divide-gray-50">
-                                {order.items.map((item: any) => (
+                                {order.items.map((item: OrderItemProps) => (
                                     <div key={item.id} className="p-3 flex items-center gap-3 hover:bg-gray-50 transition-colors">
                                         <div className="h-12 w-12 bg-gray-100 rounded-lg flex items-center justify-center overflow-hidden shrink-0 relative border border-gray-200">
                                             {item.product.imageUrl ? (
+                                                /* eslint-disable-next-line @next/next/no-img-element */
                                                 <img src={item.product.imageUrl} className="object-cover h-full w-full" alt={item.product.name} />
                                             ) : (
                                                 <Package size={16} className="text-gray-300" />

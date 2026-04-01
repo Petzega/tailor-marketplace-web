@@ -76,7 +76,7 @@ export function OrderFilters() {
                 <div className="flex items-center gap-1 w-full md:w-auto bg-white p-1 border border-gray-200 rounded-xl shadow-sm">
                     <div
                         className="flex items-center gap-2 px-3 py-1.5 bg-gray-50 hover:bg-gray-100 rounded-lg transition-all cursor-pointer group"
-                        onClick={() => (document.getElementById('orders-start') as any)?.showPicker()}
+                        onClick={() => (document.getElementById('orders-start') as HTMLInputElement & { showPicker?: () => void })?.showPicker?.()}
                     >
                         <Calendar size={16} className="text-gray-400 group-hover:text-green-600" />
                         <input
@@ -95,7 +95,7 @@ export function OrderFilters() {
 
                     <div
                         className="flex items-center gap-2 px-3 py-1.5 bg-gray-50 hover:bg-gray-100 rounded-lg transition-all cursor-pointer group"
-                        onClick={() => (document.getElementById('orders-end') as any)?.showPicker()}
+                        onClick={() => (document.getElementById('orders-end') as HTMLInputElement & { showPicker?: () => void })?.showPicker?.()}
                     >
                         <Calendar size={16} className="text-gray-400 group-hover:text-green-600" />
                         <input

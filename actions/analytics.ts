@@ -5,7 +5,7 @@ import { db } from "@/lib/db";
 export async function getDashboardAnalytics(startDate?: string, endDate?: string) {
     try {
         // 1. CONFIGURACIÓN DEL FILTRO DE FECHAS (Hora de Perú)
-        const dateFilter: any = {};
+        const dateFilter: { gte?: Date; lte?: Date } = {};
         const now = new Date();
 
         let start = new Date(now.getFullYear(), now.getMonth() - 5, 1); // Por defecto: últimos 6 meses
@@ -88,7 +88,7 @@ export async function getDashboardAnalytics(startDate?: string, endDate?: string
         } else {
             // Generar array de meses
             const monthNames = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
-            let currentMonth = new Date(start);
+            const currentMonth = new Date(start);
             currentMonth.setDate(1); // Evitar bug de fin de mes
 
             while (currentMonth <= end || (currentMonth.getMonth() === end.getMonth() && currentMonth.getFullYear() === end.getFullYear())) {

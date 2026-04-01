@@ -2,12 +2,22 @@
 
 import { useState, useTransition, useEffect } from "react";
 import { X, Save, User, Ruler } from "lucide-react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { saveCustomer } from "@/actions/customers";
 
-export function CustomerFormSheet({ customerToEdit }: { customerToEdit?: any }) {
+type CustomerEditProps = {
+    id?: string;
+    docType?: string;
+    documentNumber?: string;
+    name?: string;
+    phone?: string;
+    address?: string;
+    measurements?: string;
+    notes?: string;
+};
+
+export function CustomerFormSheet({ customerToEdit }: { customerToEdit?: CustomerEditProps }) {
     const router = useRouter();
-    const searchParams = useSearchParams();
     const [isPending, startTransition] = useTransition();
     const [error, setError] = useState("");
 
