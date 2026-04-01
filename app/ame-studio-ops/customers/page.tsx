@@ -2,6 +2,7 @@ import { getCustomers, getCustomerById } from "@/actions/customers";
 import { CustomerDetailsSheet } from "@/components/admin/customer-details-sheet";
 import { Users, Search, Eye, Scissors, ShoppingBag } from "lucide-react";
 import Link from "next/link";
+import { CustomerFormSheet } from "@/components/admin/customer-form-sheet";
 
 interface CustomersPageProps {
     searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
@@ -14,11 +15,15 @@ export default async function CustomersPage({ searchParams }: CustomersPageProps
 
     const { customers, total } = await getCustomers(page, 15, query);
 
+    // Lógica para interceptar la URL de visualización
     const viewId = typeof params?.view === 'string' ? params.view : undefined;
     let customerToView = null;
     if (viewId) {
         customerToView = await getCustomerById(viewId);
     }
+
+    // Lógica exclusiva para NUEVOS clientes
+    const isNew = params?.new === 'true';
 
     return (
         <div className="p-8 relative min-h-screen bg-gray-50">
@@ -34,26 +39,36 @@ export default async function CustomersPage({ searchParams }: CustomersPageProps
                         <p className="text-gray-500 text-sm mt-1">Gestiona el perfil, medidas e historial de compras de tus clientes.</p>
                     </div>
                     <div className="flex gap-3">
-                        <button className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm font-bold transition-colors shadow-sm">
+                        <Link href="/ame-studio-ops/customers?new=true" className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm font-bold transition-colors shadow-sm">
                             + Nuevo Cliente
-                        </button>
+                        </Link>
                     </div>
                 </div>
 
                 {/* Tabla y Búsqueda */}
                 <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
 
-                    {/* Barra de Búsqueda simple (Client-side logic opcional para después, por ahora usaremos form nativo) */}
                     <div className="p-4 border-b border-gray-100 bg-white flex justify-between items-center">
-                        <form method="GET" action="/ame-studio-ops/customers" className="relative w-full max-w-md">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
-                            <input
-                                type="text"
-                                name="q"
-                                defaultValue={query}
-                                placeholder="Buscar por DNI, RUC, nombre o celular..."
-                                className="w-full pl-9 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm outline-none focus:border-green-500 focus:ring-1 focus:ring-green-500 transition-all"
-                            />
+                        <form method="GET" action="/ame-studio-ops/customers" className="relative w-full max-w-lg flex gap-2">
+                            <div className="relative flex-1">
+                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+                                <input
+                                    type="text"
+                                    name="q"
+                                    defaultValue={query}
+                                    placeholder="Buscar por DNI, RUC, nombre..."
+                                    className="w-full pl-9 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm outline-none focus:border-green-500 focus:ring-1 focus:ring-green-500 transition-all"
+                                />
+                            </div>
+                            <button type="submit" className="px-4 py-2 bg-gray-800 text-white rounded-lg text-sm font-bold hover:bg-gray-900 transition-colors shadow-sm">
+                                Buscar
+                            </button>
+                            {/* Botón para limpiar la búsqueda y ver a todos de nuevo */}
+                            {query && (
+                                <Link href="/ame-studio-ops/customers" className="px-4 py-2 bg-red-50 text-red-600 border border-red-100 rounded-lg text-sm font-bold hover:bg-red-100 transition-colors">
+                                    X
+                                </Link>
+                            )}
                         </form>
                     </div>
 
@@ -79,32 +94,28 @@ export default async function CustomersPage({ searchParams }: CustomersPageProps
                                 customers.map((customer) => (
                                     <tr key={customer.id} className="hover:bg-gray-50/80 transition-colors group">
 
-                                        {/* Documento */}
                                         <td className="px-6 py-4">
                                             <span className="block text-[10px] text-gray-400 uppercase font-bold tracking-wider">{customer.docType}</span>
                                             <span className="text-sm font-bold text-gray-900">{customer.documentNumber}</span>
                                         </td>
 
-                                        {/* Nombre y Notas */}
                                         <td className="px-6 py-4">
                                             <p className="text-sm font-bold text-gray-900">{customer.name}</p>
                                             {customer.measurements ? (
                                                 <span className="inline-flex items-center gap-1 text-[10px] font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded mt-1">
-                                                        Medidas registradas
-                                                    </span>
+                                                    Medidas registradas
+                                                </span>
                                             ) : (
                                                 <span className="inline-flex items-center gap-1 text-[10px] font-bold text-gray-400 bg-gray-100 px-2 py-0.5 rounded mt-1">
-                                                        Sin medidas
-                                                    </span>
+                                                    Sin medidas
+                                                </span>
                                             )}
                                         </td>
 
-                                        {/* Contacto */}
                                         <td className="px-6 py-4">
                                             <p className="text-sm text-gray-600 font-medium">{customer.phone || '—'}</p>
                                         </td>
 
-                                        {/* Historial (Conteo de Órdenes y Servicios) */}
                                         <td className="px-6 py-4">
                                             <div className="flex items-center justify-center gap-3">
                                                 <div className="flex flex-col items-center" title="Órdenes de Tienda">
@@ -119,10 +130,9 @@ export default async function CustomersPage({ searchParams }: CustomersPageProps
                                             </div>
                                         </td>
 
-                                        {/* Acciones */}
                                         <td className="px-6 py-4 text-right">
                                             <Link
-                                                href={`/ame-studio-ops/customers?view=${customer.id}`} // 👈 Cambiado a ?view=
+                                                href={`/ame-studio-ops/customers?view=${customer.id}`}
                                                 className="p-2 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors inline-flex items-center justify-center"
                                             >
                                                 <Eye size={18} />
@@ -136,8 +146,10 @@ export default async function CustomersPage({ searchParams }: CustomersPageProps
                     </div>
                 </div>
             </div>
-            {/* 👈 NUEVO: Renderizado condicional del panel lateral */}
+
+            {/* Paneles laterales */}
             {customerToView && <CustomerDetailsSheet customer={customerToView} />}
+            {isNew && <CustomerFormSheet />}
         </div>
     );
 }

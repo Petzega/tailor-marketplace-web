@@ -1,6 +1,7 @@
 "use server";
 
 import { db } from "@/lib/db";
+import { revalidatePath } from "next/cache";
 
 export async function getCustomers(page: number = 1, limit: number = 10, query?: string) {
     const skip = (page - 1) * limit;
@@ -61,5 +62,41 @@ export async function getCustomerById(id: string) {
     } catch (error) {
         console.error("Error al obtener cliente por ID:", error);
         return null;
+    }
+}
+
+export async function saveCustomer(data: {
+    id?: string;
+    docType: string;
+    documentNumber: string;
+    name: string;
+    phone?: string;
+    address?: string;
+    measurements?: string;
+    notes?: string;
+}) {
+    try {
+        if (data.id) {
+            await db.customer.update({
+                where: { id: data.id },
+                data
+            });
+        } else {
+            await db.customer.create({
+                data
+            });
+        }
+
+        // Refrescamos la página de clientes para que aparezca el cambio
+        revalidatePath("/ame-studio-ops/customers");
+        return { success: true };
+
+    } catch (error: any) {
+        // Código de Prisma P2002: Violación de restricción única (Unique constraint)
+        if (error.code === 'P2002') {
+            return { success: false, error: "Este número de documento ya está registrado." };
+        }
+        console.error("Error guardando cliente:", error);
+        return { success: false, error: "Error interno al guardar el cliente." };
     }
 }
