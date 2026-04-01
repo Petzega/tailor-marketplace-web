@@ -107,19 +107,29 @@ export async function createOrder(data: CreateOrderData) {
     }
 }
 
-export async function getOrders(page: number = 1, limit: number = 10) {
+export async function getOrders(page: number = 1, limit: number = 10, query?: string) {
     const skip = (page - 1) * limit;
+
+    // Filtro dinámico con el orden de prioridad solicitado
+    const whereClause = query ? {
+        OR: [
+            { id: { contains: query } },               // 1. ID de la orden
+            { customerDocument: { contains: query } }, // 2. Número de documento
+            { customerPhone: { contains: query } },    // 3. Número de celular
+            { customerName: { contains: query } }      // 4. Nombre parcial o completo
+        ]
+    } : {};
 
     try {
         const [orders, total] = await Promise.all([
             db.order.findMany({
+                where: whereClause,
                 orderBy: { createdAt: 'desc' },
                 skip,
                 take: limit,
-                // Incluimos los items y el producto para ver qué compraron si es necesario
                 include: { items: { include: { product: true } } }
             }),
-            db.order.count()
+            db.order.count({ where: whereClause }) // Contamos solo los resultados que coinciden
         ]);
 
         return {

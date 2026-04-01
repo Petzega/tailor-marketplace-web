@@ -2,6 +2,8 @@ import { getOrders, getOrderStats, getOrderById } from "@/actions/orders";
 import { Download, Search, Eye } from "lucide-react";
 import Link from "next/link";
 import { OrderDetailsSheet } from "@/components/admin/order-details-sheet";
+import { OrderSearch } from "@/components/admin/order-search";
+import { Suspense } from "react"; // Requerido por useSearchParams
 
 interface OrdersPageProps {
     searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
@@ -11,10 +13,11 @@ export default async function OrdersPage({ searchParams }: OrdersPageProps) {
     const params = await searchParams;
     const page = typeof params?.page === 'string' ? Math.max(1, parseInt(params.page)) : 1;
     const viewId = typeof params?.view === 'string' ? params.view : undefined;
+    const query = typeof params?.q === 'string' ? params.q : undefined; // 👈 NUEVO
 
-    // Ejecutamos ambas consultas en paralelo
+    // Ejecutamos ambas consultas en paralelo, pasando el query
     const [{ orders }, stats] = await Promise.all([
-        getOrders(page, 20),
+        getOrders(page, 20, query), // 👈 SE AÑADE EL QUERY AQUÍ
         getOrderStats(),
     ]);
 
@@ -55,14 +58,9 @@ export default async function OrdersPage({ searchParams }: OrdersPageProps) {
 
                     {/* Barra de herramientas / Búsqueda */}
                     <div className="p-4 border-b border-gray-100 bg-white flex justify-between items-center">
-                        <div className="relative max-w-sm w-full">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
-                            <input
-                                type="text"
-                                placeholder="Buscar por ID de orden o código..."
-                                className="w-full pl-9 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm outline-none focus:border-green-500 focus:ring-1 focus:ring-green-500 transition-all"
-                            />
-                        </div>
+                        <Suspense fallback={<div className="h-9 w-full max-w-sm bg-gray-100 animate-pulse rounded-lg" />}>
+                            <OrderSearch />
+                        </Suspense>
                     </div>
 
                     <div className="overflow-x-auto">
