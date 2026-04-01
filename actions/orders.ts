@@ -107,18 +107,44 @@ export async function createOrder(data: CreateOrderData) {
     }
 }
 
-export async function getOrders(page: number = 1, limit: number = 10, query?: string) {
+export async function getOrders(
+    page: number = 1,
+    limit: number = 10,
+    query?: string,
+    startDate?: string,
+    endDate?: string,
+    statuses?: string[]
+) {
     const skip = (page - 1) * limit;
+    const whereClause: any = {};
 
-    // Filtro dinámico con el orden de prioridad solicitado
-    const whereClause = query ? {
-        OR: [
-            { id: { contains: query } },               // 1. ID de la orden
-            { customerDocument: { contains: query } }, // 2. Número de documento
-            { customerPhone: { contains: query } },    // 3. Número de celular
-            { customerName: { contains: query } }      // 4. Nombre parcial o completo
-        ]
-    } : {};
+    // 1. Filtro de búsqueda por texto
+    if (query) {
+        whereClause.OR = [
+            { id: { contains: query } },
+            { customerDocument: { contains: query } },
+            { customerPhone: { contains: query } },
+            { customerName: { contains: query } }
+        ];
+    }
+
+    // 2. Filtro de selección múltiple de Estados
+    if (statuses && statuses.length > 0) {
+        whereClause.status = { in: statuses };
+    }
+
+    // 3. Filtro de Rango de Fechas (Ajustado a la zona horaria de Perú -05:00)
+    if (startDate || endDate) {
+        whereClause.createdAt = {};
+        if (startDate) {
+            // Desde las 00:00:00 del día inicial
+            whereClause.createdAt.gte = new Date(`${startDate}T00:00:00-05:00`);
+        }
+        if (endDate) {
+            // Hasta las 23:59:59 del día final
+            whereClause.createdAt.lte = new Date(`${endDate}T23:59:59-05:00`);
+        }
+    }
 
     try {
         const [orders, total] = await Promise.all([
@@ -129,14 +155,10 @@ export async function getOrders(page: number = 1, limit: number = 10, query?: st
                 take: limit,
                 include: { items: { include: { product: true } } }
             }),
-            db.order.count({ where: whereClause }) // Contamos solo los resultados que coinciden
+            db.order.count({ where: whereClause })
         ]);
 
-        return {
-            orders,
-            total,
-            totalPages: Math.ceil(total / limit),
-        };
+        return { orders, total, totalPages: Math.ceil(total / limit) };
     } catch (error) {
         console.error("Error al obtener órdenes:", error);
         return { orders: [], total: 0, totalPages: 0 };

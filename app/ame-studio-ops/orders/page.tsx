@@ -1,9 +1,9 @@
 import { getOrders, getOrderStats, getOrderById } from "@/actions/orders";
-import { Download, Search, Eye } from "lucide-react";
+import { Download, Eye } from "lucide-react";
 import Link from "next/link";
 import { OrderDetailsSheet } from "@/components/admin/order-details-sheet";
-import { OrderSearch } from "@/components/admin/order-search";
-import { Suspense } from "react"; // Requerido por useSearchParams
+import { OrderFilters } from "@/components/admin/order-filters";
+import { Suspense } from "react";
 
 interface OrdersPageProps {
     searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
@@ -13,11 +13,16 @@ export default async function OrdersPage({ searchParams }: OrdersPageProps) {
     const params = await searchParams;
     const page = typeof params?.page === 'string' ? Math.max(1, parseInt(params.page)) : 1;
     const viewId = typeof params?.view === 'string' ? params.view : undefined;
-    const query = typeof params?.q === 'string' ? params.q : undefined; // 👈 NUEVO
 
-    // Ejecutamos ambas consultas en paralelo, pasando el query
+    // Capturamos todos los filtros de la URL
+    const query = typeof params?.q === 'string' ? params.q : undefined;
+    const startDate = typeof params?.start === 'string' ? params.start : undefined;
+    const endDate = typeof params?.end === 'string' ? params.end : undefined;
+    const statuses = typeof params?.status === 'string' ? params.status.split(',') : undefined;
+
+    // Ejecutamos ambas consultas en paralelo, pasando todos los filtros
     const [{ orders }, stats] = await Promise.all([
-        getOrders(page, 20, query), // 👈 SE AÑADE EL QUERY AQUÍ
+        getOrders(page, 20, query, startDate, endDate, statuses),
         getOrderStats(),
     ]);
 
@@ -53,15 +58,13 @@ export default async function OrdersPage({ searchParams }: OrdersPageProps) {
                     <StatCard label="Ingresos Totales" value={`S/ ${stats.revenue.toLocaleString()}`} />
                 </div>
 
-                {/* Tabla de Órdenes */}
+                {/* Tabla de Órdenes y Filtros */}
                 <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
 
-                    {/* Barra de herramientas / Búsqueda */}
-                    <div className="p-4 border-b border-gray-100 bg-white flex justify-between items-center">
-                        <Suspense fallback={<div className="h-9 w-full max-w-sm bg-gray-100 animate-pulse rounded-lg" />}>
-                            <OrderSearch />
-                        </Suspense>
-                    </div>
+                    {/* Componente de Búsqueda y Filtros */}
+                    <Suspense fallback={<div className="h-[120px] w-full bg-gray-50 animate-pulse border-b border-gray-100" />}>
+                        <OrderFilters />
+                    </Suspense>
 
                     <div className="overflow-x-auto">
                         <table className="w-full text-left border-collapse">
@@ -80,12 +83,12 @@ export default async function OrdersPage({ searchParams }: OrdersPageProps) {
                             {orders.length === 0 ? (
                                 <tr>
                                     <td colSpan={7} className="px-6 py-16 text-center">
-                                        <p className="text-gray-400 text-sm">Aún no se han recibido órdenes.</p>
+                                        <p className="text-gray-400 text-sm">No se encontraron órdenes con esos filtros.</p>
                                     </td>
                                 </tr>
                             ) : (
                                 orders.map((order) => {
-                                    // 👇 Formato de fecha y hora local (Perú)
+                                    // Formato de fecha y hora local (Perú)
                                     const date = new Date(order.createdAt);
                                     const formattedDate = date.toLocaleDateString("es-PE", { day: '2-digit', month: 'short', year: 'numeric' });
                                     const formattedTime = date.toLocaleTimeString("es-PE", { hour: '2-digit', minute: '2-digit', hour12: true });
