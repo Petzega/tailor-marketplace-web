@@ -3,6 +3,7 @@ import { CustomerDetailsSheet } from "@/components/admin/customer-details-sheet"
 import { Users, Search, Eye, Scissors, ShoppingBag } from "lucide-react";
 import Link from "next/link";
 import { CustomerFormSheet } from "@/components/admin/customer-form-sheet";
+import { CustomerFilters } from "@/components/admin/customer-filters";
 
 interface CustomersPageProps {
     searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
@@ -48,29 +49,8 @@ export default async function CustomersPage({ searchParams }: CustomersPageProps
                 {/* Tabla y Búsqueda */}
                 <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
 
-                    <div className="p-4 border-b border-gray-100 bg-white flex justify-between items-center">
-                        <form method="GET" action="/ame-studio-ops/customers" className="relative w-full max-w-lg flex gap-2">
-                            <div className="relative flex-1">
-                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
-                                <input
-                                    type="text"
-                                    name="q"
-                                    defaultValue={query}
-                                    placeholder="Buscar por DNI, RUC, nombre..."
-                                    className="w-full pl-9 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm outline-none focus:border-green-500 focus:ring-1 focus:ring-green-500 transition-all"
-                                />
-                            </div>
-                            <button type="submit" className="px-4 py-2 bg-gray-800 text-white rounded-lg text-sm font-bold hover:bg-gray-900 transition-colors shadow-sm">
-                                Buscar
-                            </button>
-                            {/* Botón para limpiar la búsqueda y ver a todos de nuevo */}
-                            {query && (
-                                <Link href="/ame-studio-ops/customers" className="px-4 py-2 bg-red-50 text-red-600 border border-red-100 rounded-lg text-sm font-bold hover:bg-red-100 transition-colors">
-                                    X
-                                </Link>
-                            )}
-                        </form>
-                    </div>
+                    {/* El nuevo componente reactivo (reemplaza al form antiguo) */}
+                    <CustomerFilters />
 
                     <div className="overflow-x-auto">
                         <table className="w-full text-left border-collapse">
