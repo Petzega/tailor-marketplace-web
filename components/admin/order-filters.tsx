@@ -72,28 +72,43 @@ export function OrderFilters() {
                     />
                 </div>
 
-                {/* 2. Rango de Fechas (DatePickers Nativos) */}
-                <div className="flex items-center gap-2 w-full md:w-auto">
-                    <Calendar size={16} className="text-gray-400 hidden md:block mr-1" />
-                    <input
-                        type="date"
-                        value={start}
-                        onChange={(e) => {
-                            setStart(e.target.value);
-                            applyFilters(term, e.target.value, end, statuses);
-                        }}
-                        className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm outline-none focus:border-green-500 transition-all text-gray-700 w-full md:w-auto cursor-pointer"
-                    />
-                    <span className="text-gray-400 text-sm">a</span>
-                    <input
-                        type="date"
-                        value={end}
-                        onChange={(e) => {
-                            setEnd(e.target.value);
-                            applyFilters(term, start, e.target.value, statuses);
-                        }}
-                        className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm outline-none focus:border-green-500 transition-all text-gray-700 w-full md:w-auto cursor-pointer"
-                    />
+                {/* 2. Rango de Fechas Mejorado */}
+                <div className="flex items-center gap-1 w-full md:w-auto bg-white p-1 border border-gray-200 rounded-xl shadow-sm">
+                    <div
+                        className="flex items-center gap-2 px-3 py-1.5 bg-gray-50 hover:bg-gray-100 rounded-lg transition-all cursor-pointer group"
+                        onClick={() => (document.getElementById('orders-start') as any)?.showPicker()}
+                    >
+                        <Calendar size={16} className="text-gray-400 group-hover:text-green-600" />
+                        <input
+                            id="orders-start"
+                            type="date"
+                            value={start}
+                            onChange={(e) => {
+                                setStart(e.target.value);
+                                applyFilters(term, e.target.value, end, statuses);
+                            }}
+                            className="pointer-events-none bg-transparent text-sm outline-none text-gray-700 font-medium [&::-webkit-calendar-picker-indicator]:hidden w-[110px]"
+                        />
+                    </div>
+
+                    <span className="text-gray-300 text-sm px-1">a</span>
+
+                    <div
+                        className="flex items-center gap-2 px-3 py-1.5 bg-gray-50 hover:bg-gray-100 rounded-lg transition-all cursor-pointer group"
+                        onClick={() => (document.getElementById('orders-end') as any)?.showPicker()}
+                    >
+                        <Calendar size={16} className="text-gray-400 group-hover:text-green-600" />
+                        <input
+                            id="orders-end"
+                            type="date"
+                            value={end}
+                            onChange={(e) => {
+                                setEnd(e.target.value);
+                                applyFilters(term, start, e.target.value, statuses);
+                            }}
+                            className="pointer-events-none bg-transparent text-sm outline-none text-gray-700 font-medium [&::-webkit-calendar-picker-indicator]:hidden w-[110px]"
+                        />
+                    </div>
                 </div>
             </div>
 

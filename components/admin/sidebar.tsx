@@ -3,7 +3,7 @@ import Image from "next/image";
 import { LayoutDashboard, ShoppingBag, Package, Settings, Users, Scissors } from "lucide-react";
 import { UserButton, ClerkLoaded, ClerkLoading } from "@clerk/nextjs";
 
-export function AdminSidebar() {
+export function AdminSidebar({ pendingOrders }: { pendingOrders?: number }) {
     return (
         <aside className="w-64 bg-white border-r border-gray-200 min-h-screen flex flex-col fixed left-0 top-0 bottom-0 z-10">
             <div className="h-16 flex items-center px-6 border-b border-gray-100">
@@ -25,7 +25,7 @@ export function AdminSidebar() {
                 <nav className="space-y-1">
                     {/* 👇 CORRECCIÓN 1: Rutas base actualizadas */}
                     <NavItem href="/ame-studio-ops" icon={<LayoutDashboard size={20} />} label="Dashboard" />
-                    <NavItem href="/ame-studio-ops/orders" icon={<ShoppingBag size={20} />} label="Orders" badge="12" />
+                    <NavItem href="/ame-studio-ops/orders" icon={<ShoppingBag size={20} />} label="Orders" badge={pendingOrders && pendingOrders > 0 ? pendingOrders.toString() : undefined} />
                     <NavItem href="/ame-studio-ops/inventory" icon={<Package size={20} />} label="Inventory" />
                     <NavItem href="/ame-studio-ops/services" icon={<Scissors size={20} />} label="Services" />
                     <NavItem href="/ame-studio-ops/customers" icon={<Users size={20} />} label="Customers" />
