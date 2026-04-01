@@ -56,46 +56,93 @@ model ProductImage {
 // 👇 NUEVOS MODELOS PARA GESTIÓN DE ÓRDENES Y N8N
 
 model Order {
-  id               String   @id @default(cuid()) // Número de orden base (ej: clr5a1...)
-  status           String   @default("PENDING")  // PENDING, IN_PROGRESS, CANCELLED, COMPLETED
-  validationCode   String   @unique              // Código secreto de 6 letras/números para el agente n8n
+  id             String @id @default(cuid()) // Número de orden base (ej: clr5a1...)
+  status         String @default("PENDING") // PENDING, IN_PROGRESS, CANCELLED, COMPLETED
+  validationCode String @unique // Código secreto de 6 letras/números para el agente n8n
 
   // Datos del Cliente
   customerName     String
   customerPhone    String
-  customerDocType  String   @default("DNI")      // "DNI", "RUC", "CE", "PASAPORTE"
-  customerDocument String                        // El número ingresado por el usuario
+  customerDocType  String @default("DNI") // "DNI", "RUC", "CE", "PASAPORTE"
+  customerDocument String // El número ingresado por el usuario
 
   // Datos Logísticos
-  deliveryMethod   String                        // "STORE", "DELIVERY"
-  address          String?                       // Opcional si es "STORE"
-  reference        String?
+  deliveryMethod String // "STORE", "DELIVERY"
+  address        String? // Opcional si es "STORE"
+  reference      String?
 
   // Finanzas
-  paymentMethod    String                        // YAPE, PLIN, TRANSFERENCIA, EFECTIVO
-  subtotal         Float
-  deliveryCost     Float    @default(0)
-  total            Float
+  paymentMethod String // YAPE, PLIN, TRANSFERENCIA, EFECTIVO
+  subtotal      Float
+  deliveryCost  Float  @default(0)
+  total         Float
 
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  items            OrderItem[]                   // Los productos que componen esta orden
+  items      OrderItem[] // Los productos que componen esta orden
+  customer   Customer?   @relation(fields: [customerId], references: [id])
+  customerId String?
 }
 
 model OrderItem {
-  id          String   @id @default(cuid())
+  id String @id @default(cuid())
 
   // Guardamos un snapshot del precio en el momento de la compra
   // Si el precio del producto cambia a futuro, esto no altera la orden histórica.
-  price       Float
-  quantity    Int      @default(1)
-  size        String?  // Ej: "S", "M" (Puede ser null si el producto no tiene tallas)
+  price    Float
+  quantity Int     @default(1)
+  size     String? // Ej: "S", "M" (Puede ser null si el producto no tiene tallas)
 
   // Relaciones
-  orderId     String
-  order       Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  orderId String
+  order   Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
 
-  productId   String
-  product     Product  @relation(fields: [productId], references: [id])
+  productId String
+  product   Product @relation(fields: [productId], references: [id])
+}
+
+model Customer {
+  id             String  @id @default(cuid())
+  docType        String  @default("DNI")
+  documentNumber String  @unique // 👈 Identificador principal para asociar
+  name           String
+  phone          String?
+  address        String?
+
+  // Perfil de sastrería
+  measurements String? // 👈 Aquí guardaremos sus medidas corporales (JSON o texto)
+  notes        String? // Preferencias del cliente
+
+  orders   Order[] // Historial de compras en tienda
+  services Service[] // Historial de servicios de sastrería
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Service {
+  id     String @id @default(cuid())
+  status String @default("PENDING") // PENDING, FITTING (Prueba), READY (Listo), DELIVERED (Entregado)
+
+  serviceType  String // Ej: "Entalle de vestido", "Basta de pantalón", "Confección a medida"
+  description  String // Detalles de lo que se debe hacer
+  serviceNotes String? // Apuntes específicos para este servicio
+
+  // Finanzas del servicio
+  price   Float
+  deposit Float @default(0) // Adelanto dejado por el cliente
+  balance Float // Saldo pendiente (price - deposit)
+
+  // Cronograma
+  receptionDate DateTime  @default(now())
+  fittingDate   DateTime? // Fecha de prueba (opcional)
+  deliveryDate  DateTime? // Fecha programada de entrega final
+
+  // Relación con el Cliente
+  customerId String
+  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }

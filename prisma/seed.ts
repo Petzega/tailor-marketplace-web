@@ -9,18 +9,28 @@ const getPastDate = (daysAgo: number) => {
     return date;
 };
 
+// Función auxiliar para fechas futuras
+const getFutureDate = (daysAhead: number) => {
+    const date = new Date();
+    date.setDate(date.getDate() + daysAhead);
+    return date;
+};
+
 async function main() {
     console.log('🧹 Limpiando la base de datos...');
 
-    // Limpiamos las órdenes primero para evitar errores de relación
+    // 1. Limpiamos las tablas dependientes primero
+    await prisma.service.deleteMany();
     await prisma.orderItem.deleteMany();
     await prisma.order.deleteMany();
 
+    // 2. Limpiamos clientes y catálogo
+    await prisma.customer.deleteMany();
     await prisma.productSize.deleteMany();
     await prisma.productImage.deleteMany();
     await prisma.product.deleteMany();
 
-    console.log('🌱 Sembrando base de datos masiva...');
+    console.log('🌱 Sembrando catálogo de productos...');
 
     const productsData = [
         // ==========================================
@@ -104,7 +114,7 @@ async function main() {
         },
 
         // ==========================================
-        // ✂️ 3. SERVICIOS (Sin tallas ni stock)
+        // ✂️ 3. SERVICIOS COMO PRODUCTO EN TIENDA
         // ==========================================
         {
             name: 'Confección de Traje a Medida',
@@ -124,14 +134,6 @@ async function main() {
             sku: 'SRV-260305002',
             imageUrl: 'https://images.unsplash.com/photo-1581044777550-4cfa60707c03?auto=format&fit=crop&w=800&q=80',
             createdAt: getPastDate(150),
-        },
-        {
-            name: 'Ajuste de Vestido de Novia',
-            description: 'Entalle perfecto para el día más especial. Servicio de alta costura, pedrería y encajes.',
-            price: 250.00, stock: 0, category: 'SERVICE', gender: 'MUJER', clothingType: 'VESTIDO', ageGroup: 'ADULT',
-            sku: 'SRV-260305003',
-            imageUrl: 'https://images.unsplash.com/photo-1596450514735-111a2fe02935?auto=format&fit=crop&w=800&q=80',
-            createdAt: getPastDate(50),
         },
 
         // ==========================================
@@ -154,162 +156,171 @@ async function main() {
             imageUrl: 'https://images.unsplash.com/photo-1595341513840-798c5ce9c228?auto=format&fit=crop&w=800&q=80',
             createdAt: getPastDate(5),
             sizes: { create: [{ size: 'UNICA', stock: 8 }] }
-        },
-
-        // ==========================================
-        // 👕 5. MÁS RELLENO VARIADO
-        // ==========================================
-        {
-            name: 'Casaca Denim Vintage Unisex',
-            description: 'Casaca de jean clásica con lavado vintage y botones metálicos.',
-            price: 145.00, stock: 6, category: 'READY_MADE', gender: 'UNISEX', clothingType: 'CASACA', ageGroup: 'ADULT',
-            sku: 'CLT-260305010',
-            imageUrl: 'https://images.unsplash.com/photo-1576871337622-98d48d1cf531?auto=format&fit=crop&w=800&q=80',
-            createdAt: getPastDate(80),
-            sizes: { create: [{ size: 'S', stock: 3 }, { size: 'M', stock: 0 }, { size: 'L', stock: 3 }] }
-        },
-        {
-            name: 'Blusa de Seda Elegante',
-            description: 'Blusa de seda suave con cuello en V. Perfecta para looks de noche o eventos formales.',
-            price: 95.00, stock: 12, category: 'READY_MADE', gender: 'MUJER', clothingType: 'CAMISA', ageGroup: 'ADULT',
-            sku: 'CLT-260305011',
-            imageUrl: 'https://images.unsplash.com/photo-1564222256577-45e728f2c611?auto=format&fit=crop&w=800&q=80',
-            createdAt: getPastDate(12),
-            gallery: {
-                create: [{ url: 'https://images.unsplash.com/photo-1551163943-3f6a855d1153?auto=format&fit=crop&w=800&q=80' }]
-            },
-            sizes: { create: [{ size: 'S', stock: 4 }, { size: 'M', stock: 4 }, { size: 'L', stock: 4 }] }
-        },
-        {
-            name: 'Conjunto Deportivo Niño (Agotado)',
-            description: 'Buzo completo para niño. Casaca con capucha y pantalón.',
-            price: 85.00, stock: 0, category: 'READY_MADE', gender: 'NINO', clothingType: 'CASACA', ageGroup: 'KIDS',
-            sku: 'CLT-260305012',
-            imageUrl: 'https://images.unsplash.com/photo-1518831959646-742c3a14ebf7?auto=format&fit=crop&w=800&q=80',
-            createdAt: getPastDate(40),
-            sizes: { create: [{ size: '8', stock: 0 }, { size: '10', stock: 0 }, { size: '12', stock: 0 }] }
-        },
-        {
-            name: 'Chompa de Hilo Cuello Tortuga',
-            description: 'Chompa abrigadora para días fríos de oficina.',
-            price: 85.00, stock: 10, category: 'READY_MADE', gender: 'HOMBRE', clothingType: 'CASACA', ageGroup: 'ADULT',
-            sku: 'CLT-260305013',
-            imageUrl: 'https://images.unsplash.com/photo-1620799139834-6b8f844fbe61?auto=format&fit=crop&w=800&q=80',
-            createdAt: getPastDate(20),
-            sizes: { create: [{ size: 'M', stock: 5 }, { size: 'L', stock: 5 }] }
-        },
-        {
-            name: 'Vestido Floral de Verano',
-            description: 'Hermoso vestido floral ligero, ideal para la temporada de playa. Confeccionado en algodón transpirable.',
-            price: 120.00, stock: 15, category: 'READY_MADE', gender: 'MUJER', clothingType: 'VESTIDO', ageGroup: 'ADULT',
-            sku: 'CLT-260305014',
-            imageUrl: 'https://images.unsplash.com/photo-1572804013309-59a88b7e92f1?auto=format&fit=crop&w=800&q=80',
-            createdAt: getPastDate(3),
-            gallery: {
-                create: [
-                    { url: 'https://images.unsplash.com/photo-1595777457583-95e059d581b8?auto=format&fit=crop&w=800&q=80' },
-                    { url: 'https://images.unsplash.com/photo-1612336307429-8a898d10e223?auto=format&fit=crop&w=800&q=80' }
-                ]
-            },
-            sizes: { create: [{ size: 'S', stock: 5 }, { size: 'M', stock: 5 }, { size: 'L', stock: 5 }] }
         }
     ];
 
-    // Insertar productos
     for (const product of productsData) {
-        await prisma.product.create({
-            data: product
-        });
+        await prisma.product.create({ data: product });
     }
 
     // ==========================================
-    // 🛒 SEMBRAR ÓRDENES DE PRUEBA
+    // 👥 SEMBRAR CLIENTES
     // ==========================================
-    console.log('📦 Sembrando órdenes de prueba...');
+    console.log('👥 Creando base de datos de clientes...');
 
-    // Obtenemos un par de productos reales recién creados para la orden
+    const customer1 = await prisma.customer.create({
+        data: {
+            docType: 'DNI',
+            documentNumber: '74125896',
+            name: 'María García',
+            phone: '999888777',
+            address: 'Av. Las Flores 456, Surco',
+            measurements: 'Busto: 92cm | Cintura: 70cm | Cadera: 98cm | Estatura: 1.65m',
+            notes: 'Cliente muy detallista. Prefiere entalles ceñidos pero cómodos.'
+        }
+    });
+
+    const customer2 = await prisma.customer.create({
+        data: {
+            docType: 'RUC',
+            documentNumber: '10741258961',
+            name: 'Juan Pérez',
+            phone: '911222333',
+            address: 'Calle Los Pinos 123, Miraflores',
+            measurements: 'Cuello: 40cm | Espalda: 48cm | Pecho: 105cm | Cintura: 88cm | Largo pantalón: 102cm',
+            notes: 'Suele pedir trajes oscuros para trabajo corporativo.'
+        }
+    });
+
+    const customer3 = await prisma.customer.create({
+        data: {
+            docType: 'CE',
+            documentNumber: '001122334',
+            name: 'Anna Smith',
+            phone: '933444555',
+            measurements: 'Busto: 88cm | Cintura: 65cm | Cadera: 90cm',
+            notes: 'Habla inglés y un poco de español. Preferencia por telas ligeras.'
+        }
+    });
+
+    // ==========================================
+    // 🛒 SEMBRAR ÓRDENES DE PRUEBA ENLAZADAS A CLIENTES
+    // ==========================================
+    console.log('📦 Creando órdenes asociadas a los clientes...');
+
     const dbProducts = await prisma.product.findMany({ take: 2 });
 
     if (dbProducts.length >= 2) {
         const product1 = dbProducts[0];
         const product2 = dbProducts[1];
 
-        // Orden 1: Pendiente y Delivery (Probando con DNI)
+        // Orden 1 para María
         await prisma.order.create({
             data: {
-                id: 'ORD-260307001',             // Usamos 'id' en lugar de 'shortId'
-                validationCode: 'token-magico-123', // Cambiado de 'token' a 'validationCode'
-                customerName: 'María García',
-                customerDocType: 'DNI',          // NUEVO CAMPO REQUERIDO
-                customerDocument: '74125896',
-                customerPhone: '999888777',
-                address: 'Av. Las Flores 456, Surco', // Cambiado de 'customerAddress'
-                reference: 'Frente al parque',        // Cambiado de 'customerReference'
+                id: 'ORD-260307001',
+                validationCode: 'token-magico-123',
+                customerId: customer1.id,        // 👈 ENLACE AL CLIENTE
+                customerName: customer1.name,
+                customerDocType: customer1.docType,
+                customerDocument: customer1.documentNumber,
+                customerPhone: customer1.phone || '',
+                address: customer1.address,
+                reference: 'Frente al parque',
                 deliveryMethod: 'DELIVERY',
                 paymentMethod: 'Yape',
                 subtotal: product1.price,
                 deliveryCost: 10,
                 total: product1.price + 10,
                 status: 'PENDING',
-                createdAt: getPastDate(1), // Ayer
+                createdAt: getPastDate(1),
                 items: {
-                    create: [
-                        { productId: product1.id, quantity: 1, price: product1.price, size: 'M' }
-                    ]
+                    create: [{ productId: product1.id, quantity: 1, price: product1.price, size: 'M' }]
                 }
             }
         });
 
-        // Orden 2: En Proceso y Retiro en tienda (Probando con RUC)
+        // Orden 2 para Juan
         await prisma.order.create({
             data: {
                 id: 'ORD-260307002',
                 validationCode: 'token-magico-456',
-                customerName: 'Juan Pérez',
-                customerDocType: 'RUC',          // NUEVO CAMPO REQUERIDO
-                customerDocument: '10741258961',
-                customerPhone: '911222333',
+                customerId: customer2.id,        // 👈 ENLACE AL CLIENTE
+                customerName: customer2.name,
+                customerDocType: customer2.docType,
+                customerDocument: customer2.documentNumber,
+                customerPhone: customer2.phone || '',
                 deliveryMethod: 'STORE',
                 paymentMethod: 'Efectivo',
                 subtotal: product2.price * 2,
                 deliveryCost: 0,
                 total: product2.price * 2,
-                status: 'IN_PROGRESS',           // Cambiado de 'IN_PROCESS' a 'IN_PROGRESS'
-                createdAt: getPastDate(0), // Hoy
+                status: 'IN_PROGRESS',
+                createdAt: getPastDate(0),
                 items: {
-                    create: [
-                        { productId: product2.id, quantity: 2, price: product2.price, size: 'S' }
-                    ]
-                }
-            }
-        });
-
-        // Orden 3: Cancelada (Probando con CE)
-        await prisma.order.create({
-            data: {
-                id: 'ORD-260317001',
-                validationCode: 'token-magico-789',
-                customerName: 'Anna Smith',
-                customerDocType: 'CE',           // NUEVO CAMPO REQUERIDO
-                customerDocument: '001122334',
-                customerPhone: '911222333',
-                deliveryMethod: 'STORE',
-                paymentMethod: 'Yape',
-                subtotal: product2.price * 2,
-                deliveryCost: 0,
-                total: product2.price * 2,
-                status: 'CANCELLED',
-                createdAt: getPastDate(0), // Hoy
-                items: {
-                    create: [
-                        { productId: product2.id, quantity: 2, price: product2.price, size: 'S' }
-                    ]
+                    create: [{ productId: product2.id, quantity: 2, price: product2.price, size: 'S' }]
                 }
             }
         });
     }
 
-    console.log(`✅ ¡Base de datos poblada con éxito! (${productsData.length} productos y 3 órdenes creadas)`);
+    // ==========================================
+    // ✂️ SEMBRAR SERVICIOS DE SASTRERÍA
+    // ==========================================
+    console.log('🪡 Creando trabajos y servicios de sastrería...');
+
+    // Servicio 1: En prueba (FITTING) para Juan
+    await prisma.service.create({
+        data: {
+            customerId: customer2.id,
+            status: 'FITTING',
+            serviceType: 'Confección de Traje a Medida',
+            description: 'Traje de 2 piezas (Saco y Pantalón) en lana fría azul marino, forro burdeos.',
+            serviceNotes: 'Juan pidió que las solapas sean de pico y el pantalón sin pinzas.',
+            price: 550.00,
+            deposit: 300.00,
+            balance: 250.00,
+            receptionDate: getPastDate(15),
+            fittingDate: getFutureDate(2), // Prueba en 2 días
+            deliveryDate: getFutureDate(10), // Entrega final en 10 días
+        }
+    });
+
+    // Servicio 2: Listo para entregar (READY) para María
+    await prisma.service.create({
+        data: {
+            customerId: customer1.id,
+            status: 'READY',
+            serviceType: 'Ajuste de Vestido de Novia',
+            description: 'Entalle en la cintura y ajuste de largo (basta) con encaje.',
+            serviceNotes: 'Tener mucho cuidado con la pedrería del borde.',
+            price: 150.00,
+            deposit: 150.00,
+            balance: 0.00, // Ya pagó todo
+            receptionDate: getPastDate(7),
+            deliveryDate: getPastDate(0), // Para entregar hoy
+        }
+    });
+
+    // Servicio 3: Recién ingresado (PENDING) para Anna
+    await prisma.service.create({
+        data: {
+            customerId: customer3.id,
+            status: 'PENDING',
+            serviceType: 'Basta de Pantalón',
+            description: 'Subir basta de 2 pantalones jeans (clásico).',
+            price: 30.00,
+            deposit: 10.00,
+            balance: 20.00,
+            receptionDate: getPastDate(0), // Recibido hoy
+            deliveryDate: getFutureDate(1), // Se entrega mañana (Express)
+        }
+    });
+
+    console.log(`✅ ¡Base de datos poblada con éxito!`);
+    console.log(`- Catálogo actualizado`);
+    console.log(`- 3 Clientes creados con sus medidas`);
+    console.log(`- 2 Órdenes enlazadas a clientes`);
+    console.log(`- 3 Servicios de sastrería en progreso`);
 }
 
 main()
