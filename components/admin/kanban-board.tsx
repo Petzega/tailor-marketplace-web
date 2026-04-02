@@ -12,9 +12,18 @@ const COLUMNS = [
     { id: "DELIVERED", title: "Entregados", icon: Package, color: "bg-green-100 text-green-700", border: "border-green-200" }
 ];
 
-export function KanbanBoard({ initialServices }: { initialServices: any[] }) {
-    const [services, setServices] = useState(initialServices);
-    const [isPending, startTransition] = useTransition();
+type KanbanService = {
+    id: string;
+    serviceType: string;
+    status: string;
+    balance: number;
+    deliveryDate?: string | Date | null;
+    customer: { name: string };
+};
+
+export function KanbanBoard({ initialServices }: { initialServices: KanbanService[] }) {
+    const [services, setServices] = useState<KanbanService[]>(initialServices);
+    const [, startTransition] = useTransition();
     const [searchQuery, setSearchQuery] = useState("");
 
     // Filtrado en tiempo real en memoria
@@ -26,7 +35,7 @@ export function KanbanBoard({ initialServices }: { initialServices: any[] }) {
     });
 
     // Evaluación de urgencia (Vencido o se entrega hoy)
-    const checkIsUrgent = (dateString?: string | null, status?: string) => {
+    const checkIsUrgent = (dateString?: string | Date | null, status?: string) => {
         if (!dateString || status === 'DELIVERED') return false;
 
         const today = new Date();

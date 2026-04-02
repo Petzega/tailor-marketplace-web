@@ -1,11 +1,11 @@
 "use client";
 
 import { useState, useTransition, useEffect } from "react";
-import { X, Save, Scissors, User, DollarSign, Calendar } from "lucide-react";
+import { X, Save, Scissors, User, DollarSign, Calendar, Search, ChevronDown } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { saveService } from "@/actions/services";
 
-type ServiceCustomer = { id: string; name: string; documentNumber: string };
+type ServiceCustomer = { id: string; name: string; documentNumber: string; docType?: string };
 type ServiceEditProps = {
     id?: string;
     customerId?: string;
@@ -23,11 +23,24 @@ export function ServiceFormSheet({ serviceToEdit, customers }: { serviceToEdit?:
     const [isPending, startTransition] = useTransition();
     const [error, setError] = useState("");
 
-    // Estados para calcular el saldo visualmente
+    // Estados para el cálculo financiero
     const [price, setPrice] = useState(serviceToEdit?.price || 0);
     const [deposit, setDeposit] = useState(serviceToEdit?.deposit || 0);
 
-    // Bloquear scroll
+    // 👇 NUEVOS ESTADOS: Para el Buscador de Clientes
+    const [searchCustomer, setSearchCustomer] = useState("");
+    const [isCustomerDropdownOpen, setIsCustomerDropdownOpen] = useState(false);
+    const [selectedCustomerId, setSelectedCustomerId] = useState(serviceToEdit?.customerId || "");
+
+    // Filtro reactivo de clientes
+    const filteredCustomers = customers.filter(c =>
+        c.name.toLowerCase().includes(searchCustomer.toLowerCase()) ||
+        (c.documentNumber && c.documentNumber.includes(searchCustomer))
+    );
+
+    // Encontrar el cliente seleccionado para mostrar su nombre
+    const selectedCustomerObj = customers.find(c => c.id === selectedCustomerId);
+
     useEffect(() => {
         document.body.style.overflow = "hidden";
         return () => { document.body.style.overflow = "unset"; };
@@ -35,7 +48,6 @@ export function ServiceFormSheet({ serviceToEdit, customers }: { serviceToEdit?:
 
     const close = () => router.push("/ame-studio-ops/services");
 
-    // Formatear fechas de Prisma a formato de input HTML (YYYY-MM-DD)
     const formatDate = (date?: string | Date | null) => {
         if (!date) return "";
         return new Date(date).toISOString().split('T')[0];
@@ -45,10 +57,15 @@ export function ServiceFormSheet({ serviceToEdit, customers }: { serviceToEdit?:
         e.preventDefault();
         setError("");
 
+        if (!selectedCustomerId) {
+            setError("Por favor, selecciona un cliente para este trabajo.");
+            return;
+        }
+
         const formData = new FormData(e.currentTarget);
         const data = {
             id: serviceToEdit?.id,
-            customerId: formData.get("customerId") as string,
+            customerId: selectedCustomerId, // Usamos el ID del estado
             serviceType: formData.get("serviceType") as string,
             description: formData.get("description") as string,
             serviceNotes: formData.get("serviceNotes") as string,
@@ -83,7 +100,7 @@ export function ServiceFormSheet({ serviceToEdit, customers }: { serviceToEdit?:
                     <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
                         {serviceToEdit ? <><Scissors size={18} className="text-blue-600"/> Editar Trabajo</> : <><Scissors size={18} className="text-green-600"/> Nuevo Trabajo</>}
                     </h2>
-                    <button onClick={close} className="p-2 text-gray-400 hover:text-gray-900 hover:bg-gray-100 rounded-full transition-colors">
+                    <button type="button" onClick={close} className="p-2 text-gray-400 hover:text-gray-900 hover:bg-gray-100 rounded-full transition-colors">
                         <X size={20} />
                     </button>
                 </div>
@@ -97,18 +114,68 @@ export function ServiceFormSheet({ serviceToEdit, customers }: { serviceToEdit?:
                             </div>
                         )}
 
-                        {/* Asignación de Cliente */}
+                        {/* 👇 NUEVO SELECTOR DE CLIENTE CON BUSCADOR */}
                         <div className="space-y-4">
                             <h3 className="text-[11px] font-bold text-gray-400 uppercase tracking-widest border-b pb-2 flex items-center gap-1">
-                                <User size={14} /> Cliente
+                                <User size={14} /> Cliente *
                             </h3>
-                            <div>
-                                <select required name="customerId" defaultValue={serviceToEdit?.customerId || ""} className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm outline-none focus:border-green-500">
-                                    <option value="" disabled>Selecciona un cliente...</option>
-                                    {customers.map(c => (
-                                        <option key={c.id} value={c.id}>{c.name} - {c.documentNumber}</option>
-                                    ))}
-                                </select>
+
+                            <div className="relative z-50">
+                                {/* Botón visible que simula el select */}
+                                <div
+                                    onClick={() => setIsCustomerDropdownOpen(true)}
+                                    className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm outline-none hover:border-green-500 cursor-pointer flex justify-between items-center transition-colors"
+                                >
+                                    <span className={selectedCustomerObj ? "text-gray-900 font-bold truncate pr-2" : "text-gray-400"}>
+                                        {selectedCustomerObj ? `${selectedCustomerObj.name} (${selectedCustomerObj.documentNumber})` : "Buscar y seleccionar cliente..."}
+                                    </span>
+                                    <ChevronDown size={16} className="text-gray-400 shrink-0" />
+                                </div>
+
+                                {/* Menú Flotante */}
+                                {isCustomerDropdownOpen && (
+                                    <>
+                                        {/* Overlay para cerrar al dar clic afuera */}
+                                        <div className="fixed inset-0 z-40" onClick={() => setIsCustomerDropdownOpen(false)}></div>
+
+                                        <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-xl z-50 overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-200">
+                                            {/* Barra de Búsqueda interna */}
+                                            <div className="p-2 border-b border-gray-100 bg-gray-50 flex items-center gap-2">
+                                                <Search size={14} className="text-gray-400 shrink-0" />
+                                                <input
+                                                    type="text"
+                                                    autoFocus
+                                                    placeholder="Buscar por DNI o nombre..."
+                                                    value={searchCustomer}
+                                                    onChange={(e) => setSearchCustomer(e.target.value)}
+                                                    className="w-full bg-transparent text-sm outline-none text-gray-700 placeholder:text-gray-400"
+                                                />
+                                            </div>
+
+                                            {/* Lista de Resultados */}
+                                            <div className="max-h-48 overflow-y-auto py-1">
+                                                {filteredCustomers.length === 0 ? (
+                                                    <div className="p-3 text-sm text-gray-500 text-center italic">No se encontraron clientes.</div>
+                                                ) : (
+                                                    filteredCustomers.map(c => (
+                                                        <div
+                                                            key={c.id}
+                                                            onClick={() => {
+                                                                setSelectedCustomerId(c.id);
+                                                                setIsCustomerDropdownOpen(false);
+                                                                setSearchCustomer(""); // Limpia la búsqueda
+                                                            }}
+                                                            className={`px-3 py-2 text-sm cursor-pointer hover:bg-green-50 transition-colors flex flex-col ${selectedCustomerId === c.id ? 'bg-green-50 border-l-2 border-green-500' : 'border-l-2 border-transparent'}`}
+                                                        >
+                                                            <span className={`font-medium ${selectedCustomerId === c.id ? 'text-green-800 font-bold' : 'text-gray-900'}`}>{c.name}</span>
+                                                            <span className="text-[10px] text-gray-500 font-medium">{c.docType}: {c.documentNumber}</span>
+                                                        </div>
+                                                    ))
+                                                )}
+                                            </div>
+                                        </div>
+                                    </>
+                                )}
                             </div>
                         </div>
 
@@ -173,11 +240,11 @@ export function ServiceFormSheet({ serviceToEdit, customers }: { serviceToEdit?:
 
                     </div>
 
-                    <div className="p-4 border-t border-gray-100 bg-gray-50 flex justify-end gap-3">
+                    <div className="p-4 border-t border-gray-100 bg-gray-50 flex justify-end gap-3 shrink-0">
                         <button type="button" onClick={close} className="px-4 py-2 text-sm font-bold text-gray-600 hover:bg-gray-200 bg-gray-100 rounded-lg transition-colors">
                             Cancelar
                         </button>
-                        <button type="submit" disabled={isPending} className="flex items-center gap-2 px-4 py-2 text-sm font-bold text-white bg-green-600 hover:bg-green-700 disabled:opacity-50 disabled:animate-pulse rounded-lg transition-colors shadow-sm">
+                        <button type="submit" disabled={isPending} className="flex items-center gap-2 px-6 py-2 text-sm font-bold text-white bg-green-600 hover:bg-green-700 disabled:opacity-50 disabled:animate-pulse rounded-lg transition-colors shadow-sm">
                             <Save size={16} />
                             {isPending ? 'Guardando...' : 'Guardar Trabajo'}
                         </button>
