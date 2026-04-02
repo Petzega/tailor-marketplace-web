@@ -1,9 +1,10 @@
 "use client";
 
 import { useState, useTransition, useEffect } from "react";
-import { X, Save, Scissors, User, DollarSign, Calendar, Search, ChevronDown } from "lucide-react";
+import { X, Save, Scissors, User, DollarSign, Calendar, Search, ChevronDown, AlertTriangle } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { saveService } from "@/actions/services";
+import { useUnsavedChanges } from "@/hooks/use-unsaved-changes";
 
 type ServiceCustomer = { id: string; name: string; documentNumber: string; docType?: string };
 type ServiceEditProps = {
@@ -47,6 +48,7 @@ export function ServiceFormSheet({ serviceToEdit, customers }: { serviceToEdit?:
     }, []);
 
     const close = () => router.push("/ame-studio-ops/services");
+    const { setIsDirty, attemptClose, showConfirmModal, confirmClose, cancelClose } = useUnsavedChanges(close);
 
     const formatDate = (date?: string | Date | null) => {
         if (!date) return "";
@@ -92,7 +94,7 @@ export function ServiceFormSheet({ serviceToEdit, customers }: { serviceToEdit?:
 
     return (
         <>
-            <div onClick={close} className="fixed inset-0 bg-gray-900/20 backdrop-blur-sm z-50 transition-opacity cursor-pointer" />
+            <div onClick={attemptClose} className="fixed inset-0 bg-gray-900/20 backdrop-blur-sm z-50 transition-opacity cursor-pointer" />
 
             <div className="fixed inset-y-0 right-0 w-full md:w-[450px] bg-white shadow-2xl z-[60] flex flex-col animate-in slide-in-from-right duration-300">
 
@@ -100,12 +102,16 @@ export function ServiceFormSheet({ serviceToEdit, customers }: { serviceToEdit?:
                     <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
                         {serviceToEdit ? <><Scissors size={18} className="text-blue-600"/> Editar Trabajo</> : <><Scissors size={18} className="text-green-600"/> Nuevo Trabajo</>}
                     </h2>
-                    <button type="button" onClick={close} className="p-2 text-gray-400 hover:text-gray-900 hover:bg-gray-100 rounded-full transition-colors">
+                    <button type="button" onClick={attemptClose} className="p-2 text-gray-400 hover:text-gray-900 hover:bg-gray-100 rounded-full transition-colors">
                         <X size={20} />
                     </button>
                 </div>
 
-                <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto flex flex-col">
+                <form
+                    onSubmit={handleSubmit}
+                    onChange={() => setIsDirty(true)} // 👈 Detecta cualquier modificación en cualquier campo
+                    className="flex-1 overflow-y-auto flex flex-col"
+                >
                     <div className="p-6 space-y-6 flex-1">
 
                         {error && (
@@ -240,15 +246,37 @@ export function ServiceFormSheet({ serviceToEdit, customers }: { serviceToEdit?:
 
                     </div>
 
-                    <div className="p-4 border-t border-gray-100 bg-gray-50 flex justify-end gap-3 shrink-0">
-                        <button type="button" onClick={close} className="px-4 py-2 text-sm font-bold text-gray-600 hover:bg-gray-200 bg-gray-100 rounded-lg transition-colors">
-                            Cancelar
-                        </button>
-                        <button type="submit" disabled={isPending} className="flex items-center gap-2 px-6 py-2 text-sm font-bold text-white bg-green-600 hover:bg-green-700 disabled:opacity-50 disabled:animate-pulse rounded-lg transition-colors shadow-sm">
-                            <Save size={16} />
-                            {isPending ? 'Guardando...' : 'Guardar Trabajo'}
-                        </button>
-                    </div>
+                    {showConfirmModal ? (
+                        <div className="p-4 bg-amber-50 border-t border-amber-200 flex flex-col gap-3 shrink-0 animate-in slide-in-from-bottom-2 duration-200">
+                            <div className="flex items-start gap-3 text-amber-800">
+                                <div className="p-1.5 bg-amber-100/70 rounded-md shrink-0">
+                                    <AlertTriangle size={18} className="text-amber-600" />
+                                </div>
+                                <div>
+                                    <h4 className="text-sm font-bold leading-none mb-1">Cambios sin guardar</h4>
+                                    <p className="text-xs text-amber-700 leading-snug">Tienes cambios pendientes. ¿Estás seguro de que deseas salir y perderlos?</p>
+                                </div>
+                            </div>
+                            <div className="flex gap-2 mt-1">
+                                <button type="button" onClick={cancelClose} className="flex-1 px-3 py-2 bg-white border border-gray-200 text-gray-700 rounded-lg text-sm font-bold hover:bg-gray-50 transition-colors shadow-sm">
+                                    Continuar editando
+                                </button>
+                                <button type="button" onClick={confirmClose} className="flex-1 px-3 py-2 bg-red-600 text-white rounded-lg text-sm font-bold hover:bg-red-700 transition-colors shadow-sm">
+                                    Salir sin guardar
+                                </button>
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="p-4 border-t border-gray-100 bg-gray-50 flex justify-end gap-3 shrink-0">
+                            <button type="button" onClick={attemptClose} className="px-4 py-2 text-sm font-bold text-gray-600 hover:bg-gray-200 bg-gray-100 rounded-lg transition-colors">
+                                Cancelar
+                            </button>
+                            <button type="submit" disabled={isPending} className="flex items-center gap-2 px-6 py-2 text-sm font-bold text-white bg-green-600 hover:bg-green-700 disabled:opacity-50 disabled:animate-pulse rounded-lg transition-colors shadow-sm">
+                                <Save size={16} />
+                                {isPending ? 'Guardando...' : 'Guardar Trabajo'}
+                            </button>
+                        </div>
+                    )}
                 </form>
             </div>
         </>
