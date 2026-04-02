@@ -16,6 +16,15 @@ const getFutureDate = (daysAhead: number) => {
     return date;
 };
 
+// NUEVA Función auxiliar para generar IDs de Tickets realistas
+const generateMockTicketId = (dateObj: Date, sequence: number) => {
+    const year = dateObj.getFullYear().toString().slice(-2);
+    const month = (dateObj.getMonth() + 1).toString().padStart(2, '0');
+    const day = dateObj.getDate().toString().padStart(2, '0');
+    // 👇 Se eliminó el guion antes de sequence
+    return `TK-${year}${month}${day}${sequence.toString().padStart(3, '0')}`;
+};
+
 async function main() {
     console.log('🧹 Limpiando la base de datos...');
 
@@ -219,7 +228,7 @@ async function main() {
             data: {
                 id: 'ORD-260307001',
                 validationCode: 'token-magico-123',
-                customerId: customer1.id,        // 👈 ENLACE AL CLIENTE
+                customerId: customer1.id,
                 customerName: customer1.name,
                 customerDocType: customer1.docType,
                 customerDocument: customer1.documentNumber,
@@ -244,7 +253,7 @@ async function main() {
             data: {
                 id: 'ORD-260307002',
                 validationCode: 'token-magico-456',
-                customerId: customer2.id,        // 👈 ENLACE AL CLIENTE
+                customerId: customer2.id,
                 customerName: customer2.name,
                 customerDocType: customer2.docType,
                 customerDocument: customer2.documentNumber,
@@ -264,55 +273,89 @@ async function main() {
     }
 
     // ==========================================
-    // ✂️ SEMBRAR SERVICIOS DE SASTRERÍA
+    // ✂️ SEMBRAR SERVICIOS DE SASTRERÍA (CON TICKETS)
     // ==========================================
-    console.log('🪡 Creando trabajos y servicios de sastrería...');
+    console.log('🪡 Creando trabajos y servicios de sastrería (Test Tickets)...');
 
-    // Servicio 1: En prueba (FITTING) para Juan
+    // Servicio 1: Normal en proceso (No debe ser rojo)
     await prisma.service.create({
         data: {
+            id: generateMockTicketId(getPastDate(15), 1),
             customerId: customer2.id,
             status: 'FITTING',
             serviceType: 'Confección de Traje a Medida',
-            description: 'Traje de 2 piezas (Saco y Pantalón) en lana fría azul marino, forro burdeos.',
-            serviceNotes: 'Juan pidió que las solapas sean de pico y el pantalón sin pinzas.',
+            description: 'Traje de 2 piezas.',
+            serviceNotes: 'Solapas de pico.',
             price: 550.00,
             deposit: 300.00,
             balance: 250.00,
             receptionDate: getPastDate(15),
-            fittingDate: getFutureDate(2), // Prueba en 2 días
-            deliveryDate: getFutureDate(10), // Entrega final en 10 días
+            fittingDate: getFutureDate(2),
+            deliveryDate: getFutureDate(10), // Entrega futura
         }
     });
 
-    // Servicio 2: Listo para entregar (READY) para María
+    // Servicio 2: URGENTE - Entrega Hoy (Debe ser ROJO)
     await prisma.service.create({
         data: {
+            id: generateMockTicketId(getPastDate(7), 2),
             customerId: customer1.id,
             status: 'READY',
             serviceType: 'Ajuste de Vestido de Novia',
-            description: 'Entalle en la cintura y ajuste de largo (basta) con encaje.',
-            serviceNotes: 'Tener mucho cuidado con la pedrería del borde.',
+            description: 'Entalle en la cintura.',
             price: 150.00,
             deposit: 150.00,
-            balance: 0.00, // Ya pagó todo
+            balance: 0.00,
             receptionDate: getPastDate(7),
-            deliveryDate: getPastDate(0), // Para entregar hoy
+            deliveryDate: getPastDate(0), // ENTREGA HOY
         }
     });
 
-    // Servicio 3: Recién ingresado (PENDING) para Anna
+    // Servicio 3: Normal en espera
     await prisma.service.create({
         data: {
+            id: generateMockTicketId(getPastDate(0), 3),
             customerId: customer3.id,
             status: 'PENDING',
-            serviceType: 'Basta de Pantalón',
-            description: 'Subir basta de 2 pantalones jeans (clásico).',
+            serviceType: 'Basta de Pantalón Express',
+            description: 'Subir basta de 2 pantalones jeans.',
             price: 30.00,
             deposit: 10.00,
             balance: 20.00,
-            receptionDate: getPastDate(0), // Recibido hoy
-            deliveryDate: getFutureDate(1), // Se entrega mañana (Express)
+            receptionDate: getPastDate(0),
+            deliveryDate: getFutureDate(1), // Entrega mañana
+        }
+    });
+
+    // Servicio 4: URGENTE - Fecha Vencida (Debe ser ROJO)
+    await prisma.service.create({
+        data: {
+            id: generateMockTicketId(getPastDate(5), 4),
+            customerId: customer2.id,
+            status: 'PENDING',
+            serviceType: 'Cambio de Cierre',
+            description: 'Cambio de cierre invisible en chaqueta.',
+            price: 25.00,
+            deposit: 0.00,
+            balance: 25.00,
+            receptionDate: getPastDate(5),
+            deliveryDate: getPastDate(2), // Debió entregarse hace 2 días
+        }
+    });
+
+    // Servicio 5: Entregado - Fecha pasada (NO debe ser rojo, porque ya se entregó)
+    await prisma.service.create({
+        data: {
+            id: generateMockTicketId(getPastDate(20), 5),
+            customerId: customer1.id,
+            status: 'DELIVERED',
+            serviceType: 'Entalle de Blusa',
+            description: 'Ajustar costados.',
+            price: 40.00,
+            deposit: 40.00,
+            balance: 0.00,
+            receptionDate: getPastDate(20),
+            deliveryDate: getPastDate(15), // Entregado hace 15 días
         }
     });
 
@@ -320,7 +363,7 @@ async function main() {
     console.log(`- Catálogo actualizado`);
     console.log(`- 3 Clientes creados con sus medidas`);
     console.log(`- 2 Órdenes enlazadas a clientes`);
-    console.log(`- 3 Servicios de sastrería en progreso`);
+    console.log(`- 5 Servicios de sastrería creados (con casos de Urgencia)`);
 }
 
 main()

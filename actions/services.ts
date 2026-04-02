@@ -47,6 +47,40 @@ export async function updateServiceStatus(id: string, newStatus: string) {
 }
 
 // 3. CREAR O EDITAR UN SERVICIO DE SASTRERÍA
+// FUNCIÓN AUXILIAR: Generador de Tickets (TK-YYMMDDXXX)
+async function generateTicketId() {
+    // 1. Obtener fecha actual en la zona horaria de Perú
+    const now = new Date(new Date().toLocaleString("en-US", { timeZone: "America/Lima" }));
+    const year = now.getFullYear().toString().slice(-2);
+    const month = (now.getMonth() + 1).toString().padStart(2, '0');
+    const day = now.getDate().toString().padStart(2, '0');
+
+    // 👇 Sin el guion al final
+    const datePrefix = `TK-${year}${month}${day}`;
+
+    // 2. Buscar el último servicio creado hoy
+    const lastService = await db.service.findFirst({
+        where: {
+            id: { startsWith: datePrefix }
+        },
+        orderBy: { id: 'desc' }
+    });
+
+    // 3. Calcular el correlativo (XXX)
+    let nextSequence = 1;
+    if (lastService) {
+        // 👇 Extraemos los últimos 3 caracteres (Ej: de "TK-260401005" extrae "005")
+        const lastSequence = parseInt(lastService.id.slice(-3), 10);
+        if (!isNaN(lastSequence)) {
+            nextSequence = lastSequence + 1;
+        }
+    }
+
+    // 4. Formatear con ceros a la izquierda
+    return `${datePrefix}${nextSequence.toString().padStart(3, '0')}`;
+}
+
+// 3. CREAR O EDITAR UN SERVICIO DE SASTRERÍA
 export async function saveService(data: {
     id?: string;
     customerId: string;
@@ -59,15 +93,12 @@ export async function saveService(data: {
     deliveryDate?: string | null;
 }) {
     try {
-        // Regla de negocio: El backend SIEMPRE calcula el saldo pendiente
         const balance = data.price - data.deposit;
-
-        // Convertir strings de fecha del formulario a objetos Date de Prisma
         const fittingDate = data.fittingDate ? new Date(`${data.fittingDate}T12:00:00Z`) : null;
         const deliveryDate = data.deliveryDate ? new Date(`${data.deliveryDate}T12:00:00Z`) : null;
 
         if (data.id) {
-            // Actualizar existente
+            // ACTUALIZAR (El ID no se toca)
             await db.service.update({
                 where: { id: data.id },
                 data: {
@@ -83,9 +114,12 @@ export async function saveService(data: {
                 }
             });
         } else {
-            // Crear uno nuevo (siempre nace en PENDING)
+            // CREAR NUEVO: Inyectamos nuestro ID personalizado
+            const newTicketId = await generateTicketId();
+
             await db.service.create({
                 data: {
+                    id: newTicketId, // 👈 Aquí forzamos nuestro ID: TK-260401-001
                     customerId: data.customerId,
                     status: "PENDING",
                     serviceType: data.serviceType,
@@ -101,7 +135,7 @@ export async function saveService(data: {
         }
 
         revalidatePath("/ame-studio-ops/services");
-        revalidatePath("/ame-studio-ops/customers"); // Por si el cliente actualiza su historial
+        revalidatePath("/ame-studio-ops/customers");
 
         return { success: true };
     } catch (error) {
