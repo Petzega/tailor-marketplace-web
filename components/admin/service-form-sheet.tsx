@@ -1,22 +1,17 @@
 "use client";
 
 import { useState, useTransition, useEffect } from "react";
-import { X, Save, Scissors, User, DollarSign, Calendar, Search, ChevronDown, AlertTriangle } from "lucide-react";
+import { X, Save, Scissors, User, DollarSign, Calendar, Search, ChevronDown } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { saveService } from "@/actions/services";
 import { useUnsavedChanges } from "@/hooks/use-unsaved-changes";
+import { UnsavedChangesModal } from "@/components/admin/unsaved-changes-modal";
 
 type ServiceCustomer = { id: string; name: string; documentNumber: string; docType?: string };
 type ServiceEditProps = {
-    id?: string;
-    customerId?: string;
-    serviceType?: string;
-    description?: string;
-    serviceNotes?: string;
-    price?: number;
-    deposit?: number;
-    fittingDate?: string | Date | null;
-    deliveryDate?: string | Date | null;
+    id?: string; customerId?: string; serviceType?: string; description?: string;
+    serviceNotes?: string; price?: number; deposit?: number;
+    fittingDate?: string | Date | null; deliveryDate?: string | Date | null;
 };
 
 export function ServiceFormSheet({ serviceToEdit, customers }: { serviceToEdit?: ServiceEditProps, customers: ServiceCustomer[] }) {
@@ -24,22 +19,17 @@ export function ServiceFormSheet({ serviceToEdit, customers }: { serviceToEdit?:
     const [isPending, startTransition] = useTransition();
     const [error, setError] = useState("");
 
-    // Estados para el cálculo financiero
     const [price, setPrice] = useState(serviceToEdit?.price || 0);
     const [deposit, setDeposit] = useState(serviceToEdit?.deposit || 0);
 
-    // 👇 NUEVOS ESTADOS: Para el Buscador de Clientes
     const [searchCustomer, setSearchCustomer] = useState("");
     const [isCustomerDropdownOpen, setIsCustomerDropdownOpen] = useState(false);
     const [selectedCustomerId, setSelectedCustomerId] = useState(serviceToEdit?.customerId || "");
 
-    // Filtro reactivo de clientes
     const filteredCustomers = customers.filter(c =>
         c.name.toLowerCase().includes(searchCustomer.toLowerCase()) ||
         (c.documentNumber && c.documentNumber.includes(searchCustomer))
     );
-
-    // Encontrar el cliente seleccionado para mostrar su nombre
     const selectedCustomerObj = customers.find(c => c.id === selectedCustomerId);
 
     useEffect(() => {
@@ -48,7 +38,7 @@ export function ServiceFormSheet({ serviceToEdit, customers }: { serviceToEdit?:
     }, []);
 
     const close = () => router.push("/ame-studio-ops/services");
-    const { setIsDirty, attemptClose, showConfirmModal, confirmClose, cancelClose } = useUnsavedChanges(close);
+    const { setIsDirty, attemptClose, showModal, confirmClose, cancelClose } = useUnsavedChanges(close);
 
     const formatDate = (date?: string | Date | null) => {
         if (!date) return "";
@@ -59,15 +49,12 @@ export function ServiceFormSheet({ serviceToEdit, customers }: { serviceToEdit?:
         e.preventDefault();
         setError("");
 
-        if (!selectedCustomerId) {
-            setError("Por favor, selecciona un cliente para este trabajo.");
-            return;
-        }
+        if (!selectedCustomerId) { setError("Por favor, selecciona un cliente para este trabajo."); return; }
 
         const formData = new FormData(e.currentTarget);
         const data = {
             id: serviceToEdit?.id,
-            customerId: selectedCustomerId, // Usamos el ID del estado
+            customerId: selectedCustomerId,
             serviceType: formData.get("serviceType") as string,
             description: formData.get("description") as string,
             serviceNotes: formData.get("serviceNotes") as string,
@@ -77,14 +64,12 @@ export function ServiceFormSheet({ serviceToEdit, customers }: { serviceToEdit?:
             deliveryDate: formData.get("deliveryDate") as string,
         };
 
-        if (data.price < data.deposit) {
-            setError("El adelanto no puede ser mayor al precio total.");
-            return;
-        }
+        if (data.price < data.deposit) { setError("El adelanto no puede ser mayor al precio total."); return; }
 
         startTransition(async () => {
             const result = await saveService(data);
             if (result.success) {
+                setIsDirty(false);
                 close();
             } else {
                 setError(result.error || "Error al guardar el servicio");
@@ -107,72 +92,33 @@ export function ServiceFormSheet({ serviceToEdit, customers }: { serviceToEdit?:
                     </button>
                 </div>
 
-                <form
-                    onSubmit={handleSubmit}
-                    onChange={() => setIsDirty(true)} // 👈 Detecta cualquier modificación en cualquier campo
-                    className="flex-1 overflow-y-auto flex flex-col"
-                >
+                <form onSubmit={handleSubmit} onChange={() => setIsDirty(true)} className="flex-1 overflow-y-auto flex flex-col">
                     <div className="p-6 space-y-6 flex-1">
+                        {error && <div className="p-3 bg-red-50 border border-red-200 text-red-700 text-sm font-bold rounded-lg">{error}</div>}
 
-                        {error && (
-                            <div className="p-3 bg-red-50 border border-red-200 text-red-700 text-sm font-bold rounded-lg">
-                                {error}
-                            </div>
-                        )}
-
-                        {/* 👇 NUEVO SELECTOR DE CLIENTE CON BUSCADOR */}
                         <div className="space-y-4">
-                            <h3 className="text-[11px] font-bold text-gray-400 uppercase tracking-widest border-b pb-2 flex items-center gap-1">
-                                <User size={14} /> Cliente *
-                            </h3>
-
-                            <div className="relative z-50">
-                                {/* Botón visible que simula el select */}
-                                <div
-                                    onClick={() => setIsCustomerDropdownOpen(true)}
-                                    className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm outline-none hover:border-green-500 cursor-pointer flex justify-between items-center transition-colors"
-                                >
+                            <h3 className="text-[11px] font-bold text-gray-400 uppercase tracking-widest border-b pb-2 flex items-center gap-1"><User size={14} /> Cliente *</h3>
+                            <div className="relative z-40">
+                                <div onClick={() => setIsCustomerDropdownOpen(true)} className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm outline-none hover:border-green-500 cursor-pointer flex justify-between items-center transition-colors">
                                     <span className={selectedCustomerObj ? "text-gray-900 font-bold truncate pr-2" : "text-gray-400"}>
                                         {selectedCustomerObj ? `${selectedCustomerObj.name} (${selectedCustomerObj.documentNumber})` : "Buscar y seleccionar cliente..."}
                                     </span>
                                     <ChevronDown size={16} className="text-gray-400 shrink-0" />
                                 </div>
-
-                                {/* Menú Flotante */}
                                 {isCustomerDropdownOpen && (
                                     <>
-                                        {/* Overlay para cerrar al dar clic afuera */}
                                         <div className="fixed inset-0 z-40" onClick={() => setIsCustomerDropdownOpen(false)}></div>
-
                                         <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-xl z-50 overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-200">
-                                            {/* Barra de Búsqueda interna */}
                                             <div className="p-2 border-b border-gray-100 bg-gray-50 flex items-center gap-2">
                                                 <Search size={14} className="text-gray-400 shrink-0" />
-                                                <input
-                                                    type="text"
-                                                    autoFocus
-                                                    placeholder="Buscar por DNI o nombre..."
-                                                    value={searchCustomer}
-                                                    onChange={(e) => setSearchCustomer(e.target.value)}
-                                                    className="w-full bg-transparent text-sm outline-none text-gray-700 placeholder:text-gray-400"
-                                                />
+                                                <input type="text" autoFocus placeholder="Buscar por DNI o nombre..." value={searchCustomer} onChange={(e) => setSearchCustomer(e.target.value)} className="w-full bg-transparent text-sm outline-none text-gray-700 placeholder:text-gray-400" />
                                             </div>
-
-                                            {/* Lista de Resultados */}
                                             <div className="max-h-48 overflow-y-auto py-1">
                                                 {filteredCustomers.length === 0 ? (
                                                     <div className="p-3 text-sm text-gray-500 text-center italic">No se encontraron clientes.</div>
                                                 ) : (
                                                     filteredCustomers.map(c => (
-                                                        <div
-                                                            key={c.id}
-                                                            onClick={() => {
-                                                                setSelectedCustomerId(c.id);
-                                                                setIsCustomerDropdownOpen(false);
-                                                                setSearchCustomer(""); // Limpia la búsqueda
-                                                            }}
-                                                            className={`px-3 py-2 text-sm cursor-pointer hover:bg-green-50 transition-colors flex flex-col ${selectedCustomerId === c.id ? 'bg-green-50 border-l-2 border-green-500' : 'border-l-2 border-transparent'}`}
-                                                        >
+                                                        <div key={c.id} onClick={() => { setSelectedCustomerId(c.id); setIsCustomerDropdownOpen(false); setSearchCustomer(""); }} className={`px-3 py-2 text-sm cursor-pointer hover:bg-green-50 transition-colors flex flex-col ${selectedCustomerId === c.id ? 'bg-green-50 border-l-2 border-green-500' : 'border-l-2 border-transparent'}`}>
                                                             <span className={`font-medium ${selectedCustomerId === c.id ? 'text-green-800 font-bold' : 'text-gray-900'}`}>{c.name}</span>
                                                             <span className="text-[10px] text-gray-500 font-medium">{c.docType}: {c.documentNumber}</span>
                                                         </div>
@@ -185,99 +131,45 @@ export function ServiceFormSheet({ serviceToEdit, customers }: { serviceToEdit?:
                             </div>
                         </div>
 
-                        {/* Detalles del Trabajo */}
                         <div className="space-y-4 pt-2">
-                            <h3 className="text-[11px] font-bold text-gray-400 uppercase tracking-widest border-b pb-2 flex items-center gap-1">
-                                <Scissors size={14} /> Detalle del Servicio
-                            </h3>
-                            <div>
-                                <label className="block text-xs font-bold text-gray-700 mb-1">Tipo de Trabajo *</label>
-                                <input required name="serviceType" defaultValue={serviceToEdit?.serviceType} placeholder="Ej: Entalle de Vestido de Novia" className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm outline-none focus:border-green-500" />
-                            </div>
-                            <div>
-                                <label className="block text-xs font-bold text-gray-700 mb-1">Descripción de la prenda *</label>
-                                <textarea required name="description" defaultValue={serviceToEdit?.description} rows={2} placeholder="Ej: Vestido blanco talla M con encaje..." className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm outline-none focus:border-green-500 resize-none"></textarea>
-                            </div>
-                            <div>
-                                <label className="block text-xs font-bold text-gray-700 mb-1">Instrucciones / Notas para el Taller</label>
-                                <textarea name="serviceNotes" defaultValue={serviceToEdit?.serviceNotes} rows={2} placeholder="Ej: Reducir 2cm de cintura y subir basta..." className="w-full px-3 py-2 bg-blue-50/50 border border-blue-100 rounded-lg text-sm outline-none focus:border-blue-500 resize-none"></textarea>
-                            </div>
+                            <h3 className="text-[11px] font-bold text-gray-400 uppercase tracking-widest border-b pb-2 flex items-center gap-1"><Scissors size={14} /> Detalle del Servicio</h3>
+                            <div><label className="block text-xs font-bold text-gray-700 mb-1">Tipo de Trabajo *</label><input required name="serviceType" defaultValue={serviceToEdit?.serviceType} placeholder="Ej: Entalle de Vestido de Novia" className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm outline-none focus:border-green-500" /></div>
+                            <div><label className="block text-xs font-bold text-gray-700 mb-1">Descripción de la prenda *</label><textarea required name="description" defaultValue={serviceToEdit?.description} rows={2} placeholder="Ej: Vestido blanco talla M con encaje..." className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm outline-none focus:border-green-500 resize-none"></textarea></div>
+                            <div><label className="block text-xs font-bold text-gray-700 mb-1">Instrucciones / Notas para el Taller</label><textarea name="serviceNotes" defaultValue={serviceToEdit?.serviceNotes} rows={2} placeholder="Ej: Reducir 2cm de cintura y subir basta..." className="w-full px-3 py-2 bg-blue-50/50 border border-blue-100 rounded-lg text-sm outline-none focus:border-blue-500 resize-none"></textarea></div>
                         </div>
 
-                        {/* Fechas */}
                         <div className="space-y-4 pt-2">
-                            <h3 className="text-[11px] font-bold text-gray-400 uppercase tracking-widest border-b pb-2 flex items-center gap-1">
-                                <Calendar size={14} /> Cronograma
-                            </h3>
+                            <h3 className="text-[11px] font-bold text-gray-400 uppercase tracking-widest border-b pb-2 flex items-center gap-1"><Calendar size={14} /> Cronograma</h3>
                             <div className="grid grid-cols-2 gap-3">
-                                <div>
-                                    <label className="block text-xs font-bold text-gray-700 mb-1">Día de Prueba (Fitting)</label>
-                                    <input type="date" name="fittingDate" defaultValue={formatDate(serviceToEdit?.fittingDate)} className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm outline-none focus:border-green-500" />
-                                </div>
-                                <div>
-                                    <label className="block text-xs font-bold text-gray-700 mb-1">Fecha de Entrega</label>
-                                    <input type="date" name="deliveryDate" defaultValue={formatDate(serviceToEdit?.deliveryDate)} className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm outline-none focus:border-green-500" />
-                                </div>
+                                <div><label className="block text-xs font-bold text-gray-700 mb-1">Día de Prueba (Fitting)</label><input type="date" name="fittingDate" defaultValue={formatDate(serviceToEdit?.fittingDate)} className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm outline-none focus:border-green-500" /></div>
+                                <div><label className="block text-xs font-bold text-gray-700 mb-1">Fecha de Entrega</label><input type="date" name="deliveryDate" defaultValue={formatDate(serviceToEdit?.deliveryDate)} className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm outline-none focus:border-green-500" /></div>
                             </div>
                         </div>
 
-                        {/* Pagos */}
                         <div className="space-y-4 pt-2">
-                            <h3 className="text-[11px] font-bold text-gray-400 uppercase tracking-widest border-b pb-2 flex items-center gap-1">
-                                <DollarSign size={14} /> Presupuesto
-                            </h3>
+                            <h3 className="text-[11px] font-bold text-gray-400 uppercase tracking-widest border-b pb-2 flex items-center gap-1"><DollarSign size={14} /> Presupuesto</h3>
                             <div className="grid grid-cols-3 gap-3 items-end">
-                                <div>
-                                    <label className="block text-xs font-bold text-gray-700 mb-1">Precio Total (S/)</label>
-                                    <input required type="number" step="0.10" min="0" name="price" value={price} onChange={(e) => setPrice(Number(e.target.value))} className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm outline-none focus:border-green-500" />
-                                </div>
-                                <div>
-                                    <label className="block text-xs font-bold text-gray-700 mb-1">Adelanto (S/)</label>
-                                    <input required type="number" step="0.10" min="0" name="deposit" value={deposit} onChange={(e) => setDeposit(Number(e.target.value))} className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm outline-none focus:border-green-500" />
-                                </div>
+                                <div><label className="block text-xs font-bold text-gray-700 mb-1">Precio Total (S/)</label><input required type="number" step="0.10" min="0" name="price" value={price} onChange={(e) => setPrice(Number(e.target.value))} className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm outline-none focus:border-green-500" /></div>
+                                <div><label className="block text-xs font-bold text-gray-700 mb-1">Adelanto (S/)</label><input required type="number" step="0.10" min="0" name="deposit" value={deposit} onChange={(e) => setDeposit(Number(e.target.value))} className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm outline-none focus:border-green-500" /></div>
                                 <div className="p-2 bg-gray-100 rounded-lg text-center border border-gray-200">
                                     <span className="block text-[10px] font-bold text-gray-500 uppercase">Saldo Pendiente</span>
-                                    <span className={`text-sm font-black ${price - deposit > 0 ? 'text-red-600' : 'text-green-600'}`}>
-                                        S/ {(price - deposit).toFixed(2)}
-                                    </span>
+                                    <span className={`text-sm font-black ${price - deposit > 0 ? 'text-red-600' : 'text-green-600'}`}>S/ {(price - deposit).toFixed(2)}</span>
                                 </div>
                             </div>
                         </div>
-
                     </div>
 
-                    {showConfirmModal ? (
-                        <div className="p-4 bg-amber-50 border-t border-amber-200 flex flex-col gap-3 shrink-0 animate-in slide-in-from-bottom-2 duration-200">
-                            <div className="flex items-start gap-3 text-amber-800">
-                                <div className="p-1.5 bg-amber-100/70 rounded-md shrink-0">
-                                    <AlertTriangle size={18} className="text-amber-600" />
-                                </div>
-                                <div>
-                                    <h4 className="text-sm font-bold leading-none mb-1">Cambios sin guardar</h4>
-                                    <p className="text-xs text-amber-700 leading-snug">Tienes cambios pendientes. ¿Estás seguro de que deseas salir y perderlos?</p>
-                                </div>
-                            </div>
-                            <div className="flex gap-2 mt-1">
-                                <button type="button" onClick={cancelClose} className="flex-1 px-3 py-2 bg-white border border-gray-200 text-gray-700 rounded-lg text-sm font-bold hover:bg-gray-50 transition-colors shadow-sm">
-                                    Continuar editando
-                                </button>
-                                <button type="button" onClick={confirmClose} className="flex-1 px-3 py-2 bg-red-600 text-white rounded-lg text-sm font-bold hover:bg-red-700 transition-colors shadow-sm">
-                                    Salir sin guardar
-                                </button>
-                            </div>
-                        </div>
-                    ) : (
-                        <div className="p-4 border-t border-gray-100 bg-gray-50 flex justify-end gap-3 shrink-0">
-                            <button type="button" onClick={attemptClose} className="px-4 py-2 text-sm font-bold text-gray-600 hover:bg-gray-200 bg-gray-100 rounded-lg transition-colors">
-                                Cancelar
-                            </button>
-                            <button type="submit" disabled={isPending} className="flex items-center gap-2 px-6 py-2 text-sm font-bold text-white bg-green-600 hover:bg-green-700 disabled:opacity-50 disabled:animate-pulse rounded-lg transition-colors shadow-sm">
-                                <Save size={16} />
-                                {isPending ? 'Guardando...' : 'Guardar Trabajo'}
-                            </button>
-                        </div>
-                    )}
+                    <div className="p-4 border-t border-gray-100 bg-gray-50 flex justify-end gap-3 shrink-0">
+                        <button type="button" onClick={attemptClose} className="px-4 py-2 text-sm font-bold text-gray-600 hover:bg-gray-200 bg-gray-100 rounded-lg transition-colors">Cancelar</button>
+                        <button type="submit" disabled={isPending} className="flex items-center gap-2 px-6 py-2 text-sm font-bold text-white bg-green-600 hover:bg-green-700 disabled:opacity-50 disabled:animate-pulse rounded-lg transition-colors shadow-sm">
+                            <Save size={16} />{isPending ? 'Guardando...' : 'Guardar Trabajo'}
+                        </button>
+                    </div>
                 </form>
+
+                {/* MODAL INYECTADO */}
+                <UnsavedChangesModal isOpen={showModal} onConfirm={confirmClose} onCancel={cancelClose} />
+
             </div>
         </>
     );
