@@ -14,8 +14,11 @@ export default clerkMiddleware(async (auth, req) => {
     if (req.nextUrl.pathname.startsWith('/api/n8n/')) {
         const authHeader = req.headers.get('authorization');
         const apiKey = process.env.N8N_API_KEY;
+        const webhookSecret = process.env.N8N_WEBHOOK_SECRET;
 
-        if (!authHeader || !authHeader.startsWith('Bearer ') || authHeader.split(' ')[1] !== apiKey) {
+        const token = authHeader?.startsWith('Bearer ') ? authHeader.split(' ')[1] : null;
+
+        if (!token || (token !== apiKey && token !== webhookSecret)) {
             return NextResponse.json(
                 { error: 'Acceso no autorizado' },
                 { status: 401 }

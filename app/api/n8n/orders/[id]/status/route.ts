@@ -1,3 +1,4 @@
+// app/api/n8n/orders/[id]/status/route.ts
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 
@@ -6,6 +7,13 @@ export async function PATCH(
     { params }: { params: Promise<{ id: string }> }
 ) {
     try {
+        // FASE 1: PROTECCIÓN DEL WEBHOOK
+        // Exige que N8N envíe un header: Authorization: Bearer <TU_CLAVE_SECRETA>
+        const authHeader = request.headers.get("authorization");
+        if (!authHeader || authHeader !== `Bearer ${process.env.N8N_WEBHOOK_SECRET}`) {
+            return NextResponse.json({ error: "Acceso denegado. Credenciales inválidas." }, { status: 401 });
+        }
+
         const resolvedParams = await params;
         const orderId = resolvedParams.id;
         const body = await request.json();
@@ -15,7 +23,6 @@ export async function PATCH(
             return NextResponse.json({ error: "El campo status es requerido" }, { status: 400 });
         }
 
-        // Validar que el estado sea uno de los permitidos
         const validStatuses = ["PENDING", "IN_PROGRESS", "CANCELLED", "COMPLETED"];
         if (!validStatuses.includes(status)) {
             return NextResponse.json({ error: "Estado no válido" }, { status: 400 });
@@ -35,7 +42,6 @@ export async function PATCH(
 
     } catch (error: unknown) {
         console.error("Error actualizando estado de la orden:", error);
-        // Manejar el caso donde la orden no existe en Prisma
         if (typeof error === 'object' && error !== null && 'code' in error && (error as Record<string, unknown>).code === 'P2025') {
             return NextResponse.json({ error: "Orden no encontrada" }, { status: 404 });
         }
