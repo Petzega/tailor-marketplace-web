@@ -10,7 +10,7 @@ import { auth } from "@clerk/nextjs/server";
 import { z } from "zod";
 
 // ============================================================================
-// CONFIGURACIÓN CLOUDINARY
+// CONFIGURACIÓN Y UTILIDADES DE CLOUDINARY
 // ============================================================================
 cloudinary.config({
     cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
@@ -35,19 +35,40 @@ async function uploadToCloudinary(file: File): Promise<string> {
     });
 }
 
+// NUEVA FUNCIÓN: Destrucción de imágenes huérfanas
+async function deleteFromCloudinary(imageUrl: string) {
+    if (!imageUrl) return;
+    try {
+        const parts = imageUrl.split('/upload/');
+        if (parts.length < 2) return;
+
+        const pathWithVersion = parts[1];
+        const pathWithoutVersion = pathWithVersion.replace(/^v\d+\//, '');
+        const publicId = pathWithoutVersion.substring(0, pathWithoutVersion.lastIndexOf('.'));
+
+        if (publicId) {
+            await cloudinary.uploader.destroy(publicId);
+            console.log(`[Cloudinary] Imagen huérfana eliminada: ${publicId}`);
+        }
+    } catch (error) {
+        console.error("[Cloudinary] Error al intentar eliminar la imagen antigua:", error);
+    }
+}
+
 // ============================================================================
 // ESQUEMAS DE VALIDACIÓN (ZOD)
 // ============================================================================
 const productSizeSchema = z.object({
     size: z.string().min(1),
-    stock: z.coerce.number().int().nonnegative() // coerce fuerza la conversión de string a number
+    stock: z.coerce.number().int().nonnegative()
 });
 
 const productSchema = z.object({
     name: z.string().min(1, "El nombre es requerido"),
     description: z.string().optional(),
     price: z.coerce.number().nonnegative("El precio no puede ser negativo"),
-    stock: z.coerce.number().int().nonnegative().default(0),
+    // 👈 CORRECCIÓN AQUÍ: Evitamos que un string vacío rompa Zod
+    stock: z.union([z.coerce.number().int().nonnegative(), z.string().transform(v => Number(v) || 0)]).default(0),
     category: z.string().min(1, "La categoría es requerida"),
     gender: z.string().nullable().optional(),
     clothingType: z.string().nullable().optional(),
@@ -167,7 +188,7 @@ async function generateSku(category: string): Promise<string> {
 
 export async function getProductStats() {
     try {
-        await requireAdminAuth(); // 👈 Protección de Endpoint
+        await requireAdminAuth();
 
         const allProducts = await db.product.findMany({
             select: { price: true, stock: true, category: true },
@@ -186,18 +207,17 @@ export async function getProductStats() {
 
 export async function createProduct(formData: FormData) {
     try {
-        await requireAdminAuth(); // 👈 Protección de Endpoint
+        await requireAdminAuth();
 
-        // Extraer y validar campos básicos con Zod
         const rawData = Object.fromEntries(formData.entries());
         const validation = productSchema.safeParse(rawData);
 
         if (!validation.success) {
+            console.error("Zod Validation Error:", validation.error);
             return { success: false, error: "Datos de formulario inválidos." };
         }
         const data = validation.data;
 
-        // Parseo seguro de tallas
         let validSizes: z.infer<typeof productSizeSchema>[] = [];
         if (data.sizesData) {
             try {
@@ -212,7 +232,6 @@ export async function createProduct(formData: FormData) {
             ? validSizes.reduce((sum, s) => sum + s.stock, 0)
             : data.stock;
 
-        // Gestión de imagen
         const imageFile = formData.get("imageFile") as File | null;
         let finalImageUrl = data.imageUrl;
 
@@ -254,14 +273,19 @@ export async function createProduct(formData: FormData) {
 
 export async function updateProduct(id: string, formData: FormData) {
     try {
-        await requireAdminAuth(); // 👈 Protección de Endpoint
+        await requireAdminAuth();
 
         if (!id) return { success: false, error: "ID de producto faltante." };
+
+        // OBTENEMOS IMAGEN ACTUAL PARA BORRARLA LUEGO
+        const existingProduct = await db.product.findUnique({ where: { id }, select: { imageUrl: true } });
+        if (!existingProduct) return { success: false, error: "Producto no encontrado." };
 
         const rawData = Object.fromEntries(formData.entries());
         const validation = productSchema.safeParse(rawData);
 
         if (!validation.success) {
+            console.error("Zod Validation Error:", validation.error.flatten());
             return { success: false, error: "Datos de formulario inválidos." };
         }
         const data = validation.data;
@@ -282,12 +306,14 @@ export async function updateProduct(id: string, formData: FormData) {
 
         const imageFile = formData.get("imageFile") as File | null;
         let finalImageUrl: string | undefined = undefined;
+        let shouldDeleteOldImage = false;
 
         if (imageFile && imageFile.size > 0) {
             try {
                 finalImageUrl = await uploadToCloudinary(imageFile);
+                shouldDeleteOldImage = true;
             } catch (error) {
-                return { success: false, error: "Falló la subida de la imagen." };
+                return { success: false, error: "Falló la subida de la nueva imagen." };
             }
         } else if (data.imageUrl && data.imageUrl.trim() !== "") {
             finalImageUrl = data.imageUrl;
@@ -314,6 +340,11 @@ export async function updateProduct(id: string, formData: FormData) {
             },
         });
 
+        // LIMPIEZA DE CLOUDINARY AUTOMÁTICA
+        if (shouldDeleteOldImage && existingProduct.imageUrl) {
+            await deleteFromCloudinary(existingProduct.imageUrl);
+        }
+
         revalidatePath("/ame-studio-ops/inventory");
         revalidatePath("/");
         return { success: true };
@@ -325,11 +356,17 @@ export async function updateProduct(id: string, formData: FormData) {
 
 export async function deleteProduct(id: string) {
     try {
-        await requireAdminAuth(); // 👈 Protección de Endpoint
+        await requireAdminAuth();
 
         if (!id) return { success: false, error: "ID inválido" };
 
+        const existingProduct = await db.product.findUnique({ where: { id }, select: { imageUrl: true } });
+
         await db.product.delete({ where: { id } });
+
+        if (existingProduct?.imageUrl) {
+            await deleteFromCloudinary(existingProduct.imageUrl);
+        }
 
         revalidatePath("/ame-studio-ops");
         revalidatePath("/");

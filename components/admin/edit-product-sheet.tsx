@@ -9,6 +9,7 @@ import { useState, useRef } from "react";
 import { GENDERS, CLOTHING_TYPES } from "@/lib/constants";
 import { useUnsavedChanges } from "@/hooks/use-unsaved-changes";
 import { UnsavedChangesModal } from "@/components/admin/unsaved-changes-modal";
+import {showToast} from "@/components/admin/action-toast";
 
 interface EditSheetProps {
     product: Product & { sizes?: { id: string, size: string, stock: number }[] };
@@ -73,7 +74,8 @@ export function EditProductSheet({ product }: EditSheetProps) {
             router.refresh();
         } else {
             setIsLoading(false);
-            alert("Error al actualizar el producto");
+            // 2. Usamos el Toast dinámico en lugar del alert feo
+            showToast("Actualización Bloqueada", result?.error || "Error al actualizar el producto", "error");
         }
     };
 
