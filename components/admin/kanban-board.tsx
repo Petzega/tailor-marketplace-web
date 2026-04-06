@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { Clock, Ruler, CheckCircle, Package, Edit2, Search, AlertCircle } from "lucide-react";
 import Link from "next/link";
 import { updateServiceStatus } from "@/actions/services";
+import { showToast } from "@/components/admin/action-toast";
 
 const COLUMNS = [
     { id: "PENDING", title: "Pendientes", icon: Clock, color: "bg-amber-100 text-amber-700", border: "border-amber-200" },
@@ -55,6 +56,7 @@ export function KanbanBoard({ initialServices }: { initialServices: KanbanServic
         e.preventDefault();
     };
 
+// Y reemplaza tu función handleDrop con esto:
     const handleDrop = (e: React.DragEvent, newStatus: string) => {
         e.preventDefault();
         const serviceId = e.dataTransfer.getData("serviceId");
@@ -62,13 +64,22 @@ export function KanbanBoard({ initialServices }: { initialServices: KanbanServic
         const serviceToMove = services.find(s => s.id === serviceId);
         if (!serviceToMove || serviceToMove.status === newStatus) return;
 
+        // 1. Guardar el estado previo de ESTA tarjeta
+        const previousStatus = serviceToMove.status;
+
+        // 2. Actualización Optimista (UI instantánea)
         setServices(prev => prev.map(s => s.id === serviceId ? { ...s, status: newStatus } : s));
 
         startTransition(async () => {
             const result = await updateServiceStatus(serviceId, newStatus);
-            if (!result.success) {
-                setServices(initialServices);
-                alert("Error al mover la tarjeta en la base de datos.");
+
+            // 3. Rollback Visual y Notificación de Error
+            if (!result?.success) {
+                // Revertir solo la tarjeta afectada
+                setServices(prev => prev.map(s => s.id === serviceId ? { ...s, status: previousStatus } : s));
+
+                // Disparar nuestro Toast elegante
+                showToast("Acción Bloqueada", result?.error || "Error desconocido", "error");
             }
         });
     };

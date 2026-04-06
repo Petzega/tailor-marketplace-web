@@ -2,6 +2,7 @@ import { AdminSidebar } from "@/components/admin/sidebar";
 import { currentUser } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import { getOrderStats } from "@/actions/orders";
+import { ActionToast } from "@/components/admin/action-toast";
 
 export default async function AdminLayout({
                                               children,
@@ -32,6 +33,7 @@ export default async function AdminLayout({
                     {children}
                 </div>
             </main>
+            <ActionToast />
         </div>
     );
 }
