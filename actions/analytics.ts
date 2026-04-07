@@ -67,7 +67,13 @@ export async function getDashboardAnalytics(startDate?: string, endDate?: string
 
         const orders = await db.order.findMany({
             where: { createdAt: Object.keys(dateFilter).length > 0 ? dateFilter : undefined },
-            include: { items: true }
+            // 👇 LIMITAMOS LA CARGA DE RAM OBTENIENDO SOLO LO NECESARIO
+            select: {
+                status: true,
+                total: true,
+                createdAt: true,
+                items: { select: { productId: true, quantity: true } }
+            }
         });
 
         let totalRevenue = 0;
@@ -87,7 +93,11 @@ export async function getDashboardAnalytics(startDate?: string, endDate?: string
             }
         });
 
-        const allProducts = await db.product.findMany({ where: { category: { not: 'SERVICE' } } });
+        // 👇 LIMITAMOS LA CARGA DE RAM DESCARGANDO SOLO METADATA Y OMITIENDO TEXTOS LARGOS COMO DESCRIPTIONS
+        const allProducts = await db.product.findMany({ 
+            where: { category: { not: 'SERVICE' } },
+            select: { id: true, name: true, imageUrl: true, stock: true }
+        });
 
         const productsWithSales = allProducts.map(product => ({
             id: product.id,

@@ -62,7 +62,18 @@ export async function getKanbanServices() {
     try {
         await requireAdminAuthWithUser();
 
+        const sevenDaysAgo = new Date();
+        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
         const services = await db.service.findMany({
+            where: {
+                NOT: {
+                    AND: [
+                        { status: 'DELIVERED' },
+                        { updatedAt: { lt: sevenDaysAgo } }
+                    ]
+                }
+            },
             include: {
                 customer: { select: { name: true, phone: true, measurements: true } }
             },

@@ -25,7 +25,7 @@ const createOrderSchema = z.object({
         address: z.string().optional(),
         reference: z.string().optional(),
     }),
-    items: z.array(orderItemSchema).min(1, "La orden debe contener al menos un producto"),
+    items: z.array(orderItemSchema).min(1, "La orden debe contener al menos un producto").max(50, "La orden no puede contener más de 50 productos"),
     deliveryMethod: z.string().min(1),
     paymentMethod: z.string().min(1),
     subtotal: z.number().nonnegative(),
