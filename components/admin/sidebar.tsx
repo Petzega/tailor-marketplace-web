@@ -36,23 +36,16 @@ export function AdminSidebar({ pendingOrders }: { pendingOrders?: number }) {
                 <NavItem href="/ame-studio-ops/settings" icon={<Settings size={20} />} label="Settings" />
 
                 {/* 👇 CORRECCIÓN: Agregado suppressHydrationWarning al div contenedor para evitar el error rojo */}
-                <div suppressHydrationWarning className="mt-4 flex items-center gap-3 px-4 py-2 hover:bg-gray-50 rounded-lg transition-colors cursor-pointer">
-                    <ClerkLoading>
-                        {/* placeholder skeleton for the button to prevent jitter */}
-                        <div className="w-8 h-8 rounded-full bg-gray-200 animate-pulse" />
-                        <div className="w-24 h-4 rounded bg-gray-200 animate-pulse ml-2" />
-                    </ClerkLoading>
-                    <ClerkLoaded>
-                        <UserButton
-                            showName={true}
-                            appearance={{
-                                elements: {
-                                    userButtonBox: "flex items-center gap-3",
-                                    userButtonOuterIdentifier: "text-sm font-medium text-gray-700"
-                                }
-                            }}
-                        />
-                    </ClerkLoaded>
+                <div className="mt-4 flex items-center gap-3 px-4 py-2 hover:bg-gray-50 rounded-lg transition-colors cursor-pointer">
+                    <UserButton
+                        showName={true}
+                        appearance={{
+                            elements: {
+                                userButtonBox: "flex items-center gap-3",
+                                userButtonOuterIdentifier: "text-sm font-medium text-gray-700"
+                            }
+                        }}
+                    />
                 </div>
             </div>
         </aside>

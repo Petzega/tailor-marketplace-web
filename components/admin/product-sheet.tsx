@@ -5,8 +5,9 @@ import Link from "next/link";
 import { X, Upload, Save, Link as LinkIcon, Image as ImageIcon, AlertTriangle, Plus, Trash2 } from "lucide-react";
 import NextImage from "next/image";
 import { useRouter } from "next/navigation";
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
 import { GENDERS, CLOTHING_TYPES } from "@/lib/constants";
+import {showToast} from "@/components/admin/action-toast";
 
 export function ProductSheet() {
     const router = useRouter();
@@ -27,6 +28,17 @@ export function ProductSheet() {
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const addSize = () => setSizes([...sizes, { size: '', stock: '' }]);
+
+    // 👇 NUEVO: Efecto para bloquear el scroll de la página de fondo
+    useEffect(() => {
+        // Al montar el componente, ocultamos el scroll
+        document.body.style.overflow = "hidden";
+
+        // Al desmontar (cerrar), lo restauramos
+        return () => {
+            document.body.style.overflow = "unset";
+        };
+    }, []);
 
     const updateSize = (index: number, field: 'size' | 'stock', value: string | number) => {
         const newSizes = [...sizes];
@@ -77,7 +89,8 @@ export function ProductSheet() {
             router.refresh();
         } else {
             setIsLoading(false);
-            alert("Error al crear el producto.");
+            setShowModal(false); // 👈 Añadimos esto para que se cierre el modal verde al fallar
+            showToast("Creación Bloqueada", result.error || "Error al crear el producto.", "error"); // 👈 El nuevo Toast
         }
     };
 
@@ -94,7 +107,8 @@ export function ProductSheet() {
         <div className="fixed inset-0 z-50 flex justify-end">
             <Link href="/ame-studio-ops/inventory" className="absolute inset-0 bg-black/20 backdrop-blur-sm transition-opacity" />
 
-            <div className="relative w-full max-w-md bg-white h-full shadow-2xl overflow-y-auto border-l border-gray-100 flex flex-col animate-in slide-in-from-right duration-300">
+            {/* 👇 Le quitamos el overflow-y-auto a este contenedor */}
+            <div className="relative w-full max-w-md bg-white h-full shadow-2xl border-l border-gray-100 flex flex-col animate-in slide-in-from-right duration-300">
 
                 <div className="px-6 py-5 border-b border-gray-100 flex justify-between items-center bg-white sticky top-0 z-10">
                     <div>
@@ -106,7 +120,7 @@ export function ProductSheet() {
                     </Link>
                 </div>
 
-                <form id="create-form" onSubmit={handleSubmit} className="flex-1 p-6 space-y-6">
+                <form id="create-form" onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 space-y-6">
                     <input type="hidden" name="sizesData" value={JSON.stringify(sizes)} />
 
                     <div className="space-y-3">
@@ -269,7 +283,7 @@ export function ProductSheet() {
                 </form>
 
                 {showModal && (
-                    <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/20 backdrop-blur-[2px] animate-in fade-in duration-200">
+                    <div className="absolute inset-0 z-[60] flex items-center justify-center bg-black/20 backdrop-blur-[2px] animate-in fade-in duration-200">
                         <div className="bg-white p-6 rounded-xl shadow-2xl border border-gray-100 w-[90%] max-w-sm animate-in zoom-in-95 leading-tight">
                             <div className="flex items-start gap-3 text-green-600 mb-3">
                                 <div className="p-2 bg-green-50 rounded-full shrink-0"><AlertTriangle size={20} /></div>

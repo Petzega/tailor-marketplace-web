@@ -145,7 +145,7 @@ export default async function InventoryPage({ searchParams }: InventoryPageProps
                                                 ) : (
                                                     <div className="space-y-1.5">
                                                         <div className="flex justify-between text-xs">
-                                                            <span className={`font-medium ${isLow ? 'text-amber-600' : 'text-green-600'}`}>{product.stock} unids</span>
+                                                            <span className={`font-medium ${isLow ? 'text-amber-600' : 'text-green-600'}`}>{product.stock} unidades</span>
                                                         </div>
                                                         <div className="w-full bg-gray-100 rounded-full h-1.5 overflow-hidden">
                                                             <div

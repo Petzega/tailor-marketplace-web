@@ -6,7 +6,7 @@ import { revalidatePath } from "next/cache";
 import { ITEMS_PER_PAGE } from "@/lib/constants";
 import { Prisma } from "@prisma/client";
 import { v2 as cloudinary } from 'cloudinary';
-import { auth } from "@clerk/nextjs/server";
+import { currentUser } from "@clerk/nextjs/server";
 import { z } from "zod";
 
 // ============================================================================
@@ -77,14 +77,17 @@ const productSchema = z.object({
 });
 
 // ============================================================================
-// MIDDLEWARE DE AUTENTICACIÓN ADMIN
+// MIDDLEWARE DE AUTENTICACIÓN ADMIN Y AUDITORÍA
 // ============================================================================
-async function requireAdminAuth() {
-    const { userId } = await auth();
-    if (!userId) {
+async function requireAdminAuthWithUser() {
+    const user = await currentUser();
+    if (!user) {
         throw new Error("Acceso denegado: Se requieren permisos de administrador.");
     }
-    return userId;
+    return {
+        userId: user.id,
+        userEmail: user.emailAddresses[0]?.emailAddress || "correo_desconocido"
+    };
 }
 
 // ============================================================================
@@ -165,7 +168,7 @@ export async function getProductById(id: string) {
 // MÉTODOS PRIVADOS (AME STUDIO OPS) - Requieren autenticación y validación
 // ============================================================================
 async function generateSku(category: string): Promise<string> {
-    let typePrefix = category === 'SERVICE' ? 'SRV' : (category === 'READY_MADE' ? 'CLT' : 'PRD');
+    const typePrefix = category === 'SERVICE' ? 'SRV' : (category === 'READY_MADE' ? 'CLT' : 'PRD');
     const now = new Date(new Date().getTime() - 5 * 60 * 60 * 1000);
     const yy = String(now.getUTCFullYear()).slice(-2);
     const mm = String(now.getUTCMonth() + 1).padStart(2, '0');
@@ -188,7 +191,7 @@ async function generateSku(category: string): Promise<string> {
 
 export async function getProductStats() {
     try {
-        await requireAdminAuth();
+        await requireAdminAuthWithUser(); // 👈 Actualizado
 
         const allProducts = await db.product.findMany({
             select: { price: true, stock: true, category: true },
@@ -207,7 +210,7 @@ export async function getProductStats() {
 
 export async function createProduct(formData: FormData) {
     try {
-        await requireAdminAuth();
+        const adminUser = await requireAdminAuthWithUser();
 
         const rawData = Object.fromEntries(formData.entries());
         const validation = productSchema.safeParse(rawData);
@@ -223,7 +226,7 @@ export async function createProduct(formData: FormData) {
             try {
                 const parsed = JSON.parse(data.sizesData);
                 validSizes = z.array(productSizeSchema).parse(parsed).filter(s => s.size.trim() !== '');
-            } catch (e) {
+            } catch (_e) {
                 return { success: false, error: "El formato de las tallas es inválido." };
             }
         }
@@ -238,28 +241,42 @@ export async function createProduct(formData: FormData) {
         if (imageFile && imageFile.size > 0) {
             try {
                 finalImageUrl = await uploadToCloudinary(imageFile);
-            } catch (error) {
+            } catch (_error) {
                 return { success: false, error: "Falló la subida de la imagen a Cloudinary." };
             }
         }
 
         const sku = await generateSku(data.category);
 
-        await db.product.create({
-            data: {
-                name: data.name,
-                description: data.description || null,
-                price: data.price,
-                stock: calculatedStock,
-                category: data.category,
-                imageUrl: finalImageUrl || null,
-                sku,
-                gender: data.gender || null,
-                clothingType: data.clothingType || null,
-                sizes: validSizes.length > 0 ? {
-                    create: validSizes.map(s => ({ size: s.size.trim().toUpperCase(), stock: s.stock }))
-                } : undefined
-            },
+        // TRANSACCIÓN ATÓMICA CON AUDITORÍA
+        await db.$transaction(async (tx) => {
+            const newProduct = await tx.product.create({
+                data: {
+                    name: data.name,
+                    description: data.description || null,
+                    price: data.price,
+                    stock: calculatedStock,
+                    category: data.category,
+                    imageUrl: finalImageUrl || null,
+                    sku,
+                    gender: data.gender || null,
+                    clothingType: data.clothingType || null,
+                    sizes: validSizes.length > 0 ? {
+                        create: validSizes.map(s => ({ size: s.size.trim().toUpperCase(), stock: s.stock }))
+                    } : undefined
+                },
+            });
+
+            await tx.auditLog.create({
+                data: {
+                    userId: adminUser.userId,
+                    userEmail: adminUser.userEmail,
+                    action: "CREATE_PRODUCT",
+                    entityType: "PRODUCT",
+                    entityId: newProduct.id,
+                    details: `Creó el producto: ${data.name} (SKU: ${sku}).`
+                }
+            });
         });
 
         revalidatePath("/");
@@ -273,11 +290,10 @@ export async function createProduct(formData: FormData) {
 
 export async function updateProduct(id: string, formData: FormData) {
     try {
-        await requireAdminAuth();
+        const adminUser = await requireAdminAuthWithUser();
 
         if (!id) return { success: false, error: "ID de producto faltante." };
 
-        // OBTENEMOS IMAGEN ACTUAL PARA BORRARLA LUEGO
         const existingProduct = await db.product.findUnique({ where: { id }, select: { imageUrl: true } });
         if (!existingProduct) return { success: false, error: "Producto no encontrado." };
 
@@ -295,7 +311,7 @@ export async function updateProduct(id: string, formData: FormData) {
             try {
                 const parsed = JSON.parse(data.sizesData);
                 validSizes = z.array(productSizeSchema).parse(parsed).filter(s => s.size.trim() !== '');
-            } catch (e) {
+            } catch (_e) {
                 return { success: false, error: "El formato de las tallas es inválido." };
             }
         }
@@ -312,35 +328,48 @@ export async function updateProduct(id: string, formData: FormData) {
             try {
                 finalImageUrl = await uploadToCloudinary(imageFile);
                 shouldDeleteOldImage = true;
-            } catch (error) {
+            } catch (_error) {
                 return { success: false, error: "Falló la subida de la nueva imagen." };
             }
         } else if (data.imageUrl && data.imageUrl.trim() !== "") {
             finalImageUrl = data.imageUrl;
         }
 
-        await db.product.update({
-            where: { id },
-            data: {
-                name: data.name,
-                description: data.description || null,
-                price: data.price,
-                stock: calculatedStock,
-                category: data.category,
-                ...(finalImageUrl !== undefined && { imageUrl: finalImageUrl }),
-                gender: data.gender || null,
-                clothingType: data.clothingType || null,
-                sizes: {
-                    deleteMany: {},
-                    create: data.category !== 'SERVICE' && validSizes.length > 0 ? validSizes.map(s => ({
-                        size: s.size.trim().toUpperCase(),
-                        stock: s.stock
-                    })) : []
+        // TRANSACCIÓN ATÓMICA CON AUDITORÍA
+        await db.$transaction(async (tx) => {
+            await tx.product.update({
+                where: { id },
+                data: {
+                    name: data.name,
+                    description: data.description || null,
+                    price: data.price,
+                    stock: calculatedStock,
+                    category: data.category,
+                    ...(finalImageUrl !== undefined && { imageUrl: finalImageUrl }),
+                    gender: data.gender || null,
+                    clothingType: data.clothingType || null,
+                    sizes: {
+                        deleteMany: {},
+                        create: data.category !== 'SERVICE' && validSizes.length > 0 ? validSizes.map(s => ({
+                            size: s.size.trim().toUpperCase(),
+                            stock: s.stock
+                        })) : []
+                    }
+                },
+            });
+
+            await tx.auditLog.create({
+                data: {
+                    userId: adminUser.userId,
+                    userEmail: adminUser.userEmail,
+                    action: "UPDATE_PRODUCT",
+                    entityType: "PRODUCT",
+                    entityId: id,
+                    details: `Actualizó información o stock del producto: ${data.name}.`
                 }
-            },
+            });
         });
 
-        // LIMPIEZA DE CLOUDINARY AUTOMÁTICA
         if (shouldDeleteOldImage && existingProduct.imageUrl) {
             await deleteFromCloudinary(existingProduct.imageUrl);
         }
@@ -356,15 +385,30 @@ export async function updateProduct(id: string, formData: FormData) {
 
 export async function deleteProduct(id: string) {
     try {
-        await requireAdminAuth();
+        const adminUser = await requireAdminAuthWithUser();
 
         if (!id) return { success: false, error: "ID inválido" };
 
-        const existingProduct = await db.product.findUnique({ where: { id }, select: { imageUrl: true } });
+        const existingProduct = await db.product.findUnique({ where: { id }, select: { imageUrl: true, name: true } });
+        if (!existingProduct) return { success: false, error: "Producto no encontrado" };
 
-        await db.product.delete({ where: { id } });
+        // TRANSACCIÓN ATÓMICA CON AUDITORÍA
+        await db.$transaction(async (tx) => {
+            await tx.product.delete({ where: { id } });
 
-        if (existingProduct?.imageUrl) {
+            await tx.auditLog.create({
+                data: {
+                    userId: adminUser.userId,
+                    userEmail: adminUser.userEmail,
+                    action: "DELETE_PRODUCT",
+                    entityType: "PRODUCT",
+                    entityId: id,
+                    details: `Eliminó el producto: ${existingProduct.name}.`
+                }
+            });
+        });
+
+        if (existingProduct.imageUrl) {
             await deleteFromCloudinary(existingProduct.imageUrl);
         }
 
