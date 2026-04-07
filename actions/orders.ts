@@ -42,7 +42,12 @@ const updateStatusSchema = z.object({
 // 2. MIDDLEWARE DE AUTENTICACIÓN PARA ADMIN (SERVER SIDE)
 // ============================================================================
 async function requireAdminAuth() {
-    const user = await currentgitUser();
+    const { userId } = await auth();
+    if (!userId) {
+        throw new Error("Acceso denegado: No autenticado en la capa de red.");
+    }
+
+    const user = await currentUser();
 
     if (!user) {
         throw new Error("Acceso denegado: No autenticado.");

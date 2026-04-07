@@ -1,17 +1,20 @@
 "use server";
 
 import { db } from "@/lib/db";
-import {currentUser} from "@clerk/nextjs/server";
+import { currentUser, auth } from "@clerk/nextjs/server";
 
 async function requireAdminAuthWithUser() {
+    const { userId } = await auth();
+    if (!userId) {
+        throw new Error("Acceso denegado: No autenticado en la capa de red.");
+    }
+
     const user = await currentUser();
 
-    // 1. Verificamos que esté logueado
     if (!user) {
         throw new Error("Acceso denegado: No autenticado.");
     }
 
-    // 2. Verificamos explícitamente que su correo esté en la lista de administradores
     const allowedEmails = process.env.ADMIN_EMAILS?.split(",") || [];
     const isAuthorized = user.emailAddresses.some(
         (email) => allowedEmails.includes(email.emailAddress)
@@ -30,40 +33,43 @@ async function requireAdminAuthWithUser() {
 export async function getDashboardAnalytics(startDate?: string, endDate?: string) {
     try {
         await requireAdminAuthWithUser();
-        // 1. CONFIGURACIÓN DEL FILTRO DE FECHAS (Hora de Perú)
         const dateFilter: { gte?: Date; lte?: Date } = {};
         const now = new Date();
 
         let start = new Date(now.getFullYear(), now.getMonth() - 5, 1); // Por defecto: últimos 6 meses
         let end = new Date();
 
+        // 👇 PROTECCIÓN DE FECHAS AÑADIDA
         if (startDate || endDate) {
             if (startDate) {
-                start = new Date(`${startDate}T00:00:00-05:00`);
-                dateFilter.gte = start;
+                const parsedStart = new Date(`${startDate}T00:00:00-05:00`);
+                if (!isNaN(parsedStart.getTime())) {
+                    start = parsedStart;
+                    dateFilter.gte = start;
+                }
             }
             if (endDate) {
-                end = new Date(`${endDate}T23:59:59-05:00`);
-                dateFilter.lte = end;
+                const parsedEnd = new Date(`${endDate}T23:59:59-05:00`);
+                if (!isNaN(parsedEnd.getTime())) {
+                    end = parsedEnd;
+                    dateFilter.lte = end;
+                }
             }
         } else {
             dateFilter.gte = start;
         }
 
-        // 2. STOCK CRÍTICO (No se filtra por fecha, el stock es el presente)
         const criticalProducts = await db.product.findMany({
             where: { stock: { lte: 5 }, category: { not: 'SERVICE' } },
             orderBy: { stock: 'asc' },
             take: 5,
         });
 
-        // 3. ÓRDENES DENTRO DEL RANGO DE FECHAS
         const orders = await db.order.findMany({
             where: { createdAt: Object.keys(dateFilter).length > 0 ? dateFilter : undefined },
             include: { items: true }
         });
 
-        // Calculamos las métricas globales para las tarjetas superiores
         let totalRevenue = 0;
         let completedCount = 0;
         let pendingCount = 0;
@@ -75,14 +81,12 @@ export async function getDashboardAnalytics(startDate?: string, endDate?: string
 
             if (order.status !== 'CANCELLED') {
                 totalRevenue += order.total;
-                // Contamos cuántas unidades se vendieron de cada producto
                 order.items.forEach(item => {
                     salesByProduct[item.productId] = (salesByProduct[item.productId] || 0) + item.quantity;
                 });
             }
         });
 
-        // 4. RANKING DE PRODUCTOS (Top 5 y Peores 5)
         const allProducts = await db.product.findMany({ where: { category: { not: 'SERVICE' } } });
 
         const productsWithSales = allProducts.map(product => ({
@@ -96,13 +100,11 @@ export async function getDashboardAnalytics(startDate?: string, endDate?: string
         const topProducts = [...productsWithSales].sort((a, b) => b.soldCount - a.soldCount).slice(0, 5).filter(p => p.soldCount > 0);
         const bottomProducts = [...productsWithSales].sort((a, b) => a.soldCount - b.soldCount).slice(0, 5);
 
-        // 5. LÓGICA DEL GRÁFICO DINÁMICO (Diario vs Mensual)
         const chartData = [];
         const diffInDays = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
-        const isDaily = diffInDays <= 31; // Si el filtro es de un mes o menos, mostramos por días
+        const isDaily = diffInDays <= 31;
 
         if (isDaily) {
-            // Generar array de días
             for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
                 const dayString = `${d.getDate()} ${d.toLocaleString('es-ES', { month: 'short' })}`;
                 const dayTotal = orders
@@ -112,10 +114,9 @@ export async function getDashboardAnalytics(startDate?: string, endDate?: string
                 chartData.push({ name: dayString, Total: dayTotal });
             }
         } else {
-            // Generar array de meses
             const monthNames = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
             const currentMonth = new Date(start);
-            currentMonth.setDate(1); // Evitar bug de fin de mes
+            currentMonth.setDate(1);
 
             while (currentMonth <= end || (currentMonth.getMonth() === end.getMonth() && currentMonth.getFullYear() === end.getFullYear())) {
                 const mIndex = currentMonth.getMonth();
@@ -136,7 +137,7 @@ export async function getDashboardAnalytics(startDate?: string, endDate?: string
             topProducts,
             bottomProducts,
             chartData,
-            isDaily // Mandamos al frontend qué tipo de gráfico es
+            isDaily
         };
 
     } catch (error) {

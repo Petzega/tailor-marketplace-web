@@ -6,7 +6,7 @@ import { revalidatePath } from "next/cache";
 import { ITEMS_PER_PAGE } from "@/lib/constants";
 import { Prisma } from "@prisma/client";
 import { v2 as cloudinary } from 'cloudinary';
-import { currentUser } from "@clerk/nextjs/server";
+import { currentUser, auth } from "@clerk/nextjs/server";
 import { z } from "zod";
 
 // ============================================================================
@@ -80,6 +80,11 @@ const productSchema = z.object({
 // MIDDLEWARE DE AUTENTICACIÓN ADMIN Y AUDITORÍA
 // ============================================================================
 async function requireAdminAuthWithUser() {
+    const { userId } = await auth();
+    if (!userId) {
+        throw new Error("Acceso denegado: No autenticado en la capa de red.");
+    }
+
     const user = await currentUser();
 
     // 1. Verificamos que esté logueado
@@ -204,7 +209,7 @@ async function generateSku(category: string): Promise<string> {
 
 export async function getProductStats() {
     try {
-        await requireAdminAuthWithUser(); // 👈 Actualizado
+        await requireAdminAuthWithUser();
 
         const allProducts = await db.product.findMany({
             select: { price: true, stock: true, category: true },
@@ -252,6 +257,14 @@ export async function createProduct(formData: FormData) {
         let finalImageUrl = data.imageUrl;
 
         if (imageFile && imageFile.size > 0) {
+            // 👇 NUEVA VALIDACIÓN DE SEGURIDAD (5MB y solo imágenes)
+            if (imageFile.size > 5 * 1024 * 1024) {
+                return { success: false, error: "El archivo excede el límite de 5MB." };
+            }
+            if (!imageFile.type.startsWith("image/")) {
+                return { success: false, error: "El archivo debe ser una imagen válida." };
+            }
+
             try {
                 finalImageUrl = await uploadToCloudinary(imageFile);
             } catch (_error) {
@@ -338,6 +351,14 @@ export async function updateProduct(id: string, formData: FormData) {
         let shouldDeleteOldImage = false;
 
         if (imageFile && imageFile.size > 0) {
+            // 👇 NUEVA VALIDACIÓN DE SEGURIDAD (5MB y solo imágenes)
+            if (imageFile.size > 5 * 1024 * 1024) {
+                return { success: false, error: "El archivo excede el límite de 5MB." };
+            }
+            if (!imageFile.type.startsWith("image/")) {
+                return { success: false, error: "El archivo debe ser una imagen válida." };
+            }
+
             try {
                 finalImageUrl = await uploadToCloudinary(imageFile);
                 shouldDeleteOldImage = true;

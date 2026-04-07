@@ -1,10 +1,16 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 
-// Candado de seguridad: Solo quien tenga esta contraseña podrá cambiar estados
-const WEBHOOK_SECRET = process.env.WEBHOOK_SECRET || "secreto-ame-n8n-2026";
-
 export async function POST(req: Request) {
+    const WEBHOOK_SECRET = process.env.WEBHOOK_SECRET;
+
+    // Si el entorno se levanta sin la variable, el servidor aborta el webhook.
+    // Es vital que esto esté DENTRO de la función para no romper el `npm run build` en integración continua (CI/CD) si no tienen el archivo .env cargado durante el build.
+    if (!WEBHOOK_SECRET) {
+        console.error("ERROR CRÍTICO: WEBHOOK_SECRET no está configurado en producción.");
+        return NextResponse.json({ error: "Fallo de configuración interna." }, { status: 500 });
+    }
+
     try {
         // 1. Verificamos que el visitante tenga la llave correcta
         const authHeader = req.headers.get("authorization");
@@ -21,22 +27,26 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: "Faltan datos obligatorios (orderId o newStatus)." }, { status: 400 });
         }
 
-        // 4. Validamos que el estado exista en nuestro sistema
-        const validStatuses = ["PENDING", "IN_PROCESS", "DELIVERED_STORE", "DELIVERED_DELIVERY", "CANCELLED"];
-        if (!validStatuses.includes(newStatus)) {
-            return NextResponse.json({ error: `El estado '${newStatus}' no es válido.` }, { status: 400 });
+        // 4. Mapear estados particulares de n8n a los estados unificados de la base de datos
+        let mappedStatus = newStatus;
+        if (newStatus === "IN_PROCESS") mappedStatus = "IN_PROGRESS";
+        if (newStatus === "DELIVERED_STORE" || newStatus === "DELIVERED_DELIVERY") mappedStatus = "COMPLETED";
+
+        const validNativeStatuses = ["PENDING", "IN_PROGRESS", "COMPLETED", "CANCELLED"];
+        if (!validNativeStatuses.includes(mappedStatus)) {
+            return NextResponse.json({ error: `El estado '${newStatus}' no es válido para asimilarse.` }, { status: 400 });
         }
 
-        // 5. Actualizamos la orden en la Base de Datos
+        // 5. Actualizamos la orden en la Base de Datos con el estado mapeado
         const updatedOrder = await db.order.update({
             where: { id: orderId },
-            data: { status: newStatus } // Actualizamos el estado
+            data: { status: mappedStatus } // Actualizamos el estado
         });
 
         // 6. Le avisamos a n8n que todo salió perfecto
         return NextResponse.json({
             success: true,
-            message: `Orden ${orderId} actualizada correctamente a ${newStatus}`,
+            message: `Orden ${orderId} asimilada correctamente a ${mappedStatus} (desde ${newStatus})`,
             order: updatedOrder
         });
 

@@ -2,17 +2,24 @@
 
 import { db } from "@/lib/db";
 import { revalidatePath } from "next/cache";
-import {currentUser} from "@clerk/nextjs/server";
+import { currentUser, auth } from "@clerk/nextjs/server";
+import { z } from "zod";
 
+// ============================================================================
+// MIDDLEWARE DE AUTENTICACIÓN ADMIN
+// ============================================================================
 async function requireAdminAuthWithUser() {
+    const { userId } = await auth();
+    if (!userId) {
+        throw new Error("Acceso denegado: No autenticado en la capa de red.");
+    }
+
     const user = await currentUser();
 
-    // 1. Verificamos que esté logueado
     if (!user) {
         throw new Error("Acceso denegado: No autenticado.");
     }
 
-    // 2. Verificamos explícitamente que su correo esté en la lista de administradores
     const allowedEmails = process.env.ADMIN_EMAILS?.split(",") || [];
     const isAuthorized = user.emailAddresses.some(
         (email) => allowedEmails.includes(email.emailAddress)
@@ -28,11 +35,27 @@ async function requireAdminAuthWithUser() {
     };
 }
 
+// ============================================================================
+// ESQUEMAS DE VALIDACIÓN (ZOD) - NUEVO
+// ============================================================================
+const customerSchema = z.object({
+    id: z.string().optional(),
+    docType: z.string().min(1, "El tipo de documento es requerido"),
+    documentNumber: z.string().min(1, "El número de documento es requerido"),
+    name: z.string().min(1, "El nombre es requerido"),
+    phone: z.string().optional(),
+    address: z.string().optional(),
+    measurements: z.string().optional(),
+    notes: z.string().optional(),
+});
+
+// ============================================================================
+// MÉTODOS PRIVADOS
+// ============================================================================
 export async function getCustomers(page: number = 1, limit: number = 10, query?: string) {
     await requireAdminAuthWithUser();
     const skip = (page - 1) * limit;
 
-    // Búsqueda por DNI/RUC, Nombre o Teléfono
     const whereClause = query ? {
         OR: [
             { documentNumber: { contains: query } },
@@ -49,7 +72,6 @@ export async function getCustomers(page: number = 1, limit: number = 10, query?:
                 skip,
                 take: limit,
                 include: {
-                    // Traemos el conteo de sus transacciones para mostrarlo en la tabla
                     _count: {
                         select: { orders: true, services: true }
                     }
@@ -75,11 +97,9 @@ export async function getCustomerById(id: string) {
         const customer = await db.customer.findUnique({
             where: { id },
             include: {
-                // Traemos todas sus órdenes ordenadas por la más reciente
                 orders: {
                     orderBy: { createdAt: 'desc' }
                 },
-                // Traemos todos sus servicios de sastrería
                 services: {
                     orderBy: { createdAt: 'desc' }
                 }
@@ -92,18 +112,17 @@ export async function getCustomerById(id: string) {
     }
 }
 
-export async function saveCustomer(data: {
-    id?: string;
-    docType: string;
-    documentNumber: string;
-    name: string;
-    phone?: string;
-    address?: string;
-    measurements?: string;
-    notes?: string;
-}) {
+export async function saveCustomer(rawData: unknown) {
     try {
         await requireAdminAuthWithUser();
+
+        // Validación estricta con Zod
+        const validation = customerSchema.safeParse(rawData);
+        if (!validation.success) {
+            return { success: false, error: "Datos de cliente inválidos o corrompidos." };
+        }
+        const data = validation.data;
+
         if (data.id) {
             await db.customer.update({
                 where: { id: data.id },
@@ -115,12 +134,10 @@ export async function saveCustomer(data: {
             });
         }
 
-        // Refrescamos la página de clientes para que aparezca el cambio
         revalidatePath("/ame-studio-ops/customers");
         return { success: true };
 
     } catch (error: unknown) {
-        // Código de Prisma P2002: Violación de restricción única (Unique constraint)
         if (typeof error === 'object' && error !== null && 'code' in error && (error as {code: string}).code === 'P2002') {
             return { success: false, error: "Este número de documento ya está registrado." };
         }

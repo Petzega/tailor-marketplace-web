@@ -2,7 +2,7 @@
 
 import { db } from "@/lib/db";
 import { revalidatePath } from "next/cache";
-import { currentUser } from "@clerk/nextjs/server";
+import { currentUser, auth } from "@clerk/nextjs/server";
 import { z } from "zod";
 
 // ============================================================================
@@ -27,6 +27,11 @@ const saveServiceSchema = z.object({
 // MIDDLEWARE AUTENTICACIÓN Y EXTRACCIÓN DE USUARIO (Para la Auditoría)
 // ============================================================================
 async function requireAdminAuthWithUser() {
+    const { userId } = await auth();
+    if (!userId) {
+        throw new Error("Acceso denegado: No autenticado en la capa de red.");
+    }
+
     const user = await currentUser();
 
     // 1. Verificamos que esté logueado
