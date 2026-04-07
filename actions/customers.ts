@@ -2,8 +2,34 @@
 
 import { db } from "@/lib/db";
 import { revalidatePath } from "next/cache";
+import {currentUser} from "@clerk/nextjs/server";
+
+async function requireAdminAuthWithUser() {
+    const user = await currentUser();
+
+    // 1. Verificamos que esté logueado
+    if (!user) {
+        throw new Error("Acceso denegado: No autenticado.");
+    }
+
+    // 2. Verificamos explícitamente que su correo esté en la lista de administradores
+    const allowedEmails = process.env.ADMIN_EMAILS?.split(",") || [];
+    const isAuthorized = user.emailAddresses.some(
+        (email) => allowedEmails.includes(email.emailAddress)
+    );
+
+    if (!isAuthorized) {
+        throw new Error("Acceso denegado: Operación restringida solo para administradores.");
+    }
+
+    return {
+        userId: user.id,
+        userEmail: user.emailAddresses[0]?.emailAddress || "correo_desconocido"
+    };
+}
 
 export async function getCustomers(page: number = 1, limit: number = 10, query?: string) {
+    await requireAdminAuthWithUser();
     const skip = (page - 1) * limit;
 
     // Búsqueda por DNI/RUC, Nombre o Teléfono
@@ -45,6 +71,7 @@ export async function getCustomers(page: number = 1, limit: number = 10, query?:
 
 export async function getCustomerById(id: string) {
     try {
+        await requireAdminAuthWithUser();
         const customer = await db.customer.findUnique({
             where: { id },
             include: {
@@ -76,6 +103,7 @@ export async function saveCustomer(data: {
     notes?: string;
 }) {
     try {
+        await requireAdminAuthWithUser();
         if (data.id) {
             await db.customer.update({
                 where: { id: data.id },

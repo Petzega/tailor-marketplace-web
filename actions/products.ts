@@ -81,9 +81,22 @@ const productSchema = z.object({
 // ============================================================================
 async function requireAdminAuthWithUser() {
     const user = await currentUser();
+
+    // 1. Verificamos que esté logueado
     if (!user) {
-        throw new Error("Acceso denegado: Se requieren permisos de administrador.");
+        throw new Error("Acceso denegado: No autenticado.");
     }
+
+    // 2. Verificamos explícitamente que su correo esté en la lista de administradores
+    const allowedEmails = process.env.ADMIN_EMAILS?.split(",") || [];
+    const isAuthorized = user.emailAddresses.some(
+        (email) => allowedEmails.includes(email.emailAddress)
+    );
+
+    if (!isAuthorized) {
+        throw new Error("Acceso denegado: Operación restringida solo para administradores.");
+    }
+
     return {
         userId: user.id,
         userEmail: user.emailAddresses[0]?.emailAddress || "correo_desconocido"

@@ -2,7 +2,7 @@
 
 import { db } from "@/lib/db";
 import { revalidatePath } from "next/cache";
-import { auth } from "@clerk/nextjs/server";
+import {auth, currentUser} from "@clerk/nextjs/server";
 import { z } from "zod";
 
 // ============================================================================
@@ -41,17 +41,23 @@ const updateStatusSchema = z.object({
 // ============================================================================
 // 2. MIDDLEWARE DE AUTENTICACIÓN PARA ADMIN (SERVER SIDE)
 // ============================================================================
-
-/**
- * Valida que la acción provenga de un usuario autenticado.
- * NOTA: Debes ajustar esta función si usas Roles (ej. metadata.role === 'admin') en Clerk.
- */
 async function requireAdminAuth() {
-    const { userId } = await auth();
-    if (!userId) {
-        throw new Error("Acceso denegado: Se requieren permisos de administrador.");
+    const user = await currentUser();
+
+    if (!user) {
+        throw new Error("Acceso denegado: No autenticado.");
     }
-    return userId;
+
+    const allowedEmails = process.env.ADMIN_EMAILS?.split(",") || [];
+    const isAuthorized = user.emailAddresses.some(
+        (email) => allowedEmails.includes(email.emailAddress)
+    );
+
+    if (!isAuthorized) {
+        throw new Error("Acceso denegado: Operación restringida solo para administradores.");
+    }
+
+    return user.id;
 }
 
 // ============================================================================
