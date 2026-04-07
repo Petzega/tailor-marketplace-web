@@ -146,3 +146,18 @@ model Service {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  userId     String // El ID del usuario de Clerk que hizo la acción
+  userEmail  String // Opcional: El correo para leerlo más fácil en tu panel
+  action     String // Acción. Ej: "UPDATE_STATUS", "UPDATE_FINANCE"
+  entityType String // Tabla afectada. Ej: "SERVICE", "PRODUCT"
+  entityId   String // El ID del registro modificado (ej: TK-260401001)
+  details    String? // Contexto. Ej: "Cambió estado a DELIVERED"
+  createdAt  DateTime @default(now())
+
+  // Índices para que las búsquedas del historial sean súper rápidas
+  @@index([entityId])
+  @@index([userId])
+}
