@@ -56,3 +56,6 @@ cd (a la carpeta donde esta el docker-compose.yml)
 docker compose up -d
 docker compose down || docker compose down -v <- elimina todo el docker
 docker volume rm ame-bot_ame_dbc <- elimina carpetas del volume
+
+# 7. generar clave cuando se necesite
+node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"

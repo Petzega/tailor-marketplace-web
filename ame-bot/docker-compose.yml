@@ -6,8 +6,8 @@ services:
     container_name: ame-postgres
     environment:
       - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=ame-secreto
-      - POSTGRES_DB=evolution
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=evolution                    # Evolution API usa esta DB
     ports:
       - 5432:5432
     volumes:
@@ -15,16 +15,40 @@ services:
     restart: always
     networks:
       - ame_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  postgres-init:
+    # Crea la DB de n8n por separado (no mezclar con la de Evolution)
+    image: postgres:15
+    container_name: ame-postgres-init
+    environment:
+      - PGPASSWORD=${POSTGRES_PASSWORD}
+    command: >
+      sh -c "psql -h postgres -U postgres -c 'CREATE DATABASE n8n;' || true"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - ame_network
 
   redis:
     image: redis:alpine
     container_name: ame-redis
-    command: redis-server --appendonly yes
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD}  # ← FIX: password
     restart: always
     volumes:
       - ame_redis:/data
     networks:
       - ame_network
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   evolution-api:
     image: evoapicloud/evolution-api:v2.3.7
@@ -32,11 +56,11 @@ services:
     ports:
       - 8080:8080
     environment:
-      - SERVER_URL=http://localhost:8080
-      - AUTHENTICATION_API_KEY=ame_api_key_secreta
+      - SERVER_URL=${EVOLUTION_PUBLIC_URL}        # ← FIX: era localhost, ahora ngrok/dominio público
+      - AUTHENTICATION_API_KEY=${EVOLUTION_API_KEY}
       - DATABASE_ENABLED=true
       - DATABASE_PROVIDER=postgresql
-      - DATABASE_CONNECTION_URI=postgresql://postgres:ame-secreto@postgres:5432/evolution?schema=public
+      - DATABASE_CONNECTION_URI=postgresql://postgres:${POSTGRES_PASSWORD}@postgres:5432/evolution?schema=public
       - DATABASE_CONNECTION_CLIENT_NAME=ame_evolution
       - DATABASE_SAVE_DATA_INSTANCE=true
       - DATABASE_SAVE_DATA_NEW_MESSAGE=true
@@ -46,7 +70,7 @@ services:
       - DATABASE_SAVE_DATA_LABELS=true
       - DATABASE_SAVE_DATA_HISTORIC=true
       - CACHE_REDIS_ENABLED=true
-      - CACHE_REDIS_URI=redis://redis:6379/1
+      - CACHE_REDIS_URI=redis://:${REDIS_PASSWORD}@redis:6379/1   # ← FIX: con password
       - CACHE_REDIS_PREFIX_KEY=ame_evolution
       - CACHE_REDIS_SAVE_INSTANCES=false
       - CACHE_LOCAL_ENABLED=false
@@ -54,8 +78,8 @@ services:
       - DEL_INSTANCE=false
       - CONFIG_SESSION_PHONE_CLIENT=AME
       - CONFIG_SESSION_PHONE_NAME=Chrome
-      - CONFIG_SESSION_PHONE_VERSION=2.3000.1028355510   # ✅ FIX QR
-      - WEB_VERSION=2.3000.1028355510                   # ✅ FIX QR
+      - CONFIG_SESSION_PHONE_VERSION=2.3000.1028355510
+      - WEB_VERSION=2.3000.1028355510
       - LOG_LEVEL=ERROR,WARN,INFO,LOG
       - LOG_COLOR=true
       - LOG_BAILEYS=error
@@ -66,8 +90,10 @@ services:
     volumes:
       - ame_evolution_instances:/evolution/instances
     depends_on:
-      - postgres
-      - redis
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     restart: always
     networks:
       - ame_network
@@ -89,15 +115,46 @@ services:
     ports:
       - 5678:5678
     environment:
+      # ── Core n8n ──────────────────────────────────────────────
+      - N8N_ENCRYPTION_KEY=${N8N_ENCRYPTION_KEY}    # ← NUEVO: sin esto las credenciales no persisten
       - N8N_RUNNERS_ENABLED=false
-      - WEBHOOK_URL=https://epeiric-nova-poetastric.ngrok-free.dev
+      - WEBHOOK_URL=${N8N_WEBHOOK_URL}               # tu URL ngrok o dominio
       - GENERIC_TIMEZONE=America/Lima
       - N8N_HOST=0.0.0.0
       - N8N_PORT=5678
+
+      # ── Base de datos n8n (Postgres, no SQLite) ─────────────
+      - DB_TYPE=postgresdb                           # ← FIX: usa Postgres
+      - DB_POSTGRESDB_HOST=postgres
+      - DB_POSTGRESDB_PORT=5432
+      - DB_POSTGRESDB_DATABASE=n8n
+      - DB_POSTGRESDB_USER=postgres
+      - DB_POSTGRESDB_PASSWORD=${POSTGRES_PASSWORD}
+
+      # ── Redis para colas y sesiones WA ──────────────────────
+      - QUEUE_BULL_REDIS_HOST=redis
+      - QUEUE_BULL_REDIS_PORT=6379
+      - QUEUE_BULL_REDIS_PASSWORD=${REDIS_PASSWORD}
+      - QUEUE_BULL_REDIS_DB=2                        # DB 1 = Evolution, DB 2 = n8n
+
+      # ── Variables del proyecto AME (accesibles como $env.X) ─
+      - APP_DOMAIN=${APP_DOMAIN}
+      - N8N_API_KEY=${N8N_API_KEY}
+      - WEBHOOK_SECRET=${WEBHOOK_SECRET}
+      - EVOLUTION_API_URL=http://ame-evolution:8080  # ← interno Docker, no público
+      - EVOLUTION_API_KEY=${EVOLUTION_API_KEY}
+      - EVOLUTION_INSTANCE=${EVOLUTION_INSTANCE}
+      - OLLAMA_URL=http://ame-ollama:11434            # ← interno Docker
+
     volumes:
       - ame_n8n:/home/node/.n8n
-    depends_on:
-      - ollama
+    depends_on:                                      # ← FIX: dependencias correctas
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      ollama:
+        condition: service_started
     restart: always
     networks:
       - ame_network

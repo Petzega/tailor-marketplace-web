@@ -1,0 +1,114 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15
+    container_name: ame-postgres
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=ame-secreto
+      - POSTGRES_DB=evolution
+    ports:
+      - 5432:5432
+    volumes:
+      - ame_db:/var/lib/postgresql/data
+    restart: always
+    networks:
+      - ame_network
+
+  redis:
+    image: redis:alpine
+    container_name: ame-redis
+    command: redis-server --appendonly yes
+    restart: always
+    volumes:
+      - ame_redis:/data
+    networks:
+      - ame_network
+
+  evolution-api:
+    image: evoapicloud/evolution-api:v2.3.7
+    container_name: ame-evolution
+    ports:
+      - 8080:8080
+    environment:
+      - SERVER_URL=http://localhost:8080
+      - AUTHENTICATION_API_KEY=ame_api_key_secreta
+      - DATABASE_ENABLED=true
+      - DATABASE_PROVIDER=postgresql
+      - DATABASE_CONNECTION_URI=postgresql://postgres:ame-secreto@postgres:5432/evolution?schema=public
+      - DATABASE_CONNECTION_CLIENT_NAME=ame_evolution
+      - DATABASE_SAVE_DATA_INSTANCE=true
+      - DATABASE_SAVE_DATA_NEW_MESSAGE=true
+      - DATABASE_SAVE_MESSAGE_UPDATE=true
+      - DATABASE_SAVE_DATA_CONTACTS=true
+      - DATABASE_SAVE_DATA_CHATS=true
+      - DATABASE_SAVE_DATA_LABELS=true
+      - DATABASE_SAVE_DATA_HISTORIC=true
+      - CACHE_REDIS_ENABLED=true
+      - CACHE_REDIS_URI=redis://redis:6379/1
+      - CACHE_REDIS_PREFIX_KEY=ame_evolution
+      - CACHE_REDIS_SAVE_INSTANCES=false
+      - CACHE_LOCAL_ENABLED=false
+      - QRCODE_LIMIT=30
+      - DEL_INSTANCE=false
+      - CONFIG_SESSION_PHONE_CLIENT=AME
+      - CONFIG_SESSION_PHONE_NAME=Chrome
+      - CONFIG_SESSION_PHONE_VERSION=2.3000.1028355510   # ✅ FIX QR
+      - WEB_VERSION=2.3000.1028355510                   # ✅ FIX QR
+      - LOG_LEVEL=ERROR,WARN,INFO,LOG
+      - LOG_COLOR=true
+      - LOG_BAILEYS=error
+      - WEBHOOK_GLOBAL_ENABLED=false
+      - WEBHOOK_EVENTS_MESSAGES_UPSERT=true
+      - WEBHOOK_EVENTS_CONNECTION_UPDATE=true
+      - WEBHOOK_EVENTS_QRCODE_UPDATED=true
+    volumes:
+      - ame_evolution_instances:/evolution/instances
+    depends_on:
+      - postgres
+      - redis
+    restart: always
+    networks:
+      - ame_network
+
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ame-ollama
+    ports:
+      - 11434:11434
+    volumes:
+      - ame_ollama:/root/.ollama
+    restart: always
+    networks:
+      - ame_network
+
+  n8n:
+    image: docker.n8n.io/n8nio/n8n
+    container_name: ame-n8n
+    ports:
+      - 5678:5678
+    environment:
+      - N8N_RUNNERS_ENABLED=false
+      - WEBHOOK_URL=https://epeiric-nova-poetastric.ngrok-free.dev
+      - GENERIC_TIMEZONE=America/Lima
+      - N8N_HOST=0.0.0.0
+      - N8N_PORT=5678
+    volumes:
+      - ame_n8n:/home/node/.n8n
+    depends_on:
+      - ollama
+    restart: always
+    networks:
+      - ame_network
+
+volumes:
+  ame_db:
+  ame_redis:
+  ame_n8n:
+  ame_ollama:
+  ame_evolution_instances:
+
+networks:
+  ame_network:
+    driver: bridge
