@@ -1,0 +1,355 @@
+{
+  "name": "[WA] Agente IA",
+  "nodes": [
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "phone"
+            },
+            {
+              "name": "message"
+            },
+            {
+              "name": "pushName"
+            },
+            {
+              "name": "orderId"
+            },
+            {
+              "name": "sessionData"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "f5b0037d-d036-4b0c-aedc-dc716abd77c4",
+      "name": "When Executed by Another Workflow"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $('When Executed by Another Workflow').first().json.message }}",
+        "options": {
+          "systemMessage": "Eres AME-bot, asistente virtual de The Tailor Marketplace (Lima, Perú).\nAtiendes clientes que ya realizaron una compra y fueron redirigidos por WhatsApp.\n\nDATOS DE LA SESIÓN ACTUAL:\n- Order ID: {{ $('When Executed by Another Workflow').first().json.orderId }}\n- Cliente: {{ $('When Executed by Another Workflow').first().json.sessionData.customerName }}\n- Total: S/ {{ $('When Executed by Another Workflow').first().json.sessionData.total }}\n- Estado: {{ $('When Executed by Another Workflow').first().json.sessionData.status }}\n\nREGLAS ESTRICTAS:\n1. Saluda al cliente por su nombre en el primer mensaje.\n2. Confirma el resumen de su orden al inicio de la conversación.\n3. Para cancelar o consultar estado, PRIMERO valida identidad con DNI + validationCode.\n4. NUNCA actualices el estado sin validación previa (excepto paso a IN_PROCESS con pago confirmado por el asesor).\n5. No inventes precios ni productos. Usa siempre get_order_details para datos actualizados.\n6. Responde SIEMPRE en español, de forma breve y cordial. Máximo 3 oraciones por mensaje.\n7. Si no puedes resolver algo, di: \"Un asesor te contactará pronto.\"\n8. Al confirmar pago, usa update_order_status con estado IN_PROCESS.\n9. Al enviar tracking, usa send_tracking_link con el orderId y validationCode de la sesión."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        256,
+        0
+      ],
+      "id": "83299620-4567-45a4-b811-2f82c48f7fa3",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "model": "qwen2.5:7b",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOllama",
+      "typeVersion": 1,
+      "position": [
+        128,
+        208
+      ],
+      "id": "f5f36ed4-cc67-46c4-a7af-3afc054b2e1d",
+      "name": "Ollama Chat Model",
+      "credentials": {
+        "ollamaApi": {
+          "id": "r58Bxg3GBZhe0DmR",
+          "name": "Ollama Local"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $('When Executed by Another Workflow').first().json.phone }}",
+        "tableName": "n8n_chat_history",
+        "contextWindowLength": 10
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryPostgresChat",
+      "typeVersion": 1.3,
+      "position": [
+        272,
+        208
+      ],
+      "id": "6edb6285-ad7c-42fd-a19d-df24d0f0f468",
+      "name": "Postgres Chat Memory",
+      "credentials": {
+        "postgres": {
+          "id": "SuPHDh4fMwdEfcEu",
+          "name": "Postgress AME"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "toolDescription": "Obtiene el detalle completo de una orden. Úsalo cuando el cliente pregunte por su pedido o necesites datos actualizados.",
+        "url": "={{ $env.APP_DOMAIN }}/api/n8n/orders/{{ $fromAI('order_id', 'El ID de la orden, ejemplo: ORD-260407001') }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 4.4,
+      "position": [
+        304,
+        512
+      ],
+      "id": "d304ee5a-dcca-439c-9a97-d3915a745ea6",
+      "name": "get_order_details",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "1vgr1GsTDXKUulSp",
+          "name": "AME Backend API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "toolDescription": "Valida el número de documento y código validador del cliente antes de permitir cancelaciones o cambios en la orden.",
+        "method": "POST",
+        "url": "={{ $env.APP_DOMAIN }}/api/n8n/orders/validate",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ documentNumber: $fromAI('document_number', 'DNI, RUC o CE del cliente'), validationCode: $fromAI('validation_code', 'Código validador de 6 caracteres') }) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 4.4,
+      "position": [
+        448,
+        368
+      ],
+      "id": "2aa67faa-0256-4ea1-abc7-8eb9e26da3b7",
+      "name": "validate_customer_identity",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "1vgr1GsTDXKUulSp",
+          "name": "AME Backend API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "toolDescription": "Actualiza el estado de la orden. Usa IN_PROCESS al confirmar pago, CANCELLED para cancelar (requiere validación previa).",
+        "method": "POST",
+        "url": "={{ $env.APP_DOMAIN }}/api/webhooks/orders",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.WEBHOOK_SECRET }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ orderId: $fromAI('order_id', 'ID de la orden'), newStatus: $fromAI('new_status', 'IN_PROCESS, DELIVERED_STORE, DELIVERED_DELIVERY o CANCELLED') }) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 4.4,
+      "position": [
+        560,
+        496
+      ],
+      "id": "9b5337fa-394f-4a70-bc35-ba5da5515a31",
+      "name": "update_order_status"
+    },
+    {
+      "parameters": {
+        "toolDescription": "Agrega o elimina productos de una orden en estado PENDING. action debe ser ADD o REMOVE.",
+        "method": "PATCH",
+        "url": "={{ $env.APP_DOMAIN }}/api/n8n/orders/{{ $fromAI('order_id') }}/items",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ action: $fromAI('action', 'ADD o REMOVE'), productId: $fromAI('product_id', 'CUID del producto'), size: $fromAI('size', 'S, M, L o XL'), quantity: $fromAI('quantity', 'Cantidad numérica') }) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 4.4,
+      "position": [
+        640,
+        368
+      ],
+      "id": "06e0037b-cdf9-4ae6-af62-46307907e9fd",
+      "name": "modify_order_items",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "1vgr1GsTDXKUulSp",
+          "name": "AME Backend API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "description": "Genera el link de seguimiento de la orden para enviarlo al cliente por WhatsApp.",
+        "jsCode": "const orderId = $fromAI('order_id', 'ID de la orden');\nconst validationCode = $fromAI('validation_code', 'Código validador de la orden');\nconst domain = $env.APP_DOMAIN;\nconst link = `${domain}/order/${orderId}?token=${validationCode}`;\nreturn { \n  trackingLink: link, \n  message: `Puedes seguir tu pedido aquí: ${link}` \n};"
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolCode",
+      "typeVersion": 1.3,
+      "position": [
+        736,
+        256
+      ],
+      "id": "a19c2cf5-acd5-4011-b5e4-9cab5632a4b7",
+      "name": "send_tracking_link"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=http://ame-evolution:8080/message/sendText/ame-instance",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ number: $('When Executed by Another Workflow').first().json.phone, text: $json.output }) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        608,
+        0
+      ],
+      "id": "50955a84-fe2f-413e-84ed-d59e77c40215",
+      "name": "HTTP Request",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "EyeXJfTyrFXoF9U3",
+          "name": "Evolution API Auth"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ollama Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Postgres Chat Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "get_order_details": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "validate_customer_identity": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "update_order_status": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "modify_order_items": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "send_tracking_link": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "ecf649c3-bca4-42c1-ab4e-fb6c77a293cc",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "1dfc926512b12d6a905e106ddbc3468cb0be558e17b3a86d6f552f9f3ea5779f"
+  },
+  "id": "MH2y9fhgIlnrXSqH",
+  "tags": []
+}

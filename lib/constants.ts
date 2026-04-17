@@ -1,3 +1,4 @@
+export const WHATSAPP_NUMBER = "51953881707";
 export const ITEMS_PER_PAGE = 12;
 
 // Tipos de Género permitidos

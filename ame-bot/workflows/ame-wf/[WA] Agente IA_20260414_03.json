@@ -1,0 +1,371 @@
+{
+  "name": "[WA] Agente IA",
+  "nodes": [
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            { "name": "phone" },
+            { "name": "message" },
+            { "name": "pushName" },
+            { "name": "orderId" },
+            { "name": "sessionData" }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [0, 0],
+      "id": "f5b0037d-d036-4b0c-aedc-dc716abd77c4",
+      "name": "When Executed by Another Workflow"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $('When Executed by Another Workflow').first().json.message }}",
+        "options": {
+          "systemMessage": "Eres AME-bot, asistente virtual de The Tailor Marketplace (Lima, Perú).\nAtiendes clientes que ya realizaron una compra y fueron redirigidos por WhatsApp.\n\nDATOS DE LA SESIÓN ACTUAL:\n- Order ID: {{ $('When Executed by Another Workflow').first().json.orderId }}\n- Cliente: {{ $('When Executed by Another Workflow').first().json.sessionData.customerName }}\n- Total: S/ {{ $('When Executed by Another Workflow').first().json.sessionData.total }}\n- Estado: {{ $('When Executed by Another Workflow').first().json.sessionData.status }}\n- Pago: {{ $('When Executed by Another Workflow').first().json.sessionData.paymentMethod }}\n- Entrega: {{ $('When Executed by Another Workflow').first().json.sessionData.deliveryMethod }}\n\nREGLAS ESTRICTAS:\n1. Saluda al cliente por su nombre en el primer mensaje.\n2. Confirma el resumen de la orden al inicio (ID, total, método de pago).\n3. Para cancelar o hacer cambios, PRIMERO valida identidad con validate_customer_identity.\n4. NUNCA pases a IN_PROGRESS; eso lo hace el asesor humano desde el panel admin.\n5. Usa get_order_details para datos actualizados, no inventes información.\n6. Responde en español, brevemente. Máximo 3 oraciones por mensaje.\n7. Si no puedes resolver algo: 'Un asesor te contactará pronto. ¡Gracias!'\n8. Solo usa update_order_status para CANCELLED, con validación previa.\n9. Para entregar el link de seguimiento usa send_tracking_link.\n\nCIERRE DE SESIÓN:\n- Cuando la consulta esté COMPLETAMENTE resuelta (info entregada, cancelación confirmada, tracking enviado), agrega EXACTAMENTE al final de tu mensaje: [SESIÓN_CERRADA]\n- NO uses [SESIÓN_CERRADA] si el cliente podría tener más preguntas pendientes.\n- Ejemplo: 'Tu link de seguimiento: ... ¡Que tengas un buen día! [SESIÓN_CERRADA]'"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [256, 0],
+      "id": "83299620-4567-45a4-b811-2f82c48f7fa3",
+      "name": "AI Agent",
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "model": "qwen2.5:7b",
+        "options": {
+          "temperature": 0.3,
+          "numCtx": 4096
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOllama",
+      "typeVersion": 1,
+      "position": [128, 208],
+      "id": "f5f36ed4-cc67-46c4-a7af-3afc054b2e1d",
+      "name": "Ollama Chat Model",
+      "credentials": {
+        "ollamaApi": {
+          "id": "r58Bxg3GBZhe0DmR",
+          "name": "Ollama Local"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $('When Executed by Another Workflow').first().json.phone }}",
+        "tableName": "n8n_chat_history",
+        "contextWindowLength": 8
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryPostgresChat",
+      "typeVersion": 1.3,
+      "position": [272, 208],
+      "id": "6edb6285-ad7c-42fd-a19d-df24d0f0f468",
+      "name": "Postgres Chat Memory",
+      "credentials": {
+        "postgres": {
+          "id": "SuPHDh4fMwdEfcEu",
+          "name": "Postgress AME"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "toolDescription": "Obtiene el detalle completo y actualizado de una orden. Úsalo cuando el cliente pregunte por su pedido, estado, items o necesites datos frescos.",
+        "url": "={{ $env.APP_DOMAIN }}/api/n8n/orders/{{ $fromAI('order_id', 'El ID de la orden, ejemplo: ORD-260407001') }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 4.4,
+      "position": [160, 480],
+      "id": "d304ee5a-dcca-439c-9a97-d3915a745ea6",
+      "name": "get_order_details",
+      "credentials": {
+        "httpHeaderAuth": { "id": "1vgr1GsTDXKUulSp", "name": "AME Backend API" }
+      }
+    },
+    {
+      "parameters": {
+        "toolDescription": "Valida la identidad del cliente con su documento (DNI/RUC/CE) y código validador de 6 caracteres. Úsalo SIEMPRE antes de cancelar o hacer cambios.",
+        "method": "POST",
+        "url": "={{ $env.APP_DOMAIN }}/api/n8n/orders/validate",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ documentNumber: $fromAI('document_number', 'Número de documento del cliente'), validationCode: $fromAI('validation_code', 'Código validador de 6 caracteres') }) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 4.4,
+      "position": [320, 480],
+      "id": "2aa67faa-0256-4ea1-abc7-8eb9e26da3b7",
+      "name": "validate_customer_identity",
+      "credentials": {
+        "httpHeaderAuth": { "id": "1vgr1GsTDXKUulSp", "name": "AME Backend API" }
+      }
+    },
+    {
+      "parameters": {
+        "toolDescription": "Actualiza el estado de la orden. SOLO para CANCELLED, previa validación de identidad. NUNCA uses IN_PROGRESS.",
+        "method": "POST",
+        "url": "={{ $env.APP_DOMAIN }}/api/webhooks/orders",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [{ "name": "Authorization", "value": "=Bearer {{ $env.WEBHOOK_SECRET }}" }]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ orderId: $fromAI('order_id', 'ID de la orden'), newStatus: $fromAI('new_status', 'Solo CANCELLED es válido desde aquí') }) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 4.4,
+      "position": [480, 480],
+      "id": "9b5337fa-394f-4a70-bc35-ba5da5515a31",
+      "name": "update_order_status"
+    },
+    {
+      "parameters": {
+        "toolDescription": "Agrega o elimina productos de una orden PENDING. action: ADD o REMOVE. Requiere validación previa para REMOVE.",
+        "method": "PATCH",
+        "url": "={{ $env.APP_DOMAIN }}/api/n8n/orders/{{ $fromAI('order_id') }}/items",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ action: $fromAI('action', 'ADD o REMOVE'), productId: $fromAI('product_id'), size: $fromAI('size', 'Talla o null'), quantity: $fromAI('quantity', 'Número entero positivo') }) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 4.4,
+      "position": [640, 480],
+      "id": "06e0037b-cdf9-4ae6-af62-46307907e9fd",
+      "name": "modify_order_items",
+      "credentials": {
+        "httpHeaderAuth": { "id": "1vgr1GsTDXKUulSp", "name": "AME Backend API" }
+      }
+    },
+    {
+      "parameters": {
+        "description": "Genera el link de seguimiento de la orden para el cliente.",
+        "jsCode": "const orderId = $fromAI('order_id', 'ID de la orden');\nconst validationCode = $fromAI('validation_code', 'Código validador');\nconst domain = $env.APP_DOMAIN;\nif (!orderId || !validationCode) return { error: 'Se necesitan orderId y validationCode.' };\nconst link = `${domain}/order/${orderId}?token=${validationCode}`;\nreturn { trackingLink: link, message: `🔍 Sigue tu pedido aquí: ${link}` };"
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolCode",
+      "typeVersion": 1.3,
+      "position": [800, 480],
+      "id": "a19c2cf5-acd5-4011-b5e4-9cab5632a4b7",
+      "name": "send_tracking_link"
+    },
+    {
+      "parameters": {
+        "jsCode": "// ✅ ANTI-BAN: Procesar output del agente\n// 1. Detectar [SESIÓN_CERRADA]\n// 2. Calcular delay humanizado aleatorio\nconst rawOutput = $json.output || '';\nconst shouldClose = rawOutput.includes('[SESIÓN_CERRADA]');\nconst cleanText = rawOutput.replace('[SESIÓN_CERRADA]', '').trim();\n\nconst minMs = parseInt($env.WA_TYPING_MIN_S || '1') * 1000;\nconst maxMs = parseInt($env.WA_TYPING_MAX_S || '4') * 1000;\nconst delay = Math.floor(Math.random() * (maxMs - minMs) + minMs);\n\nconst phone = $('When Executed by Another Workflow').first().json.phone;\nconst sessionData = $('When Executed by Another Workflow').first().json.sessionData || {};\n\nreturn [{ json: { cleanText, shouldClose, phone, delay, sessionData, orderId: sessionData.orderId } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [512, 0],
+      "id": "proc-output-001",
+      "name": "Procesar Output del Agente (Code)"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=http://ame-evolution:8080/message/sendText/{{ $env.EVOLUTION_INSTANCE }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ number: $json.phone, text: $json.cleanText, options: { delay: $json.delay, presence: 'composing' } }) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [736, 0],
+      "id": "50955a84-fe2f-413e-84ed-d59e77c40215",
+      "name": "Enviar Respuesta por WhatsApp",
+      "credentials": {
+        "httpHeaderAuth": { "id": "EyeXJfTyrFXoF9U3", "name": "Evolution API Auth" }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Mensaje de fallback con delay humanizado\nconst minMs = parseInt($env.WA_TYPING_MIN_S || '1') * 1000;\nconst maxMs = parseInt($env.WA_TYPING_MAX_S || '3') * 1000;\nconst delay = Math.floor(Math.random() * (maxMs - minMs) + minMs);\nconst phone = $('When Executed by Another Workflow').first().json.phone;\nreturn [{ json: { phone, delay, cleanText: 'Lo sentimos, ocurrió un error procesando tu solicitud. Un asesor te contactará pronto. 🙏' } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [512, 192],
+      "id": "fallback-delay-001",
+      "name": "Preparar Fallback con Delay (Code)"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=http://ame-evolution:8080/message/sendText/{{ $env.EVOLUTION_INSTANCE }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ number: $json.phone, text: $json.cleanText, options: { delay: $json.delay, presence: 'composing' } }) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [736, 192],
+      "id": "fallback-send-001",
+      "name": "Enviar Mensaje de Fallback",
+      "credentials": {
+        "httpHeaderAuth": { "id": "EyeXJfTyrFXoF9U3", "name": "Evolution API Auth" }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict", "version": 3 },
+          "conditions": [
+            {
+              "id": "close-session-check",
+              "leftValue": "={{ $json.shouldClose }}",
+              "rightValue": true,
+              "operator": { "type": "boolean", "operation": "equals" }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [960, 0],
+      "id": "close-session-if-001",
+      "name": "¿Cerrar Sesión? (IF)"
+    },
+    {
+      "parameters": {
+        "operation": "delete",
+        "key": "=wa_session_{{ $json.phone }}"
+      },
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [1184, -96],
+      "id": "del-session-001",
+      "name": "Eliminar Sesión (Redis DEL)",
+      "credentials": {
+        "redis": { "id": "Dk1qZGgN6fFK7lop", "name": "Redis AME" }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "delete",
+        "key": "=wa_order_{{ $json.orderId }}"
+      },
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [1408, -96],
+      "id": "del-order-idx-001",
+      "name": "Eliminar Índice Orden (Redis DEL)",
+      "credentials": {
+        "redis": { "id": "Dk1qZGgN6fFK7lop", "name": "Redis AME" }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Actualizar lastActivity en la sesión\nconst phone = $json.phone;\nconst sessionData = $json.sessionData || {};\nsessionData.lastActivity = new Date().toISOString();\nreturn [{ json: { phone, updatedSession: JSON.stringify(sessionData) } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1184, 80],
+      "id": "update-activity-001",
+      "name": "Actualizar lastActivity (Code)"
+    },
+    {
+      "parameters": {
+        "operation": "set",
+        "key": "=wa_session_{{ $json.phone }}",
+        "value": "={{ $json.updatedSession }}",
+        "expire": true,
+        "ttl": "={{ parseInt($env.WA_SESSION_TTL_S || '86400') }}"
+      },
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [1408, 80],
+      "id": "save-activity-001",
+      "name": "Guardar Sesión Actualizada (Redis SET)",
+      "credentials": {
+        "redis": { "id": "Dk1qZGgN6fFK7lop", "name": "Redis AME" }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When Executed by Another Workflow": {
+      "main": [[{ "node": "AI Agent", "type": "main", "index": 0 }]]
+    },
+    "Ollama Chat Model": {
+      "ai_languageModel": [[{ "node": "AI Agent", "type": "ai_languageModel", "index": 0 }]]
+    },
+    "Postgres Chat Memory": {
+      "ai_memory": [[{ "node": "AI Agent", "type": "ai_memory", "index": 0 }]]
+    },
+    "get_order_details": {
+      "ai_tool": [[{ "node": "AI Agent", "type": "ai_tool", "index": 0 }]]
+    },
+    "validate_customer_identity": {
+      "ai_tool": [[{ "node": "AI Agent", "type": "ai_tool", "index": 0 }]]
+    },
+    "update_order_status": {
+      "ai_tool": [[{ "node": "AI Agent", "type": "ai_tool", "index": 0 }]]
+    },
+    "modify_order_items": {
+      "ai_tool": [[{ "node": "AI Agent", "type": "ai_tool", "index": 0 }]]
+    },
+    "send_tracking_link": {
+      "ai_tool": [[{ "node": "AI Agent", "type": "ai_tool", "index": 0 }]]
+    },
+    "AI Agent": {
+      "main": [
+        [{ "node": "Procesar Output del Agente (Code)", "type": "main", "index": 0 }],
+        [{ "node": "Preparar Fallback con Delay (Code)", "type": "main", "index": 0 }]
+      ]
+    },
+    "Procesar Output del Agente (Code)": {
+      "main": [[{ "node": "Enviar Respuesta por WhatsApp", "type": "main", "index": 0 }]]
+    },
+    "Preparar Fallback con Delay (Code)": {
+      "main": [[{ "node": "Enviar Mensaje de Fallback", "type": "main", "index": 0 }]]
+    },
+    "Enviar Respuesta por WhatsApp": {
+      "main": [[{ "node": "¿Cerrar Sesión? (IF)", "type": "main", "index": 0 }]]
+    },
+    "¿Cerrar Sesión? (IF)": {
+      "main": [
+        [{ "node": "Eliminar Sesión (Redis DEL)", "type": "main", "index": 0 }],
+        [{ "node": "Actualizar lastActivity (Code)", "type": "main", "index": 0 }]
+      ]
+    },
+    "Eliminar Sesión (Redis DEL)": {
+      "main": [[{ "node": "Eliminar Índice Orden (Redis DEL)", "type": "main", "index": 0 }]]
+    },
+    "Actualizar lastActivity (Code)": {
+      "main": [[{ "node": "Guardar Sesión Actualizada (Redis SET)", "type": "main", "index": 0 }]]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "wf2-v3-20260414-antiban",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "1dfc926512b12d6a905e106ddbc3468cb0be558e17b3a86d6f552f9f3ea5779f"
+  },
+  "id": "MH2y9fhgIlnrXSqH",
+  "tags": [{ "createdAt": "2026-04-14", "updatedAt": "2026-04-14", "id": "wf-tag-agent", "name": "whatsapp" }]
+}

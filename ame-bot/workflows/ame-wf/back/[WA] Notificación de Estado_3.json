@@ -1,0 +1,571 @@
+{
+  "name": "[WA] Notificación de Estado_3",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "order-status-changed",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -688,
+        160
+      ],
+      "id": "4d80dd30-d95d-43a6-8042-5818a2593353",
+      "name": "Webhook: Cambio de Estado",
+      "webhookId": "wf3-order-status-changed-unique-id"
+    },
+    {
+      "parameters": {
+        "jsCode": "// 🔐 Validar Bearer token + campos requeridos\nconst authHeader = $json.headers['authorization'] || '';\nconst expected = $env.WEBHOOK_SECRET || '';\nif (!expected) throw new Error('WEBHOOK_SECRET not configured in n8n env vars');\nif (authHeader !== `Bearer ${expected}`) throw new Error('Unauthorized: Invalid webhook secret');\n\nconst { orderId, newStatus, customerPhone, customerName, total, previousStatus } = $json.body;\nif (!orderId || !newStatus || !customerPhone) throw new Error(`Missing fields: orderId=${orderId}, newStatus=${newStatus}, customerPhone=${customerPhone}`);\n\nreturn [{ json: { orderId, newStatus, previousStatus: previousStatus || 'PENDING', customerPhone, customerName: customerName || 'Cliente', total: total || 0 } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -464,
+        160
+      ],
+      "id": "a0ea666a-aa87-4dbe-8f7f-2e8ab6c564e6",
+      "name": "Validar Token y Payload (Code)"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "sw-ip",
+                    "leftValue": "={{ $json.newStatus }}",
+                    "rightValue": "IN_PROGRESS",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "IN_PROGRESS"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "sw-comp",
+                    "leftValue": "={{ $json.newStatus }}",
+                    "rightValue": "COMPLETED",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "COMPLETED"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "sw-canc",
+                    "leftValue": "={{ $json.newStatus }}",
+                    "rightValue": "CANCELLED",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "CANCELLED"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra"
+        }
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        -240,
+        160
+      ],
+      "id": "adf67c04-6b87-4f5d-a8cb-3118621f0ba1",
+      "name": "Switch por Estado"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "m-ip-1",
+              "name": "waMessage",
+              "value": "=✅ ¡Hola {{ $json.customerName }}! Tu pago ha sido *validado* por nuestro equipo. 🎉\n\nTu orden *{{ $json.orderId }}* está ahora *en preparación*.\n\nTotal: *S/ {{ $json.total }}*\n\nTe avisaremos cuando esté lista. ¡Gracias por confiar en The Tailor Marketplace! 🧵",
+              "type": "string"
+            },
+            {
+              "id": "m-ip-2",
+              "name": "phone",
+              "value": "={{ $json.customerPhone }}",
+              "type": "string"
+            },
+            {
+              "id": "m-ip-3",
+              "name": "orderId",
+              "value": "={{ $json.orderId }}",
+              "type": "string"
+            },
+            {
+              "id": "m-ip-4",
+              "name": "newStatus",
+              "value": "={{ $json.newStatus }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        0,
+        0
+      ],
+      "id": "ea146e0a-0c96-48b5-a591-105860d5dd2d",
+      "name": "Mensaje IN_PROGRESS (Set)"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "m-c-1",
+              "name": "waMessage",
+              "value": "=📦 ¡Hola {{ $json.customerName }}! Tu pedido *{{ $json.orderId }}* está *completado*.\n\nPuedes recogerlo en tienda o ya fue enviado según tu método de entrega. 🚚\n\nSi tienes dudas, responde este mensaje. ¡Gracias! 🙏",
+              "type": "string"
+            },
+            {
+              "id": "m-c-2",
+              "name": "phone",
+              "value": "={{ $json.customerPhone }}",
+              "type": "string"
+            },
+            {
+              "id": "m-c-3",
+              "name": "orderId",
+              "value": "={{ $json.orderId }}",
+              "type": "string"
+            },
+            {
+              "id": "m-c-4",
+              "name": "newStatus",
+              "value": "={{ $json.newStatus }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        0,
+        160
+      ],
+      "id": "77eedd57-c313-4e9f-86c2-41914005d074",
+      "name": "Mensaje COMPLETED (Set)"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "m-ca-1",
+              "name": "waMessage",
+              "value": "=❌ Hola {{ $json.customerName }}, lamentamos informarte que tu orden *{{ $json.orderId }}* ha sido *cancelada*.\n\nSi no solicitaste la cancelación o tienes dudas, escríbenos y un asesor te atenderá pronto.\n\n¡Gracias por tu comprensión! 🙏",
+              "type": "string"
+            },
+            {
+              "id": "m-ca-2",
+              "name": "phone",
+              "value": "={{ $json.customerPhone }}",
+              "type": "string"
+            },
+            {
+              "id": "m-ca-3",
+              "name": "orderId",
+              "value": "={{ $json.orderId }}",
+              "type": "string"
+            },
+            {
+              "id": "m-ca-4",
+              "name": "newStatus",
+              "value": "={{ $json.newStatus }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        0,
+        320
+      ],
+      "id": "c95aed80-ec66-4389-b636-e2afce55002f",
+      "name": "Mensaje CANCELLED (Set)"
+    },
+    {
+      "parameters": {
+        "jsCode": "// 🕐 ANTI-BAN: Calcular delay humanizado para notificación\nconst minMs = parseInt($env.WA_TYPING_MIN_S || '1') * 1000;\nconst maxMs = parseInt($env.WA_TYPING_MAX_S || '4') * 1000;\nconst delay = Math.floor(Math.random() * (maxMs - minMs) + minMs);\nreturn [{ json: { ...$json, delay } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        224,
+        160
+      ],
+      "id": "9a1521a8-0e69-4acf-acb7-3a2e33fa9c6c",
+      "name": "Calcular Delay Humanizado (Code)"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=http://ame-evolution:8080/message/sendText/{{ $env.EVOLUTION_INSTANCE }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ number: $json.phone, text: $json.waMessage, options: { delay: $json.delay, presence: 'composing' } }) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        448,
+        160
+      ],
+      "id": "3f0a2617-580d-45a5-b70a-828aed676a75",
+      "name": "Enviar WA al Cliente (Evolution)",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "EyeXJfTyrFXoF9U3",
+          "name": "Evolution API Auth"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "propertyName": "value",
+        "key": "=wa_session_{{ $json.phone }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [
+        672,
+        160
+      ],
+      "id": "40ad45e5-2067-44ac-b568-e8a18f9cf4c8",
+      "name": "Leer Sesión Redis (GET)",
+      "credentials": {
+        "redis": {
+          "id": "Dk1qZGgN6fFK7lop",
+          "name": "Redis AME"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Actualizar status en la sesión Redis si existe\nconst raw = $json.value;\nconst newStatus = $('Calcular Delay Humanizado (Code)').first().json.newStatus;\nconst phone = $('Calcular Delay Humanizado (Code)').first().json.phone;\nif (!raw) return [{ json: { updated: false, phone, newStatus } }];\ntry {\n  const session = JSON.parse(raw);\n  session.status = newStatus;\n  session.lastActivity = new Date().toISOString();\n  return [{ json: { updated: true, updatedSession: JSON.stringify(session), phone, newStatus } }];\n} catch(e) {\n  return [{ json: { updated: false, phone, newStatus, error: e.message } }];\n}"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        896,
+        160
+      ],
+      "id": "33100d19-fdfb-4155-b581-bee9046be281",
+      "name": "Actualizar Status en Sesión (Code)"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "upd-check",
+              "leftValue": "={{ $json.updated }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1120,
+        160
+      ],
+      "id": "d6c5bc95-3bc0-49f4-8906-3334bc524d10",
+      "name": "¿Hay Sesión para Actualizar? (IF)"
+    },
+    {
+      "parameters": {
+        "operation": "set",
+        "key": "=wa_session_{{ $json.phone }}",
+        "value": "={{ $json.updatedSession }}",
+        "expire": true,
+        "ttl": "={{ parseInt($env.WA_SESSION_TTL_S || '86400') }}"
+      },
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [
+        1344,
+        80
+      ],
+      "id": "b1592c6b-8ee4-42e4-8e1d-2e32245d789d",
+      "name": "Guardar Sesión Actualizada (Redis SET)",
+      "credentials": {
+        "redis": {
+          "id": "Dk1qZGgN6fFK7lop",
+          "name": "Redis AME"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ success: true, orderId: $('Validar Token y Payload (Code)').first().json.orderId, notified: true, status: $('Validar Token y Payload (Code)').first().json.newStatus }) }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        1616,
+        256
+      ],
+      "id": "d9b9c732-ae7c-4c19-b13e-64126ad09667",
+      "name": "Respond 200 OK"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook: Cambio de Estado": {
+      "main": [
+        [
+          {
+            "node": "Validar Token y Payload (Code)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validar Token y Payload (Code)": {
+      "main": [
+        [
+          {
+            "node": "Switch por Estado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch por Estado": {
+      "main": [
+        [
+          {
+            "node": "Mensaje IN_PROGRESS (Set)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Mensaje COMPLETED (Set)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Mensaje CANCELLED (Set)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mensaje IN_PROGRESS (Set)": {
+      "main": [
+        [
+          {
+            "node": "Calcular Delay Humanizado (Code)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mensaje COMPLETED (Set)": {
+      "main": [
+        [
+          {
+            "node": "Calcular Delay Humanizado (Code)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mensaje CANCELLED (Set)": {
+      "main": [
+        [
+          {
+            "node": "Calcular Delay Humanizado (Code)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calcular Delay Humanizado (Code)": {
+      "main": [
+        [
+          {
+            "node": "Enviar WA al Cliente (Evolution)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Enviar WA al Cliente (Evolution)": {
+      "main": [
+        [
+          {
+            "node": "Leer Sesión Redis (GET)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Leer Sesión Redis (GET)": {
+      "main": [
+        [
+          {
+            "node": "Actualizar Status en Sesión (Code)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Actualizar Status en Sesión (Code)": {
+      "main": [
+        [
+          {
+            "node": "¿Hay Sesión para Actualizar? (IF)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Hay Sesión para Actualizar? (IF)": {
+      "main": [
+        [
+          {
+            "node": "Guardar Sesión Actualizada (Redis SET)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond 200 OK",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Guardar Sesión Actualizada (Redis SET)": {
+      "main": [
+        [
+          {
+            "node": "Respond 200 OK",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "db5b820b-4c0b-423d-aac8-95e5890dfab9",
+  "meta": {
+    "instanceId": "1dfc926512b12d6a905e106ddbc3468cb0be558e17b3a86d6f552f9f3ea5779f"
+  },
+  "id": "gGYOW4ZjMsqMroyx",
+  "tags": [
+    {
+      "updatedAt": "2026-04-14T23:13:38.373Z",
+      "createdAt": "2026-04-14T23:13:38.373Z",
+      "id": "t3QGU09Gh1M8KuLq",
+      "name": "whatsapp"
+    }
+  ]
+}

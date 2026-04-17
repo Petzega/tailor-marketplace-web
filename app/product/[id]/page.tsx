@@ -1,4 +1,5 @@
 import { getProductById } from "@/actions/products";
+import { WHATSAPP_NUMBER } from "@/lib/constants";
 import { notFound } from "next/navigation";
 import { Truck, RefreshCw, ChevronRight, ShieldCheck } from "lucide-react";
 import { SpotlightProduct } from "@/actions/search";
@@ -50,7 +51,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
     };
 
     const whatsappMessage = encodeURIComponent(`Hola, me interesa el ${isService ? 'servicio' : 'producto'}: ${product.name} (SKU: ${product.sku}). ¿Podrían darme más información?`);
-    const whatsappLink = `https://wa.me/51992431513?text=${whatsappMessage}`;
+    const whatsappLink = `https://wa.me/${WHATSAPP_NUMBER}?text=${whatsappMessage}`;
 
     const typedProduct = product as unknown as ProductWithGallery;
     const allImages = [

@@ -1,0 +1,702 @@
+{
+  "name": "[WA] Entrada y Router",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "evolution-inbound",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "de667ee7-2ec1-421e-a3bd-16d34202d778",
+      "name": "Webhook",
+      "webhookId": "f5771d65-9d45-43a3-a481-21aff56427eb"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "bbe3a058-2600-48fc-91f9-014538cc8c02",
+              "leftValue": "={{ $json.body.data.key.fromMe }}",
+              "rightValue": false,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            },
+            {
+              "id": "9fd5d464-6f6f-4e61-baa8-50d8e78e9551",
+              "leftValue": "={{ $json.body.data.messageType }}",
+              "rightValue": "protocolMessage",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        208,
+        0
+      ],
+      "id": "7c2786a7-33a9-4d7f-a67e-34c9b859310a",
+      "name": "Filtrar Mensajes Válidos (IF)"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "33b1f036-cec4-4c39-9519-089982733cb8",
+              "name": "phone",
+              "value": "={{ $json.body.data.key.remoteJid.split('@')[0] }}",
+              "type": "string"
+            },
+            {
+              "id": "9ed89c48-33ae-4468-9a28-93a9dce774d7",
+              "name": "message",
+              "value": "={{ $json.body.data.message.conversation ?? $json.body.data.message.extendedTextMessage?.text ?? '' }}",
+              "type": "string"
+            },
+            {
+              "id": "325d6e39-b83e-4a78-bd26-f3eb43512658",
+              "name": "pushName",
+              "value": "={{ $json.body.data.pushName }}",
+              "type": "string"
+            },
+            {
+              "id": "3efac747-b025-4c38-9b89-a2a9f51f9f0f",
+              "name": "msgId",
+              "value": "={{ $json.body.data.key.id }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        448,
+        -128
+      ],
+      "id": "cb06a455-e19b-4112-9fb2-1820b6d73b6a",
+      "name": "Normalizar Datos (Set)"
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "propertyName": "value",
+        "key": "=wa_session_{{ $json.phone }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [
+        656,
+        -128
+      ],
+      "id": "be193d45-3dc9-434d-bdf3-f29730547b03",
+      "name": "Buscar Sesión (Redis GET)",
+      "credentials": {
+        "redis": {
+          "id": "Dk1qZGgN6fFK7lop",
+          "name": "Redis AME"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "642866e5-a955-4df5-9ebe-a243645c1eff",
+              "leftValue": "={{ $json.value }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        864,
+        -128
+      ],
+      "id": "3885be6f-b614-4d49-a194-9820421891e2",
+      "name": "¿Sesión Activa? (IF)"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "9064bcab-9442-406d-8b91-7ea05a27cc28",
+              "name": "phone",
+              "value": "={{ $('Normalizar Datos (Set)').item.json.phone }}",
+              "type": "string"
+            },
+            {
+              "id": "b1466faa-7f63-422d-9909-5a9f7e24d5c9",
+              "name": "message",
+              "value": "={{ $('Normalizar Datos (Set)').item.json.message }}",
+              "type": "string"
+            },
+            {
+              "id": "26e92c78-bbf7-4ce7-a79a-8fd5ddf47165",
+              "name": "pushName",
+              "value": "={{ $('Normalizar Datos (Set)').item.json.pushName }}",
+              "type": "string"
+            },
+            {
+              "id": "96f90d06-5ecb-4174-9946-eb7c5226376d",
+              "name": "orderId",
+              "value": "={{ JSON.parse($json.value).orderId }}",
+              "type": "string"
+            },
+            {
+              "id": "bd3c8324-e251-4ae3-b069-d7e10f1b6342",
+              "name": "sessionData",
+              "value": "={{ JSON.parse($json.value) }}",
+              "type": "object"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1072,
+        -224
+      ],
+      "id": "d44dd4a1-f6fb-4c1e-94d0-b3e780e2a791",
+      "name": "Parsear Sesión (Set)"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "0527389b-1ae8-4c9e-9882-fd2b4ca1e63b",
+              "leftValue": "={{ $json.orderId }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1280,
+        -32
+      ],
+      "id": "49bcdba1-56fe-430d-9cb0-e75c79b1a6d5",
+      "name": "¿Tiene Order ID? (IF)"
+    },
+    {
+      "parameters": {
+        "jsCode": "const message = $('Normalizar Datos (Set)').first().json.message;\nconst phone = $('Normalizar Datos (Set)').first().json.phone;\nconst pushName = $('Normalizar Datos (Set)').first().json.pushName;\n\nconst match = message.match(/ORD-[A-Z0-9]+/i);\nconst orderId = match ? match[0].toUpperCase() : null;\n\nreturn [{ json: { phone, message, pushName, orderId } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1072,
+        -32
+      ],
+      "id": "c324ca62-f676-4d8b-8446-25eb2e5e22af",
+      "name": "Extraer Order ID (Code)"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=http://ame-evolution:8080/message/sendText/{{ $env.EVOLUTION_INSTANCE }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "number",
+              "value": "={{ $json.phone }}"
+            },
+            {
+              "name": "text",
+              "value": "👋 Hola! Para atenderte necesito el número de tu orden. Lo encuentras en el resumen de tu compra (Ej: ORD-260407001)."
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1488,
+        64
+      ],
+      "id": "16394f37-ed7c-40c7-b642-11aa47b98c02",
+      "name": "Respuesta Cliente",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "EyeXJfTyrFXoF9U3",
+          "name": "Evolution API Auth"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "=http://host.docker.internal:3000/api/n8n/orders/{{ $json.orderId }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1488,
+        -128
+      ],
+      "id": "87b2eb2f-8548-403c-ba90-0c2ca45eab68",
+      "name": "Obtener Datos de la Orden",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "1vgr1GsTDXKUulSp",
+          "name": "AME Backend API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "a656530f-6b5d-49dd-a470-634f213be57b",
+              "name": "phone",
+              "value": "={{ $('Normalizar Datos (Set)').item.json.phone }}",
+              "type": "string"
+            },
+            {
+              "id": "ea07532a-b6c1-499d-b770-6d979683b4a6",
+              "name": "message",
+              "value": "={{ $('Normalizar Datos (Set)').item.json.message }}",
+              "type": "string"
+            },
+            {
+              "id": "d0d27946-e13d-451f-b50d-ecf59f45164d",
+              "name": "pushName",
+              "value": "={{ $('Normalizar Datos (Set)').item.json.pushName }}",
+              "type": "string"
+            },
+            {
+              "id": "b42d591b-0f5c-4ddc-ae6d-9993c1d9b038",
+              "name": "orderId",
+              "value": "={{ $('Obtener Datos de la Orden').item.json.id }}",
+              "type": "string"
+            },
+            {
+              "id": "e66fa127-dcd8-45d5-9b33-fae4451450f3",
+              "name": "sessionData",
+              "value": "=orderId: $('Obtener Datos de la Orden').item.json.id,\n  customerName: $('Obtener Datos de la Orden').item.json.customerName,\n  total: $('Obtener Datos de la Orden').item.json.total,\n  status: $('Obtener Datos de la Orden').item.json.status,\n  validationCode: $('Obtener Datos de la Orden').item.json.validationCode",
+              "type": "object"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1904,
+        -128
+      ],
+      "id": "b7b3842f-11dd-485a-bf06-17cc1e133c6f",
+      "name": "Normalizar Salida"
+    },
+    {
+      "parameters": {
+        "operation": "set",
+        "key": "=wa_session_{{ $('Normalizar Datos (Set)').item.json.phone }}",
+        "value": "={{ JSON.stringify({ orderId: $json.id, customerName: $json.customerName, total: $json.total, status: $json.status, validationCode: null, orderData: $json }) }}",
+        "expire": true,
+        "ttl": 86400
+      },
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [
+        1696,
+        -128
+      ],
+      "id": "4ec21b75-581f-4cab-b6c2-2693cb42135f",
+      "name": "Guardar sesión (Redis SET)",
+      "credentials": {
+        "redis": {
+          "id": "Dk1qZGgN6fFK7lop",
+          "name": "Redis AME"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "OK",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        2640,
+        480
+      ],
+      "id": "bac3187c-7760-4407-a9df-6ecf1ab2eec6",
+      "name": "Respond to Webhook"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "MH2y9fhgIlnrXSqH",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/MH2y9fhgIlnrXSqH",
+          "cachedResultName": "[WA] Agente IA"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "phone": "={{ $json.phone }}",
+            "message": "={{ $json.message }}",
+            "pushName": "={{ $json.pushName }}",
+            "orderId": "={{ $json.orderId }}",
+            "sessionData": "={{ $json.sessionData }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "phone",
+              "displayName": "phone",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "message",
+              "displayName": "message",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "pushName",
+              "displayName": "pushName",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "orderId",
+              "displayName": "orderId",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "sessionData",
+              "displayName": "sessionData",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        2240,
+        -272
+      ],
+      "id": "25fee0a5-6e05-410c-bc64-41dc43ffe76b",
+      "name": "Call '[WA] Agente IA'1"
+    }
+  ],
+  "pinData": {
+    "Webhook": [
+      {
+        "json": {
+          "headers": {
+            "host": "epeiric-nova-poetastric.ngrok-free.dev",
+            "content-length": "260",
+            "accept": "*/*",
+            "content-type": "application/json",
+            "x-forwarded-for": "2800:200:e6e0:827:4548:c9e4:c09b:edf1",
+            "x-forwarded-host": "epeiric-nova-poetastric.ngrok-free.dev",
+            "x-forwarded-proto": "https",
+            "accept-encoding": "gzip"
+          },
+          "params": {},
+          "query": {},
+          "body": {
+            "data": {
+              "key": {
+                "remoteJid": "51992431513@s.whatsapp.net",
+                "fromMe": false,
+                "id": "MSG001"
+              },
+              "messageType": "conversation",
+              "pushName": "Cliente Test",
+              "message": {
+                "conversation": "ORD-260307002"
+              }
+            }
+          },
+          "webhookUrl": "https://epeiric-nova-poetastric.ngrok-free.dev/webhook-test/evolution-inbound",
+          "executionMode": "test"
+        }
+      }
+    ]
+  },
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Filtrar Mensajes Válidos (IF)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filtrar Mensajes Válidos (IF)": {
+      "main": [
+        [
+          {
+            "node": "Normalizar Datos (Set)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalizar Datos (Set)": {
+      "main": [
+        [
+          {
+            "node": "Buscar Sesión (Redis GET)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar Sesión (Redis GET)": {
+      "main": [
+        [
+          {
+            "node": "¿Sesión Activa? (IF)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Sesión Activa? (IF)": {
+      "main": [
+        [
+          {
+            "node": "Parsear Sesión (Set)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Extraer Order ID (Code)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extraer Order ID (Code)": {
+      "main": [
+        [
+          {
+            "node": "¿Tiene Order ID? (IF)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Tiene Order ID? (IF)": {
+      "main": [
+        [
+          {
+            "node": "Obtener Datos de la Orden",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respuesta Cliente",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Obtener Datos de la Orden": {
+      "main": [
+        [
+          {
+            "node": "Guardar sesión (Redis SET)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parsear Sesión (Set)": {
+      "main": [
+        [
+          {
+            "node": "Call '[WA] Agente IA'1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Guardar sesión (Redis SET)": {
+      "main": [
+        [
+          {
+            "node": "Normalizar Salida",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalizar Salida": {
+      "main": [
+        [
+          {
+            "node": "Call '[WA] Agente IA'1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Respuesta Cliente": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call '[WA] Agente IA'1": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "85630332-442e-485c-8428-e774faf7ce9a",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "1dfc926512b12d6a905e106ddbc3468cb0be558e17b3a86d6f552f9f3ea5779f"
+  },
+  "id": "yp0xcLnB0xGe8IeJ",
+  "tags": []
+}

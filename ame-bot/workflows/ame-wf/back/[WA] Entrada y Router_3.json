@@ -1,0 +1,1201 @@
+{
+  "name": "[WA] Entrada y Router_3",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "evolution-inbound",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -3568,
+        512
+      ],
+      "id": "f2b093c1-4bb1-411c-8e11-30b02546935f",
+      "name": "Webhook",
+      "webhookId": "f5771d65-9d45-43a3-a481-21aff56427eb",
+      "alwaysOutputData": false,
+      "executeOnce": false,
+      "retryOnFail": false,
+      "notesInFlow": false
+    },
+    {
+      "parameters": {
+        "jsCode": "// 🔐 Validar API Key de Evolution API\nconst apiKey = $json.headers?.['apikey'] \n            || $json.headers?.['x-api-key'] \n            || $json.body?.apikey   // ← Evolution lo manda aquí\n            || '';\n\nconst expected = $env.EVOLUTION_APIKEY || '';\n\nif (expected && apiKey !== expected) {\n  throw new Error('Unauthorized: Invalid Evolution API key');\n}\n\nreturn [{ json: $json }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -3360,
+        512
+      ],
+      "id": "543613f3-c040-4458-b035-2e96bd76cffd",
+      "name": "Validar API Key (Code)"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "filter-fromme",
+              "leftValue": "={{ $json.body.data.key.fromMe }}",
+              "rightValue": false,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            },
+            {
+              "id": "filter-protocol",
+              "leftValue": "={{ $json.body.data.messageType }}",
+              "rightValue": "protocolMessage",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -3136,
+        512
+      ],
+      "id": "8f5fb511-a298-49a8-b710-54efb5063dac",
+      "name": "Filtrar Mensajes Válidos (IF)"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "a1",
+              "name": "phone",
+              "value": "={{ $json.body.data.key.remoteJid.split('@')[0] }}",
+              "type": "string"
+            },
+            {
+              "id": "a2",
+              "name": "message",
+              "value": "={{ $json.body.data.message.conversation ?? $json.body.data.message.extendedTextMessage?.text ?? '' }}",
+              "type": "string"
+            },
+            {
+              "id": "a3",
+              "name": "pushName",
+              "value": "={{ $json.body.data.pushName }}",
+              "type": "string"
+            },
+            {
+              "id": "a4",
+              "name": "msgId",
+              "value": "={{ $json.body.data.key.id }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -2912,
+        384
+      ],
+      "id": "2fd2fa84-10c2-416b-a618-7cf7959c2c3c",
+      "name": "Normalizar Datos (Set)"
+    },
+    {
+      "parameters": {
+        "jsCode": "// 🚦 ANTI-BAN: Rate Limiting\n// Genera clave por teléfono + hora actual\nconst phone = $json.phone;\nconst hour = new Date().toISOString().slice(0, 13).replace('T', '_');\nconst rateKey = `wa_rate_${phone}_${hour}`;\nreturn [{ json: { ...$json, rateKey } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -2688,
+        384
+      ],
+      "id": "e72dc3af-83d7-4743-bc40-b68949e1a1a2",
+      "name": "Generar Clave Rate Limit (Code)"
+    },
+    {
+      "parameters": {
+        "operation": "incr",
+        "key": "={{ $json.rateKey }}"
+      },
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [
+        -2464,
+        384
+      ],
+      "id": "80f3e065-51c2-4594-a751-9c906bbf13a8",
+      "name": "Incrementar Contador Rate (Redis INCR)",
+      "credentials": {
+        "redis": {
+          "id": "Dk1qZGgN6fFK7lop",
+          "name": "Redis AME"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Verificar si se supera el límite y si es el primer mensaje de la hora\nconst count = parseInt($json.value || '0');\nconst limit = parseInt($env.WA_RATE_LIMIT_PER_HOUR || '15');\nconst phone = $('Normalizar Datos (Set)').first().json.phone;\nconst rateKey = $('Generar Clave Rate Limit (Code)').first().json.rateKey;\nconst message = $('Normalizar Datos (Set)').first().json.message;\nconst pushName = $('Normalizar Datos (Set)').first().json.pushName;\nconst msgId = $('Normalizar Datos (Set)').first().json.msgId;\nreturn [{ json: { rateCount: count, rateKey, phone, message, pushName, msgId, isFirst: count === 1, rateBlocked: count > limit } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -2240,
+        384
+      ],
+      "id": "08e8288f-af54-4e6b-9808-0ef93fb89375",
+      "name": "Verificar Rate Limit (Code)"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "rate-first-check",
+              "leftValue": "={{ $json.isFirst }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -2016,
+        288
+      ],
+      "id": "0038be24-9655-4b0e-ac09-b451a13693be",
+      "name": "¿Primer Msg de la Hora? (IF)"
+    },
+    {
+      "parameters": {
+        "operation": "set",
+        "key": "={{ $('Verificar Rate Limit (Code)').first().json.rateKey }}",
+        "value": "1",
+        "expire": true,
+        "ttl": 3600
+      },
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [
+        -1792,
+        192
+      ],
+      "id": "c746699c-c914-44e0-88bb-2298f2e4edcc",
+      "name": "Fijar TTL Rate Limit (Redis SET)",
+      "credentials": {
+        "redis": {
+          "id": "Dk1qZGgN6fFK7lop",
+          "name": "Redis AME"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "rate-blocked-check",
+              "leftValue": "={{ $('Verificar Rate Limit (Code)').first().json.rateBlocked }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -1792,
+        384
+      ],
+      "id": "06d370ab-6f60-4ca1-a677-d6a60bd584df",
+      "name": "¿Rate Limit Superado? (IF)"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=http://ame-evolution:8080/message/sendText/{{ $env.EVOLUTION_INSTANCE }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ number: $('Verificar Rate Limit (Code)').first().json.phone, text: 'Estás enviando demasiados mensajes. Por favor espera unos minutos antes de continuar. 🙏', options: { delay: 1000, presence: 'composing' } }) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        -1568,
+        480
+      ],
+      "id": "d9f9e44e-a5e7-4513-b53c-cc3d0c7eb171",
+      "name": "WA: Demasiados Mensajes",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "EyeXJfTyrFXoF9U3",
+          "name": "Evolution API Auth"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "propertyName": "value",
+        "key": "=wa_msg_{{ $('Verificar Rate Limit (Code)').first().json.msgId }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [
+        -1568,
+        288
+      ],
+      "id": "08b50159-3036-42a4-bbe1-6dd082aa6b1a",
+      "name": "Dedup: ¿msgId existe? (Redis GET)",
+      "credentials": {
+        "redis": {
+          "id": "Dk1qZGgN6fFK7lop",
+          "name": "Redis AME"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "dedup-empty-check",
+              "leftValue": "={{ $json.value }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "empty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -1344,
+        288
+      ],
+      "id": "4ebc1328-feb3-4cd6-889a-f2589922e3dc",
+      "name": "¿Mensaje Nuevo? (IF)"
+    },
+    {
+      "parameters": {
+        "operation": "set",
+        "key": "=wa_msg_{{ $('Normalizar Datos (Set)').item.json.msgId }}",
+        "value": "1",
+        "expire": true
+      },
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [
+        -1120,
+        192
+      ],
+      "id": "227ca9dd-0f51-48ce-b2f0-18606a1cdda9",
+      "name": "Marcar msgId procesado (Redis SET 60s)",
+      "credentials": {
+        "redis": {
+          "id": "Dk1qZGgN6fFK7lop",
+          "name": "Redis AME"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "propertyName": "value",
+        "key": "=wa_session_{{ $('Normalizar Datos (Set)').item.json.phone }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [
+        -896,
+        192
+      ],
+      "id": "3bca3bba-10c0-4e63-97af-365956941014",
+      "name": "Buscar Sesión (Redis GET)",
+      "credentials": {
+        "redis": {
+          "id": "Dk1qZGgN6fFK7lop",
+          "name": "Redis AME"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "session-active-check",
+              "leftValue": "={{ $json.value }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -672,
+        192
+      ],
+      "id": "9fee38b0-cd4e-43eb-8222-dc041814f3f9",
+      "name": "¿Sesión Activa? (IF)"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parsear sesión y verificar inactividad\nconst raw = $json.value;\nlet session = {};\ntry { session = JSON.parse(raw); } catch(e) { session = {}; }\n\nconst inactivityH = parseInt($env.WA_INACTIVITY_CLOSE_H || '4');\nconst lastActivity = session.lastActivity ? new Date(session.lastActivity) : null;\nlet sessionStale = false;\n\nif (lastActivity && inactivityH > 0) {\n  const hoursSince = (Date.now() - lastActivity.getTime()) / (1000 * 60 * 60);\n  sessionStale = hoursSince > inactivityH;\n}\n\nconst phone = $('Normalizar Datos (Set)').first().json.phone;\nconst message = $('Normalizar Datos (Set)').first().json.message;\nconst pushName = $('Normalizar Datos (Set)').first().json.pushName;\n\nreturn [{ json: { phone, message, pushName, sessionStale, session, orderId: session.orderId } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -448,
+        96
+      ],
+      "id": "0d7e3c88-df47-4239-9471-c39da6bb26a2",
+      "name": "Verificar Inactividad (Code)"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "stale-check",
+              "leftValue": "={{ $json.sessionStale }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -224,
+        96
+      ],
+      "id": "48955970-9e67-4e2b-a7b9-9ae2ba016040",
+      "name": "¿Sesión Inactiva? (IF)"
+    },
+    {
+      "parameters": {
+        "operation": "delete",
+        "key": "=wa_session_{{ $json.phone }}"
+      },
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "1da927d0-c12b-4006-a3ea-66601ac30da6",
+      "name": "Eliminar Sesión Inactiva (Redis DEL)",
+      "credentials": {
+        "redis": {
+          "id": "Dk1qZGgN6fFK7lop",
+          "name": "Redis AME"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "p1",
+              "name": "phone",
+              "value": "={{ $('Normalizar Datos (Set)').item.json.phone }}",
+              "type": "string"
+            },
+            {
+              "id": "p2",
+              "name": "message",
+              "value": "={{ $('Normalizar Datos (Set)').item.json.message }}",
+              "type": "string"
+            },
+            {
+              "id": "p3",
+              "name": "pushName",
+              "value": "={{ $('Normalizar Datos (Set)').item.json.pushName }}",
+              "type": "string"
+            },
+            {
+              "id": "p4",
+              "name": "orderId",
+              "value": "={{ JSON.parse($('Buscar Sesión (Redis GET)').item.json.value).orderId }}",
+              "type": "string"
+            },
+            {
+              "id": "p5",
+              "name": "sessionData",
+              "value": "={{ JSON.parse($('Buscar Sesión (Redis GET)').item.json.value) }}",
+              "type": "object"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        0,
+        192
+      ],
+      "id": "123e3e6b-445a-47d9-9c8d-fbe01cb2236a",
+      "name": "Parsear Sesión (Set)"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extraer ORD-ID del mensaje (sesión inactiva o nueva)\nconst message = $('Normalizar Datos (Set)').first().json.message;\nconst phone = $('Normalizar Datos (Set)').first().json.phone;\nconst pushName = $('Normalizar Datos (Set)').first().json.pushName;\nconst match = message.match(/ORD-[A-Z0-9]+/i);\nconst orderId = match ? match[0].toUpperCase() : null;\nreturn [{ json: { phone, message, pushName, orderId } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        224,
+        320
+      ],
+      "id": "03cb000b-499b-4d41-a27b-a075ba39ff93",
+      "name": "Extraer Order ID (Code)"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "has-order-check",
+              "leftValue": "={{ $json.orderId }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        448,
+        320
+      ],
+      "id": "8a7182f1-a489-4da9-a7bb-aaa1416b7d5b",
+      "name": "¿Tiene Order ID? (IF)"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=http://ame-evolution:8080/message/sendText/{{ $env.EVOLUTION_INSTANCE }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ number: $json.phone, text: '👋 ¡Hola! Para atenderte necesito el número de tu orden. Lo encuentras en el resumen de tu compra (Ej: ORD-260407001).', options: { delay: Math.floor(Math.random() * 2000 + 1000), presence: 'composing' } }) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        672,
+        416
+      ],
+      "id": "0fb31a11-52b3-45b2-a188-594014e46682",
+      "name": "Pedir ORD-ID al Cliente",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "EyeXJfTyrFXoF9U3",
+          "name": "Evolution API Auth"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "=http://host.docker.internal:3000/api/n8n/orders/{{ $json.orderId }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        672,
+        224
+      ],
+      "id": "dfa41a00-8b65-4036-b3f3-157050b51c96",
+      "name": "Obtener Datos de la Orden",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "1vgr1GsTDXKUulSp",
+          "name": "AME Backend API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "set",
+        "key": "=wa_session_{{ $('Normalizar Datos (Set)').item.json.phone }}",
+        "value": "={{ JSON.stringify({ orderId: $json.id, customerName: $json.customerName, customerPhone: $json.customerPhone, total: $json.total, status: $json.status, validationCode: $json.validationCode, paymentMethod: $json.paymentMethod, deliveryMethod: $json.deliveryMethod, lastActivity: new Date().toISOString() }) }}",
+        "expire": true,
+        "ttl": "={{ parseInt($env.WA_SESSION_TTL_S || '86400') }}"
+      },
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [
+        896,
+        224
+      ],
+      "id": "130b84be-4685-4125-9366-f6f4e532afe6",
+      "name": "Guardar sesión (Redis SET)",
+      "credentials": {
+        "redis": {
+          "id": "Dk1qZGgN6fFK7lop",
+          "name": "Redis AME"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "set",
+        "key": "=wa_order_{{ $('Obtener Datos de la Orden').item.json.id }}",
+        "value": "={{ $('Normalizar Datos (Set)').item.json.phone }}",
+        "expire": true,
+        "ttl": "={{ parseInt($env.WA_SESSION_TTL_S || '86400') }}"
+      },
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [
+        1120,
+        224
+      ],
+      "id": "91633421-555e-4b95-8b36-dd599027bb98",
+      "name": "Índice Inverso (Redis SET wa_order)",
+      "credentials": {
+        "redis": {
+          "id": "Dk1qZGgN6fFK7lop",
+          "name": "Redis AME"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "n1",
+              "name": "phone",
+              "value": "={{ $('Normalizar Datos (Set)').item.json.phone }}",
+              "type": "string"
+            },
+            {
+              "id": "n2",
+              "name": "message",
+              "value": "={{ $('Normalizar Datos (Set)').item.json.message }}",
+              "type": "string"
+            },
+            {
+              "id": "n3",
+              "name": "pushName",
+              "value": "={{ $('Normalizar Datos (Set)').item.json.pushName }}",
+              "type": "string"
+            },
+            {
+              "id": "n4",
+              "name": "orderId",
+              "value": "={{ $('Obtener Datos de la Orden').item.json.id }}",
+              "type": "string"
+            },
+            {
+              "id": "n5",
+              "name": "sessionData",
+              "value": "={{ { orderId: $('Obtener Datos de la Orden').item.json.id, customerName: $('Obtener Datos de la Orden').item.json.customerName, customerPhone: $('Obtener Datos de la Orden').item.json.customerPhone, total: $('Obtener Datos de la Orden').item.json.total, status: $('Obtener Datos de la Orden').item.json.status, validationCode: $('Obtener Datos de la Orden').item.json.validationCode, paymentMethod: $('Obtener Datos de la Orden').item.json.paymentMethod, deliveryMethod: $('Obtener Datos de la Orden').item.json.deliveryMethod, lastActivity: new Date().toISOString() } }}",
+              "type": "object"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1344,
+        224
+      ],
+      "id": "49e1427c-2a23-4a7f-801a-842f5c8e2e62",
+      "name": "Normalizar Salida"
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "OK",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        1792,
+        672
+      ],
+      "id": "1efac543-3ec8-465f-acaf-d26baf01fe5d",
+      "name": "Respond to Webhook"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "FJesVOgJLJwzNVKy",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/FJesVOgJLJwzNVKy",
+          "cachedResultName": "[WA] Agente IA_3"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "phone": "={{ $json.phone }}",
+            "message": "={{ $json.message }}",
+            "orderId": "={{ $json.orderId }}",
+            "sessionData": "={{ $json.sessionData }}",
+            "customerName": "={{ $json.pushName }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "phone",
+              "displayName": "phone",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "message",
+              "displayName": "message",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "customerName",
+              "displayName": "customerName",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "orderId",
+              "displayName": "orderId",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "sessionData",
+              "displayName": "sessionData",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        1568,
+        160
+      ],
+      "id": "71c46094-3550-4154-b240-d1f16ea237d4",
+      "name": "Call '[WA] Agente IA_3'"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Validar API Key (Code)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validar API Key (Code)": {
+      "main": [
+        [
+          {
+            "node": "Filtrar Mensajes Válidos (IF)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filtrar Mensajes Válidos (IF)": {
+      "main": [
+        [
+          {
+            "node": "Normalizar Datos (Set)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalizar Datos (Set)": {
+      "main": [
+        [
+          {
+            "node": "Generar Clave Rate Limit (Code)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generar Clave Rate Limit (Code)": {
+      "main": [
+        [
+          {
+            "node": "Incrementar Contador Rate (Redis INCR)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Incrementar Contador Rate (Redis INCR)": {
+      "main": [
+        [
+          {
+            "node": "Verificar Rate Limit (Code)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Verificar Rate Limit (Code)": {
+      "main": [
+        [
+          {
+            "node": "¿Primer Msg de la Hora? (IF)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Primer Msg de la Hora? (IF)": {
+      "main": [
+        [
+          {
+            "node": "Fijar TTL Rate Limit (Redis SET)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "¿Rate Limit Superado? (IF)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fijar TTL Rate Limit (Redis SET)": {
+      "main": [
+        [
+          {
+            "node": "¿Rate Limit Superado? (IF)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Rate Limit Superado? (IF)": {
+      "main": [
+        [
+          {
+            "node": "WA: Demasiados Mensajes",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Dedup: ¿msgId existe? (Redis GET)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WA: Demasiados Mensajes": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Dedup: ¿msgId existe? (Redis GET)": {
+      "main": [
+        [
+          {
+            "node": "¿Mensaje Nuevo? (IF)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Mensaje Nuevo? (IF)": {
+      "main": [
+        [
+          {
+            "node": "Marcar msgId procesado (Redis SET 60s)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Marcar msgId procesado (Redis SET 60s)": {
+      "main": [
+        [
+          {
+            "node": "Buscar Sesión (Redis GET)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar Sesión (Redis GET)": {
+      "main": [
+        [
+          {
+            "node": "¿Sesión Activa? (IF)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Sesión Activa? (IF)": {
+      "main": [
+        [
+          {
+            "node": "Verificar Inactividad (Code)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Extraer Order ID (Code)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Verificar Inactividad (Code)": {
+      "main": [
+        [
+          {
+            "node": "¿Sesión Inactiva? (IF)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Sesión Inactiva? (IF)": {
+      "main": [
+        [
+          {
+            "node": "Eliminar Sesión Inactiva (Redis DEL)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Parsear Sesión (Set)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Eliminar Sesión Inactiva (Redis DEL)": {
+      "main": [
+        [
+          {
+            "node": "Extraer Order ID (Code)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parsear Sesión (Set)": {
+      "main": [
+        [
+          {
+            "node": "Call '[WA] Agente IA_3'",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extraer Order ID (Code)": {
+      "main": [
+        [
+          {
+            "node": "¿Tiene Order ID? (IF)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Tiene Order ID? (IF)": {
+      "main": [
+        [
+          {
+            "node": "Obtener Datos de la Orden",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Pedir ORD-ID al Cliente",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Obtener Datos de la Orden": {
+      "main": [
+        [
+          {
+            "node": "Guardar sesión (Redis SET)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Guardar sesión (Redis SET)": {
+      "main": [
+        [
+          {
+            "node": "Índice Inverso (Redis SET wa_order)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Índice Inverso (Redis SET wa_order)": {
+      "main": [
+        [
+          {
+            "node": "Normalizar Salida",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalizar Salida": {
+      "main": [
+        [
+          {
+            "node": "Call '[WA] Agente IA_3'",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pedir ORD-ID al Cliente": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call '[WA] Agente IA_3'": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "3e9b9e7f-47c6-4f11-8ae2-93f70183cb16",
+  "meta": {
+    "instanceId": "1dfc926512b12d6a905e106ddbc3468cb0be558e17b3a86d6f552f9f3ea5779f"
+  },
+  "id": "zwd90FA4mr7136Iq",
+  "tags": [
+    {
+      "updatedAt": "2026-04-14T23:13:38.373Z",
+      "createdAt": "2026-04-14T23:13:38.373Z",
+      "id": "t3QGU09Gh1M8KuLq",
+      "name": "whatsapp"
+    }
+  ]
+}

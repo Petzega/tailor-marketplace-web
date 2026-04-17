@@ -1,5 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
+import { WHATSAPP_NUMBER } from "@/lib/constants";
 import { Facebook, Instagram, Laptop, ArrowRight, Store } from "lucide-react";
 
 export function Footer() {
@@ -104,7 +105,7 @@ export function Footer() {
                                 </p>
                             </div>
                             <a
-                                href="https://wa.me/51992431513?text=Hola,%20me%20gustaría%20recibir%20información%20para%20vender%20mis%20productos%20en%20AME"
+                                href={`https://wa.me/${WHATSAPP_NUMBER}?text=Hola,%20me%20gustaría%20recibir%20información%20para%20vender%20mis%20productos%20en%20AME`}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="inline-flex relative z-10 w-full items-center justify-center gap-2 bg-green-700 text-white px-4 py-3 rounded-xl text-sm font-bold hover:bg-green-800 transition-colors active:scale-95 mt-auto"
@@ -129,7 +130,7 @@ export function Footer() {
                                 </p>
                             </div>
                             <a
-                                href="https://wa.me/51992431513?text=Hola,%20me%20gustó%20la%20página%20de%20AME%20y%20quisiera%20cotizar%20una%20web%20para%20mi%20negocio"
+                                href={`https://wa.me/${WHATSAPP_NUMBER}?text=Hola,%20me%20gustó%20la%20página%20de%20AME%20y%20quisiera%20cotizar%20una%20web%20para%20mi%20negocio`}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="inline-flex relative z-10 w-full items-center justify-center gap-2 bg-gray-900 text-white px-4 py-3 rounded-xl text-sm font-bold hover:bg-black transition-colors active:scale-95 mt-auto"

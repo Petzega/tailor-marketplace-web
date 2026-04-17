@@ -10,7 +10,7 @@ import { generateWhatsAppTicket } from "@/lib/whatsapp";
 import { TermsModal } from "@/components/checkout/terms-modal";
 import { createOrder } from "@/actions/orders";
 
-const WHATSAPP_NUMBER = "51992431513";
+import { WHATSAPP_NUMBER } from "@/lib/constants";
 const DELIVERY_COST = 10.00;
 
 const PAYMENT_METHODS = [

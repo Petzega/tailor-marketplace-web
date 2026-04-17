@@ -1,0 +1,265 @@
+{
+  "name": "[WA] Notificación de Estado",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "order-status-changed",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [0, 0],
+      "id": "wf3-node-01-webhook",
+      "name": "Webhook: Cambio de Estado",
+      "webhookId": "wf3-order-status-changed-unique-id"
+    },
+    {
+      "parameters": {
+        "jsCode": "// 🔐 Validar Bearer token + campos requeridos\nconst authHeader = $json.headers['authorization'] || '';\nconst expected = $env.WEBHOOK_SECRET || '';\nif (!expected) throw new Error('WEBHOOK_SECRET not configured in n8n env vars');\nif (authHeader !== `Bearer ${expected}`) throw new Error('Unauthorized: Invalid webhook secret');\n\nconst { orderId, newStatus, customerPhone, customerName, total, previousStatus } = $json.body;\nif (!orderId || !newStatus || !customerPhone) throw new Error(`Missing fields: orderId=${orderId}, newStatus=${newStatus}, customerPhone=${customerPhone}`);\n\nreturn [{ json: { orderId, newStatus, previousStatus: previousStatus || 'PENDING', customerPhone, customerName: customerName || 'Cliente', total: total || 0 } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [224, 0],
+      "id": "wf3-node-02-validate",
+      "name": "Validar Token y Payload (Code)"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": { "caseSensitive": false, "leftValue": "", "typeValidation": "loose", "version": 3 },
+                "conditions": [{ "id": "sw-ip", "leftValue": "={{ $json.newStatus }}", "rightValue": "IN_PROGRESS", "operator": { "type": "string", "operation": "equals" } }],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "IN_PROGRESS"
+            },
+            {
+              "conditions": {
+                "options": { "caseSensitive": false, "leftValue": "", "typeValidation": "loose", "version": 3 },
+                "conditions": [{ "id": "sw-comp", "leftValue": "={{ $json.newStatus }}", "rightValue": "COMPLETED", "operator": { "type": "string", "operation": "equals" } }],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "COMPLETED"
+            },
+            {
+              "conditions": {
+                "options": { "caseSensitive": false, "leftValue": "", "typeValidation": "loose", "version": 3 },
+                "conditions": [{ "id": "sw-canc", "leftValue": "={{ $json.newStatus }}", "rightValue": "CANCELLED", "operator": { "type": "string", "operation": "equals" } }],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "CANCELLED"
+            }
+          ]
+        },
+        "options": { "fallbackOutput": "extra" }
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [448, 0],
+      "id": "wf3-node-03-switch",
+      "name": "Switch por Estado"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            { "id": "m-ip-1", "name": "waMessage", "value": "=✅ ¡Hola {{ $json.customerName }}! Tu pago ha sido *validado* por nuestro equipo. 🎉\n\nTu orden *{{ $json.orderId }}* está ahora *en preparación*.\n\nTotal: *S/ {{ $json.total }}*\n\nTe avisaremos cuando esté lista. ¡Gracias por confiar en The Tailor Marketplace! 🧵", "type": "string" },
+            { "id": "m-ip-2", "name": "phone", "value": "={{ $json.customerPhone }}", "type": "string" },
+            { "id": "m-ip-3", "name": "orderId", "value": "={{ $json.orderId }}", "type": "string" },
+            { "id": "m-ip-4", "name": "newStatus", "value": "={{ $json.newStatus }}", "type": "string" }
+          ]
+        }, "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [688, -160],
+      "id": "wf3-node-04a",
+      "name": "Mensaje IN_PROGRESS (Set)"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            { "id": "m-c-1", "name": "waMessage", "value": "=📦 ¡Hola {{ $json.customerName }}! Tu pedido *{{ $json.orderId }}* está *completado*.\n\nPuedes recogerlo en tienda o ya fue enviado según tu método de entrega. 🚚\n\nSi tienes dudas, responde este mensaje. ¡Gracias! 🙏", "type": "string" },
+            { "id": "m-c-2", "name": "phone", "value": "={{ $json.customerPhone }}", "type": "string" },
+            { "id": "m-c-3", "name": "orderId", "value": "={{ $json.orderId }}", "type": "string" },
+            { "id": "m-c-4", "name": "newStatus", "value": "={{ $json.newStatus }}", "type": "string" }
+          ]
+        }, "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [688, 0],
+      "id": "wf3-node-04b",
+      "name": "Mensaje COMPLETED (Set)"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            { "id": "m-ca-1", "name": "waMessage", "value": "=❌ Hola {{ $json.customerName }}, lamentamos informarte que tu orden *{{ $json.orderId }}* ha sido *cancelada*.\n\nSi no solicitaste la cancelación o tienes dudas, escríbenos y un asesor te atenderá pronto.\n\n¡Gracias por tu comprensión! 🙏", "type": "string" },
+            { "id": "m-ca-2", "name": "phone", "value": "={{ $json.customerPhone }}", "type": "string" },
+            { "id": "m-ca-3", "name": "orderId", "value": "={{ $json.orderId }}", "type": "string" },
+            { "id": "m-ca-4", "name": "newStatus", "value": "={{ $json.newStatus }}", "type": "string" }
+          ]
+        }, "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [688, 160],
+      "id": "wf3-node-04c",
+      "name": "Mensaje CANCELLED (Set)"
+    },
+    {
+      "parameters": {
+        "jsCode": "// 🕐 ANTI-BAN: Calcular delay humanizado para notificación\nconst minMs = parseInt($env.WA_TYPING_MIN_S || '1') * 1000;\nconst maxMs = parseInt($env.WA_TYPING_MAX_S || '4') * 1000;\nconst delay = Math.floor(Math.random() * (maxMs - minMs) + minMs);\nreturn [{ json: { ...$json, delay } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [912, 0],
+      "id": "wf3-delay-001",
+      "name": "Calcular Delay Humanizado (Code)"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=http://ame-evolution:8080/message/sendText/{{ $env.EVOLUTION_INSTANCE }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ number: $json.phone, text: $json.waMessage, options: { delay: $json.delay, presence: 'composing' } }) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [1136, 0],
+      "id": "wf3-node-05-send-wa",
+      "name": "Enviar WA al Cliente (Evolution)",
+      "credentials": {
+        "httpHeaderAuth": { "id": "EyeXJfTyrFXoF9U3", "name": "Evolution API Auth" }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "propertyName": "value",
+        "key": "=wa_session_{{ $json.phone }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [1360, 0],
+      "id": "wf3-node-06-redis-get",
+      "name": "Leer Sesión Redis (GET)",
+      "credentials": {
+        "redis": { "id": "Dk1qZGgN6fFK7lop", "name": "Redis AME" }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Actualizar status en la sesión Redis si existe\nconst raw = $json.value;\nconst newStatus = $('Calcular Delay Humanizado (Code)').first().json.newStatus;\nconst phone = $('Calcular Delay Humanizado (Code)').first().json.phone;\nif (!raw) return [{ json: { updated: false, phone, newStatus } }];\ntry {\n  const session = JSON.parse(raw);\n  session.status = newStatus;\n  session.lastActivity = new Date().toISOString();\n  return [{ json: { updated: true, updatedSession: JSON.stringify(session), phone, newStatus } }];\n} catch(e) {\n  return [{ json: { updated: false, phone, newStatus, error: e.message } }];\n}"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1584, 0],
+      "id": "wf3-node-07-merge",
+      "name": "Actualizar Status en Sesión (Code)"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict", "version": 3 },
+          "conditions": [{ "id": "upd-check", "leftValue": "={{ $json.updated }}", "rightValue": true, "operator": { "type": "boolean", "operation": "equals" } }],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [1808, 0],
+      "id": "wf3-node-08-if",
+      "name": "¿Hay Sesión para Actualizar? (IF)"
+    },
+    {
+      "parameters": {
+        "operation": "set",
+        "key": "=wa_session_{{ $json.phone }}",
+        "value": "={{ $json.updatedSession }}",
+        "expire": true,
+        "ttl": "={{ parseInt($env.WA_SESSION_TTL_S || '86400') }}"
+      },
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [2032, -80],
+      "id": "wf3-node-09-redis-set",
+      "name": "Guardar Sesión Actualizada (Redis SET)",
+      "credentials": {
+        "redis": { "id": "Dk1qZGgN6fFK7lop", "name": "Redis AME" }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ success: true, orderId: $('Validar Token y Payload (Code)').first().json.orderId, notified: true, status: $('Validar Token y Payload (Code)').first().json.newStatus }) }}",
+        "options": { "responseCode": 200 }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [2256, 0],
+      "id": "wf3-node-10-respond",
+      "name": "Respond 200 OK"
+    }
+  ],
+  "pinData": {
+    "Webhook: Cambio de Estado": [
+      {
+        "json": {
+          "headers": { "authorization": "Bearer 2be14e5a205d1028f212bb02d9ccbaa3dd94e76e00cf1b0d693d8ae57176a7e2", "content-type": "application/json" },
+          "params": {}, "query": {},
+          "body": { "orderId": "ORD-260414001", "newStatus": "IN_PROGRESS", "previousStatus": "PENDING", "customerPhone": "51992431513", "customerName": "Juan Pérez", "total": 150.00 },
+          "webhookUrl": "https://tu-n8n.ngrok.io/webhook/order-status-changed",
+          "executionMode": "test"
+        }
+      }
+    ]
+  },
+  "connections": {
+    "Webhook: Cambio de Estado": { "main": [[{ "node": "Validar Token y Payload (Code)", "type": "main", "index": 0 }]] },
+    "Validar Token y Payload (Code)": { "main": [[{ "node": "Switch por Estado", "type": "main", "index": 0 }]] },
+    "Switch por Estado": {
+      "main": [
+        [{ "node": "Mensaje IN_PROGRESS (Set)", "type": "main", "index": 0 }],
+        [{ "node": "Mensaje COMPLETED (Set)", "type": "main", "index": 0 }],
+        [{ "node": "Mensaje CANCELLED (Set)", "type": "main", "index": 0 }]
+      ]
+    },
+    "Mensaje IN_PROGRESS (Set)": { "main": [[{ "node": "Calcular Delay Humanizado (Code)", "type": "main", "index": 0 }]] },
+    "Mensaje COMPLETED (Set)": { "main": [[{ "node": "Calcular Delay Humanizado (Code)", "type": "main", "index": 0 }]] },
+    "Mensaje CANCELLED (Set)": { "main": [[{ "node": "Calcular Delay Humanizado (Code)", "type": "main", "index": 0 }]] },
+    "Calcular Delay Humanizado (Code)": { "main": [[{ "node": "Enviar WA al Cliente (Evolution)", "type": "main", "index": 0 }]] },
+    "Enviar WA al Cliente (Evolution)": { "main": [[{ "node": "Leer Sesión Redis (GET)", "type": "main", "index": 0 }]] },
+    "Leer Sesión Redis (GET)": { "main": [[{ "node": "Actualizar Status en Sesión (Code)", "type": "main", "index": 0 }]] },
+    "Actualizar Status en Sesión (Code)": { "main": [[{ "node": "¿Hay Sesión para Actualizar? (IF)", "type": "main", "index": 0 }]] },
+    "¿Hay Sesión para Actualizar? (IF)": {
+      "main": [
+        [{ "node": "Guardar Sesión Actualizada (Redis SET)", "type": "main", "index": 0 }],
+        [{ "node": "Respond 200 OK", "type": "main", "index": 0 }]
+      ]
+    },
+    "Guardar Sesión Actualizada (Redis SET)": { "main": [[{ "node": "Respond 200 OK", "type": "main", "index": 0 }]] }
+  },
+  "active": true,
+  "settings": { "executionOrder": "v1", "binaryMode": "separate", "availableInMCP": false },
+  "versionId": "wf3-v2-20260414-antiban",
+  "meta": { "templateCredsSetupCompleted": false, "instanceId": "1dfc926512b12d6a905e106ddbc3468cb0be558e17b3a86d6f552f9f3ea5779f" },
+  "id": "WF3-NEW-STATUS-NOTIFICATION",
+  "tags": [{ "createdAt": "2026-04-14", "updatedAt": "2026-04-14", "id": "wf-tag-notification", "name": "whatsapp" }]
+}

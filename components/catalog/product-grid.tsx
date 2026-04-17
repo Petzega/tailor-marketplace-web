@@ -1,5 +1,6 @@
 import { getProducts } from "@/actions/products";
 import Link from "next/link";
+import { WHATSAPP_NUMBER } from "@/lib/constants";
 import { PaginationControls } from "./pagination-controls";
 import { AutoCarousel } from "./auto-carousel";
 import { Calendar } from "lucide-react";
@@ -63,7 +64,7 @@ export async function ProductGrid({
         const isOutOfStock = product.stock === 0 && !isService; // 👈 SOLUCIÓN: Si es servicio, NUNCA está agotado
 
         const whatsappMessage = encodeURIComponent(`Hola, me interesa el ${isService ? 'servicio' : 'producto'}: ${product.name} (SKU: ${product.sku}). ¿Podrían darme más información?`);
-        const whatsappLink = `https://wa.me/51992431513?text=${whatsappMessage}`;
+        const whatsappLink = `https://wa.me/${WHATSAPP_NUMBER}?text=${whatsappMessage}`;
 
         const productToDisplay: Product = isCarousel ? { ...product, gallery: [] } : product;
 

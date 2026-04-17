@@ -59,3 +59,9 @@ docker volume rm ame-bot_ame_dbc <- elimina carpetas del volume
 
 # 7. generar clave cuando se necesite
 node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+
+# 8. Vaciar cache redis:
+docker exec ame-redis redis-cli -a 019b12b9a964d9a401a159ef07831bd002ec44b691515931772aa77608300b36 FLUSHALL
+
+# 9. Vaciar historial postres "chat"
+docker exec ame-postgres psql -U postgres -d postgres -c "TRUNCATE TABLE n8n_chat_history;"

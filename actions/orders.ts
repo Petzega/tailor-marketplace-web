@@ -275,10 +275,53 @@ export async function updateOrderStatus(rawData: { orderId: string; newStatus: s
 
         const { orderId, newStatus } = validation.data;
 
+        // 1. Obtener la orden ANTES de actualizar (para capturar previousStatus y datos del cliente)
+        const currentOrder = await db.order.findUnique({
+            where: { id: orderId },
+            select: {
+                status: true,
+                customerPhone: true,
+                customerName: true,
+                total: true,
+            }
+        });
+
+        if (!currentOrder) {
+            return { success: false, error: "Orden no encontrada." };
+        }
+
+        // 2. Actualizar el estado en la BD
         await db.order.update({
             where: { id: orderId },
             data: { status: newStatus }
         });
+
+        // 3. Notificar a n8n (WF3) para que avise al cliente por WhatsApp
+        //    Fire-and-forget: no bloquea la respuesta al admin si falla
+        const n8nWebhookUrl = process.env.N8N_ORDER_STATUS_WEBHOOK_URL;
+        const webhookSecret = process.env.WEBHOOK_SECRET;
+
+        if (n8nWebhookUrl && webhookSecret) {
+            fetch(n8nWebhookUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${webhookSecret}`,
+                },
+                body: JSON.stringify({
+                    orderId,
+                    newStatus,
+                    previousStatus: currentOrder.status,
+                    customerPhone: currentOrder.customerPhone,
+                    customerName: currentOrder.customerName,
+                    total: currentOrder.total,
+                }),
+            }).catch(err =>
+                console.error('[WF3] Error al notificar cambio de estado a n8n:', err)
+            );
+        } else {
+            console.warn('[WF3] N8N_ORDER_STATUS_WEBHOOK_URL o WEBHOOK_SECRET no configurados. Notificación WhatsApp omitida.');
+        }
 
         revalidatePath('/ame-studio-ops/orders');
         revalidatePath(`/ame-studio-ops/orders/${orderId}`);
@@ -288,4 +331,4 @@ export async function updateOrderStatus(rawData: { orderId: string; newStatus: s
         console.error("Error al actualizar el estado de la orden:", error);
         return { success: false, error: "No se pudo actualizar el estado o no tienes permisos." };
     }
-}
+}
