@@ -3,25 +3,11 @@
 import { db } from "@/lib/db";
 import { revalidatePath } from "next/cache";
 import { currentUser, auth } from "@clerk/nextjs/server";
-import { z } from "zod";
+import { serviceStatusSchema, saveServiceSchema } from "@/lib/schemas";
 
 // ============================================================================
-// ESQUEMAS (ZOD)
+// ESQUEMAS (ZOD) - Importados de @/lib/schemas
 // ============================================================================
-const serviceStatusSchema = z.enum(["PENDING", "FITTING", "READY", "DELIVERED"]);
-
-const saveServiceSchema = z.object({
-    id: z.string().optional(),
-    customerId: z.string().min(1, "El ID del cliente es obligatorio"),
-    serviceType: z.string().min(1, "El tipo de servicio es obligatorio"),
-    description: z.string().min(1),
-    serviceNotes: z.string().optional().nullable(),
-    price: z.coerce.number().nonnegative(),
-    deposit: z.coerce.number().nonnegative(),
-    fittingDate: z.string().optional().nullable(),
-    deliveryDate: z.string().optional().nullable(),
-    updatedMeasurements: z.string().optional().nullable(),
-});
 
 // ============================================================================
 // MIDDLEWARE AUTENTICACIÓN Y EXTRACCIÓN DE USUARIO (Para la Auditoría)

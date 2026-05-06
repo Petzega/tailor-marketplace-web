@@ -11,7 +11,7 @@ export function OrderStatusActions({ orderId, currentStatus }: { orderId: string
         if (newStatus === currentStatus) return;
 
         startTransition(async () => {
-            await updateOrderStatus(orderId, newStatus);
+            await updateOrderStatus({ orderId, newStatus });
         });
     };
 

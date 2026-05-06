@@ -3,7 +3,7 @@
 import { db } from "@/lib/db";
 import { revalidatePath } from "next/cache";
 import { currentUser, auth } from "@clerk/nextjs/server";
-import { z } from "zod";
+import { customerSchema } from "@/lib/schemas";
 
 // ============================================================================
 // MIDDLEWARE DE AUTENTICACIÓN ADMIN
@@ -36,19 +36,7 @@ async function requireAdminAuthWithUser() {
 }
 
 // ============================================================================
-// ESQUEMAS DE VALIDACIÓN (ZOD) - NUEVO
-// ============================================================================
-const customerSchema = z.object({
-    id: z.string().optional(),
-    docType: z.string().min(1, "El tipo de documento es requerido"),
-    documentNumber: z.string().min(1, "El número de documento es requerido"),
-    name: z.string().min(1, "El nombre es requerido"),
-    phone: z.string().optional(),
-    address: z.string().optional(),
-    measurements: z.string().optional(),
-    notes: z.string().optional(),
-});
-
+// ESQUEMAS DE VALIDACIÓN (ZOD) - Importados de @/lib/schemas
 // ============================================================================
 // MÉTODOS PRIVADOS
 // ============================================================================

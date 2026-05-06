@@ -10,20 +10,20 @@ type OrderItemProps = {
     id: string;
     quantity: number;
     price: number;
-    size?: string;
-    product: { name: string; imageUrl?: string };
+    size?: string | null;
+    product: { name: string; imageUrl?: string | null };
 };
 type OrderProps = {
     id: string;
     validationCode: string;
     status: string;
     customerName: string;
-    customerPhone?: string;
+    customerPhone?: string | null;
     customerDocType: string;
     customerDocument: string;
     deliveryMethod: string;
-    address?: string;
-    reference?: string;
+    address?: string | null;
+    reference?: string | null;
     paymentMethod: string;
     subtotal: number;
     deliveryCost: number;
@@ -37,7 +37,7 @@ export function OrderDetailsSheet({ order }: { order: OrderProps }) {
 
     const handleStatusChange = async (newStatus: string) => {
         setIsUpdating(true);
-        const res = await updateOrderStatus(order.id, newStatus);
+        const res = await updateOrderStatus({ orderId: order.id, newStatus });
         if (res.success) {
             router.refresh();
         }

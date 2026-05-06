@@ -3,40 +3,11 @@
 import { db } from "@/lib/db";
 import { revalidatePath } from "next/cache";
 import {auth, currentUser} from "@clerk/nextjs/server";
-import { z } from "zod";
+import { createOrderSchema, updateStatusSchema } from "@/lib/schemas";
 
 // ============================================================================
-// 1. ESQUEMAS DE VALIDACIÓN (ZOD)
+// 1. ESQUEMAS DE VALIDACIÓN (ZOD) - Importados de @/lib/schemas
 // ============================================================================
-
-const orderItemSchema = z.object({
-    id: z.string().min(1, "El ID del producto es requerido"),
-    quantity: z.number().int().positive("La cantidad debe ser mayor a 0"),
-    price: z.number().nonnegative("El precio no puede ser negativo"),
-    size: z.string().optional(),
-});
-
-const createOrderSchema = z.object({
-    customerData: z.object({
-        name: z.string().min(1, "El nombre es requerido").max(100),
-        docType: z.string().min(1, "El tipo de documento es requerido"),
-        documentNumber: z.string().min(1, "El número de documento es requerido"),
-        phone: z.string().min(1, "El teléfono es requerido"),
-        address: z.string().optional(),
-        reference: z.string().optional(),
-    }),
-    items: z.array(orderItemSchema).min(1, "La orden debe contener al menos un producto").max(50, "La orden no puede contener más de 50 productos"),
-    deliveryMethod: z.string().min(1),
-    paymentMethod: z.string().min(1),
-    subtotal: z.number().nonnegative(),
-    deliveryCost: z.number().nonnegative(),
-    finalTotal: z.number().nonnegative(),
-});
-
-const updateStatusSchema = z.object({
-    orderId: z.string().min(1),
-    newStatus: z.string().min(1), // Opcional: Cambiar a z.enum(['PENDING', 'COMPLETED', ...]) si tienes estados fijos
-});
 
 // ============================================================================
 // 2. MIDDLEWARE DE AUTENTICACIÓN PARA ADMIN (SERVER SIDE)

@@ -1,7 +1,7 @@
 import { getKanbanServices } from "@/actions/services";
 import { db } from "@/lib/db";
 import { KanbanBoard } from "@/components/admin/kanban-board";
-import { ServiceFormSheet } from "@/components/admin/service-form-sheet";
+import { ServiceFormSheet, type ServiceEditProps } from "@/components/admin/service-form-sheet";
 import { Scissors } from "lucide-react";
 import Link from "next/link";
 
@@ -18,11 +18,11 @@ export default async function ServicesPage({ searchParams }: ServicesPageProps) 
     const editId = typeof params?.edit === 'string' ? params.edit : undefined;
 
     // 2. Traer los datos si estamos editando
-    let serviceToEdit = null;
+    let serviceToEdit: ServiceEditProps | undefined = undefined;
     if (editId) {
         serviceToEdit = await db.service.findUnique({
             where: { id: editId }
-        });
+        }) ?? undefined;
     }
 
     // 3. Traer la lista de clientes para el desplegable del formulario

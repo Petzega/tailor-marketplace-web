@@ -8,10 +8,16 @@ import { useUnsavedChanges } from "@/hooks/use-unsaved-changes";
 import { UnsavedChangesModal } from "@/components/admin/unsaved-changes-modal";
 
 type ServiceCustomer = { id: string; name: string; documentNumber: string; docType?: string };
-type ServiceEditProps = {
-    id?: string; customerId?: string; serviceType?: string; description?: string;
-    serviceNotes?: string; price?: number; deposit?: number;
-    fittingDate?: string | Date | null; deliveryDate?: string | Date | null;
+export type ServiceEditProps = {
+    id?: string;
+    customerId?: string | null;
+    serviceType?: string | null;
+    description?: string | null;
+    serviceNotes?: string | null;
+    price?: number;
+    deposit?: number;
+    fittingDate?: string | Date | null;
+    deliveryDate?: string | Date | null;
 };
 
 export function ServiceFormSheet({ serviceToEdit, customers }: { serviceToEdit?: ServiceEditProps, customers: ServiceCustomer[] }) {
@@ -44,6 +50,7 @@ export function ServiceFormSheet({ serviceToEdit, customers }: { serviceToEdit?:
         if (!date) return "";
         return new Date(date).toISOString().split('T')[0];
     };
+    const orEmpty = (val?: string | null) => val ?? "";
 
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
@@ -133,9 +140,9 @@ export function ServiceFormSheet({ serviceToEdit, customers }: { serviceToEdit?:
 
                         <div className="space-y-4 pt-2">
                             <h3 className="text-[11px] font-bold text-gray-400 uppercase tracking-widest border-b pb-2 flex items-center gap-1"><Scissors size={14} /> Detalle del Servicio</h3>
-                            <div><label className="block text-xs font-bold text-gray-700 mb-1">Tipo de Trabajo *</label><input required name="serviceType" defaultValue={serviceToEdit?.serviceType} placeholder="Ej: Entalle de Vestido de Novia" className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm outline-none focus:border-green-500" /></div>
-                            <div><label className="block text-xs font-bold text-gray-700 mb-1">Descripción de la prenda *</label><textarea required name="description" defaultValue={serviceToEdit?.description} rows={2} placeholder="Ej: Vestido blanco talla M con encaje..." className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm outline-none focus:border-green-500 resize-none"></textarea></div>
-                            <div><label className="block text-xs font-bold text-gray-700 mb-1">Instrucciones / Notas para el Taller</label><textarea name="serviceNotes" defaultValue={serviceToEdit?.serviceNotes} rows={2} placeholder="Ej: Reducir 2cm de cintura y subir basta..." className="w-full px-3 py-2 bg-blue-50/50 border border-blue-100 rounded-lg text-sm outline-none focus:border-blue-500 resize-none"></textarea></div>
+                            <div><label className="block text-xs font-bold text-gray-700 mb-1">Tipo de Trabajo *</label><input required name="serviceType" defaultValue={orEmpty(serviceToEdit?.serviceType)} placeholder="Ej: Entalle de Vestido de Novia" className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm outline-none focus:border-green-500" /></div>
+                            <div><label className="block text-xs font-bold text-gray-700 mb-1">Descripción de la prenda *</label><textarea required name="description" defaultValue={orEmpty(serviceToEdit?.description)} rows={2} placeholder="Ej: Vestido blanco talla M con encaje..." className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm outline-none focus:border-green-500 resize-none"></textarea></div>
+                            <div><label className="block text-xs font-bold text-gray-700 mb-1">Instrucciones / Notas para el Taller</label><textarea name="serviceNotes" defaultValue={orEmpty(serviceToEdit?.serviceNotes)} rows={2} placeholder="Ej: Reducir 2cm de cintura y subir basta..." className="w-full px-3 py-2 bg-blue-50/50 border border-blue-100 rounded-lg text-sm outline-none focus:border-blue-500 resize-none"></textarea></div>
                         </div>
 
                         <div className="space-y-4 pt-2">

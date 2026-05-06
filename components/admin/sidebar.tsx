@@ -1,7 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { LayoutDashboard, ShoppingBag, Package, Settings, Users, Scissors } from "lucide-react";
-import { UserButton, ClerkLoaded, ClerkLoading } from "@clerk/nextjs";
+import { UserButton } from "@clerk/nextjs";
 
 export function AdminSidebar({ pendingOrders }: { pendingOrders?: number }) {
     return (

@@ -8,6 +8,7 @@ import { Prisma } from "@prisma/client";
 import { v2 as cloudinary } from 'cloudinary';
 import { currentUser, auth } from "@clerk/nextjs/server";
 import { z } from "zod";
+import { productSizeSchema, productSchema } from "@/lib/schemas";
 
 // ============================================================================
 // CONFIGURACIÓN Y UTILIDADES DE CLOUDINARY
@@ -56,25 +57,8 @@ async function deleteFromCloudinary(imageUrl: string) {
 }
 
 // ============================================================================
-// ESQUEMAS DE VALIDACIÓN (ZOD)
+// ESQUEMAS DE VALIDACIÓN (ZOD) - Importados de @/lib/schemas
 // ============================================================================
-const productSizeSchema = z.object({
-    size: z.string().min(1),
-    stock: z.coerce.number().int().nonnegative()
-});
-
-const productSchema = z.object({
-    name: z.string().min(1, "El nombre es requerido"),
-    description: z.string().optional(),
-    price: z.coerce.number().nonnegative("El precio no puede ser negativo"),
-    // 👈 CORRECCIÓN AQUÍ: Evitamos que un string vacío rompa Zod
-    stock: z.union([z.coerce.number().int().nonnegative(), z.string().transform(v => Number(v) || 0)]).default(0),
-    category: z.string().min(1, "La categoría es requerida"),
-    gender: z.string().nullable().optional(),
-    clothingType: z.string().nullable().optional(),
-    imageUrl: z.string().optional(),
-    sizesData: z.string().optional(),
-});
 
 // ============================================================================
 // MIDDLEWARE DE AUTENTICACIÓN ADMIN Y AUDITORÍA
@@ -244,7 +228,7 @@ export async function createProduct(formData: FormData) {
             try {
                 const parsed = JSON.parse(data.sizesData);
                 validSizes = z.array(productSizeSchema).parse(parsed).filter(s => s.size.trim() !== '');
-            } catch (_e) {
+            } catch {
                 return { success: false, error: "El formato de las tallas es inválido." };
             }
         }
@@ -257,7 +241,6 @@ export async function createProduct(formData: FormData) {
         let finalImageUrl = data.imageUrl;
 
         if (imageFile && imageFile.size > 0) {
-            // 👇 NUEVA VALIDACIÓN DE SEGURIDAD (5MB y solo imágenes)
             if (imageFile.size > 5 * 1024 * 1024) {
                 return { success: false, error: "El archivo excede el límite de 5MB." };
             }
@@ -267,7 +250,7 @@ export async function createProduct(formData: FormData) {
 
             try {
                 finalImageUrl = await uploadToCloudinary(imageFile);
-            } catch (_error) {
+            } catch {
                 return { success: false, error: "Falló la subida de la imagen a Cloudinary." };
             }
         }
@@ -337,7 +320,7 @@ export async function updateProduct(id: string, formData: FormData) {
             try {
                 const parsed = JSON.parse(data.sizesData);
                 validSizes = z.array(productSizeSchema).parse(parsed).filter(s => s.size.trim() !== '');
-            } catch (_e) {
+            } catch {
                 return { success: false, error: "El formato de las tallas es inválido." };
             }
         }
@@ -351,7 +334,6 @@ export async function updateProduct(id: string, formData: FormData) {
         let shouldDeleteOldImage = false;
 
         if (imageFile && imageFile.size > 0) {
-            // 👇 NUEVA VALIDACIÓN DE SEGURIDAD (5MB y solo imágenes)
             if (imageFile.size > 5 * 1024 * 1024) {
                 return { success: false, error: "El archivo excede el límite de 5MB." };
             }
@@ -362,7 +344,7 @@ export async function updateProduct(id: string, formData: FormData) {
             try {
                 finalImageUrl = await uploadToCloudinary(imageFile);
                 shouldDeleteOldImage = true;
-            } catch (_error) {
+            } catch {
                 return { success: false, error: "Falló la subida de la nueva imagen." };
             }
         } else if (data.imageUrl && data.imageUrl.trim() !== "") {

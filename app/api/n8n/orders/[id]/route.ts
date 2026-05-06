@@ -43,12 +43,13 @@ export async function GET(
             }, { status: 200 });
         }
 
-        // Devolvemos la orden SIN el código de validación por seguridad (si está autorizado)
-        const { validationCode, ...safeOrder } = order;
-        
         // Generar tracking link internamente para el n8n AI Agent
         const appDomain = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
         const trackingLink = `${appDomain}/order/${order.id}?token=${order.validationCode}`;
+
+        // Devolvemos la orden SIN el código de validación por seguridad
+        const safeOrder = { ...order };
+        delete (safeOrder as { validationCode?: string }).validationCode;
 
         return NextResponse.json({ ...safeOrder, trackingLink, restricted: false }, { status: 200 });
 
