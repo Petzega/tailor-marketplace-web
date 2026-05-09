@@ -2,8 +2,9 @@
 
 import { db } from "@/lib/db";
 import { revalidatePath } from "next/cache";
-import { currentUser, auth } from "@clerk/nextjs/server";
+import { currentUser } from "@clerk/nextjs/server";
 import { serviceStatusSchema, saveServiceSchema } from "@/lib/schemas";
+import { requireAdminAuth } from "@/lib/auth";
 
 // ============================================================================
 // ESQUEMAS (ZOD) - Importados de @/lib/schemas
@@ -13,31 +14,12 @@ import { serviceStatusSchema, saveServiceSchema } from "@/lib/schemas";
 // MIDDLEWARE AUTENTICACIÓN Y EXTRACCIÓN DE USUARIO (Para la Auditoría)
 // ============================================================================
 async function requireAdminAuthWithUser() {
-    const { userId } = await auth();
-    if (!userId) {
-        throw new Error("Acceso denegado: No autenticado en la capa de red.");
-    }
-
+    const userId = await requireAdminAuth();
     const user = await currentUser();
 
-    // 1. Verificamos que esté logueado
-    if (!user) {
-        throw new Error("Acceso denegado: No autenticado.");
-    }
-
-    // 2. Verificamos explícitamente que su correo esté en la lista de administradores
-    const allowedEmails = process.env.ADMIN_EMAILS?.split(",") || [];
-    const isAuthorized = user.emailAddresses.some(
-        (email) => allowedEmails.includes(email.emailAddress)
-    );
-
-    if (!isAuthorized) {
-        throw new Error("Acceso denegado: Operación restringida solo para administradores.");
-    }
-
     return {
-        userId: user.id,
-        userEmail: user.emailAddresses[0]?.emailAddress || "correo_desconocido"
+        userId,
+        userEmail: user?.emailAddresses[0]?.emailAddress || "correo_desconocido"
     };
 }
 

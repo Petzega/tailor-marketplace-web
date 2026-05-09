@@ -14,7 +14,6 @@ model Product {
   description String?
   price       Float
 
-  // 💡 Mantenemos este como "Stock Total" para no romper el catálogo actual
   stock Int @default(0)
 
   imageUrl String?
@@ -22,7 +21,7 @@ model Product {
 
   gender       String?
   clothingType String?
-  ageGroup     String? @default("ADULT") // 👈 NUEVO: Rango de edad (ADULT, KIDS, BABY)
+  ageGroup     String? @default("ADULT")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -30,7 +29,11 @@ model Product {
 
   gallery    ProductImage[]
   sizes      ProductSize[]
-  orderItems OrderItem[] // Relación inversa para saber en qué órdenes está este producto
+  orderItems OrderItem[]
+
+  @@index([category])
+  @@index([sku])
+  @@index([createdAt])
 }
 
 model ProductSize {
@@ -56,23 +59,20 @@ model ProductImage {
 // 👇 NUEVOS MODELOS PARA GESTIÓN DE ÓRDENES Y N8N
 
 model Order {
-  id             String @id @default(cuid()) // Número de orden base (ej: clr5a1...)
-  status         String @default("PENDING") // PENDING, IN_PROGRESS, CANCELLED, COMPLETED
-  validationCode String @unique // Código secreto de 6 letras/números para el agente n8n
+  id             String @id @default(cuid())
+  status         String @default("PENDING")
+  validationCode String @unique
 
-  // Datos del Cliente
   customerName     String
   customerPhone    String
-  customerDocType  String @default("DNI") // "DNI", "RUC", "CE", "PASAPORTE"
-  customerDocument String // El número ingresado por el usuario
+  customerDocType  String @default("DNI")
+  customerDocument String
 
-  // Datos Logísticos
-  deliveryMethod String // "STORE", "DELIVERY"
-  address        String? // Opcional si es "STORE"
+  deliveryMethod String
+  address        String?
   reference      String?
 
-  // Finanzas
-  paymentMethod String // YAPE, PLIN, TRANSFERENCIA, EFECTIVO
+  paymentMethod String
   subtotal      Float
   deliveryCost  Float  @default(0)
   total         Float
@@ -80,9 +80,14 @@ model Order {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  items      OrderItem[] // Los productos que componen esta orden
+  items      OrderItem[]
   customer   Customer?   @relation(fields: [customerId], references: [id])
   customerId String?
+
+  @@index([customerDocument])
+  @@index([customerPhone])
+  @@index([status, createdAt])
+  @@index([validationCode])
 }
 
 model OrderItem {

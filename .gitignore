@@ -36,6 +36,18 @@ yarn-error.log*
 # env files (can opt-in for committing if needed)
 .env.local
 
+# debug files
+eslint-output*.json
+tsc-output*.txt
+Escenarios AME.*
+
+# n8n workflow backups
+ame-bot/workflows/ame-wf/back/
+ame-bot/workflows/ame-workflow*.json
+ame-bot/workflows/ame-n8n.json
+ame-bot/workflows/Get orders by document.json
+ame-bot/workflows/IA Gemini Agent.json
+
 # vercel
 .vercel
 

@@ -2,42 +2,16 @@
 
 import { db } from "@/lib/db";
 import { revalidatePath } from "next/cache";
-import {auth, currentUser} from "@clerk/nextjs/server";
 import { createOrderSchema, updateStatusSchema } from "@/lib/schemas";
+import { generateValidationCode } from "@/lib/utils";
+import { requireAdminAuth } from "@/lib/auth";
 
 // ============================================================================
 // 1. ESQUEMAS DE VALIDACIÓN (ZOD) - Importados de @/lib/schemas
 // ============================================================================
 
 // ============================================================================
-// 2. MIDDLEWARE DE AUTENTICACIÓN PARA ADMIN (SERVER SIDE)
-// ============================================================================
-async function requireAdminAuth() {
-    const { userId } = await auth();
-    if (!userId) {
-        throw new Error("Acceso denegado: No autenticado en la capa de red.");
-    }
-
-    const user = await currentUser();
-
-    if (!user) {
-        throw new Error("Acceso denegado: No autenticado.");
-    }
-
-    const allowedEmails = process.env.ADMIN_EMAILS?.split(",") || [];
-    const isAuthorized = user.emailAddresses.some(
-        (email) => allowedEmails.includes(email.emailAddress)
-    );
-
-    if (!isAuthorized) {
-        throw new Error("Acceso denegado: Operación restringida solo para administradores.");
-    }
-
-    return user.id;
-}
-
-// ============================================================================
-// 3. SERVER ACTIONS - PÚBLICOS (E-COMMERCE)
+// 2. SERVER ACTIONS - PÚBLICOS (E-COMMERCE)
 // ============================================================================
 
 export async function createOrder(rawData: unknown) {
@@ -70,15 +44,6 @@ export async function createOrder(rawData: unknown) {
 
         const shortId = `ORD-${datePrefix}${sequence.toString().padStart(3, "0")}`;
 
-        const generateValidationCode = () => {
-            const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-            let result = '';
-            for (let i = 0; i < 6; i++) {
-                result += chars.charAt(Math.floor(Math.random() * chars.length));
-            }
-            return result;
-        };
-
         let token = generateValidationCode();
         let isUnique = false;
         while (!isUnique) {
@@ -90,32 +55,85 @@ export async function createOrder(rawData: unknown) {
             }
         }
 
-        // 3. Inserción Atómica (Prisma maneja inserts anidados como una transacción automática)
-        const order = await db.order.create({
-            data: {
-                id: shortId,
-                validationCode: token,
-                customerDocType: data.customerData.docType,
-                customerDocument: data.customerData.documentNumber,
-                customerName: data.customerData.name,
-                customerPhone: data.customerData.phone,
-                address: data.customerData.address || null,
-                reference: data.customerData.reference || null,
-                deliveryMethod: data.deliveryMethod,
-                paymentMethod: data.paymentMethod,
-                subtotal: data.subtotal,
-                deliveryCost: data.deliveryCost,
-                total: data.finalTotal,
-                items: {
-                    create: data.items.map((item) => ({
-                        productId: item.id,
-                        quantity: item.quantity,
-                        price: item.price,
-                        size: item.size || null,
-                    }))
+        // 3. Verificar stock disponible dentro de transacción
+        const order = await db.$transaction(async (tx) => {
+            // Verificar stock para cada item
+            for (const item of data.items) {
+                if (item.size) {
+                    const productSize = await tx.productSize.findUnique({
+                        where: { productId_size: { productId: item.id, size: item.size } }
+                    });
+                    if (!productSize || productSize.stock < item.quantity) {
+                        throw new Error(`Stock insuficiente para producto ${item.id} talla ${item.size}`);
+                    }
+                } else {
+                    const product = await tx.product.findUnique({ where: { id: item.id } });
+                    if (!product || product.stock < item.quantity) {
+                        throw new Error(`Stock insuficiente para producto ${item.id}`);
+                    }
                 }
             }
+
+            // Crear la orden
+            const createdOrder = await tx.order.create({
+                data: {
+                    id: shortId,
+                    validationCode: token,
+                    customerDocType: data.customerData.docType,
+                    customerDocument: data.customerData.documentNumber,
+                    customerName: data.customerData.name,
+                    customerPhone: data.customerData.phone,
+                    address: data.customerData.address || null,
+                    reference: data.customerData.reference || null,
+                    deliveryMethod: data.deliveryMethod,
+                    paymentMethod: data.paymentMethod,
+                    subtotal: data.subtotal,
+                    deliveryCost: data.deliveryCost,
+                    total: data.finalTotal,
+                    items: {
+                        create: data.items.map((item) => ({
+                            productId: item.id,
+                            quantity: item.quantity,
+                            price: item.price,
+                            size: item.size || null,
+                        }))
+                    }
+                }
+            });
+
+            // Descontar stock
+            for (const item of data.items) {
+                if (item.size) {
+                    await tx.productSize.update({
+                        where: { productId_size: { productId: item.id, size: item.size } },
+                        data: { stock: { decrement: item.quantity } }
+                    });
+                } else {
+                    await tx.product.update({
+                        where: { id: item.id },
+                        data: { stock: { decrement: item.quantity } }
+                    });
+                }
+            }
+
+            return createdOrder;
         });
+
+        // Notificar al vendedor por n8n (fire-and-forget)
+        const n8nNewOrderWebhook = process.env.N8N_NEW_ORDER_WEBHOOK_URL;
+        if (n8nNewOrderWebhook) {
+            fetch(n8nNewOrderWebhook, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    orderId: order.id,
+                    customerName: order.customerName,
+                    customerPhone: order.customerPhone,
+                    total: order.total,
+                    items: data.items.map(i => ({ id: i.id, quantity: i.quantity, price: i.price }))
+                })
+            }).catch(err => console.error("[n8n] Error notificando nueva orden:", err));
+        }
 
         return { success: true, orderId: order.id, token: order.validationCode };
     } catch (error) {
@@ -125,7 +143,7 @@ export async function createOrder(rawData: unknown) {
 }
 
 // ============================================================================
-// 4. SERVER ACTIONS - PRIVADOS (AME STUDIO OPS)
+// 3. SERVER ACTIONS - PRIVADOS (AME STUDIO OPS)
 // ============================================================================
 
 export async function getOrders(

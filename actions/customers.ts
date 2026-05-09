@@ -2,36 +2,20 @@
 
 import { db } from "@/lib/db";
 import { revalidatePath } from "next/cache";
-import { currentUser, auth } from "@clerk/nextjs/server";
+import { currentUser } from "@clerk/nextjs/server";
 import { customerSchema } from "@/lib/schemas";
+import { requireAdminAuth } from "@/lib/auth";
 
 // ============================================================================
 // MIDDLEWARE DE AUTENTICACIÓN ADMIN
 // ============================================================================
 async function requireAdminAuthWithUser() {
-    const { userId } = await auth();
-    if (!userId) {
-        throw new Error("Acceso denegado: No autenticado en la capa de red.");
-    }
-
+    const userId = await requireAdminAuth();
     const user = await currentUser();
 
-    if (!user) {
-        throw new Error("Acceso denegado: No autenticado.");
-    }
-
-    const allowedEmails = process.env.ADMIN_EMAILS?.split(",") || [];
-    const isAuthorized = user.emailAddresses.some(
-        (email) => allowedEmails.includes(email.emailAddress)
-    );
-
-    if (!isAuthorized) {
-        throw new Error("Acceso denegado: Operación restringida solo para administradores.");
-    }
-
     return {
-        userId: user.id,
-        userEmail: user.emailAddresses[0]?.emailAddress || "correo_desconocido"
+        userId,
+        userEmail: user?.emailAddresses[0]?.emailAddress || "correo_desconocido"
     };
 }
 
